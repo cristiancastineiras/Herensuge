@@ -40,34 +40,42 @@ internal sealed class AccountEndpoints : IEndpoint
         RouteGroupBuilder group = AuthRoutes.Group(app);
 
         group.MapGet("/providers", (IOptions<ExternalProvidersOptions> options) =>
-            Results.Ok(new ProvidersResponse(options.Value.GetConfiguredProviders())));
+            Results.Ok(new ProvidersResponse(options.Value.GetConfiguredProviders())))
+            .Produces<ProvidersResponse>();
 
         group.MapPost("/register", async (RegisterRequest request, ICommandHandler<RegisterUserCommand> handler, CancellationToken cancellationToken) =>
                 (await handler.Handle(new RegisterUserCommand(request.Email, request.Password, request.DisplayName), cancellationToken))
                     .Match(() => Results.Accepted()))
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces(StatusCodes.Status202Accepted);
 
         group.MapPost("/verify-email", async (TokenRequest request, ICommandHandler<VerifyEmailCommand> handler, CancellationToken cancellationToken) =>
                 (await handler.Handle(new VerifyEmailCommand(request.Token), cancellationToken)).Match(Results.NoContent))
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces(StatusCodes.Status204NoContent);
 
         group.MapPost("/verify-email/resend", async (EmailRequest request, ICommandHandler<ResendEmailVerificationCommand> handler, CancellationToken cancellationToken) =>
                 (await handler.Handle(new ResendEmailVerificationCommand(request.Email), cancellationToken)).Match(() => Results.Accepted()))
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces(StatusCodes.Status202Accepted);
 
         group.MapPost("/password/forgot", async (EmailRequest request, ICommandHandler<RequestPasswordResetCommand> handler, CancellationToken cancellationToken) =>
                 (await handler.Handle(new RequestPasswordResetCommand(request.Email), cancellationToken)).Match(() => Results.Accepted()))
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces(StatusCodes.Status202Accepted);
 
         group.MapPost("/password/reset", async (ResetPasswordRequest request, ICommandHandler<ResetPasswordCommand> handler, CancellationToken cancellationToken) =>
                 (await handler.Handle(new ResetPasswordCommand(request.Token, request.NewPassword), cancellationToken)).Match(Results.NoContent))
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces(StatusCodes.Status204NoContent);
 
         group.MapPost("/email-change/confirm", async (TokenRequest request, ICommandHandler<ConfirmEmailChangeCommand> handler, CancellationToken cancellationToken) =>
                 (await handler.Handle(new ConfirmEmailChangeCommand(request.Token), cancellationToken)).Match(Results.NoContent))
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces(StatusCodes.Status204NoContent);
 
-        group.MapGet("/session", GetSessionAsync);
+        group.MapGet("/session", GetSessionAsync)
+            .Produces<SessionStateResponse>();
 
         group.MapPost("/sign-out", async (HttpContext httpContext, ICommandHandler<SignOutCommand> handler, CancellationToken cancellationToken) =>
         {
@@ -79,7 +87,8 @@ internal sealed class AccountEndpoints : IEndpoint
 
             await IdentityProviderSession.SignOutAsync(httpContext);
             return Results.NoContent();
-        });
+        })
+            .Produces(StatusCodes.Status204NoContent);
     }
 
     private static async Task<IResult> GetSessionAsync(

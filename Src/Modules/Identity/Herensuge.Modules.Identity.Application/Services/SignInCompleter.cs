@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Herensuge.Common.Application.Context;
 using Herensuge.Modules.Identity.Domain.Sessions;
 using Herensuge.Modules.Identity.Domain.Users;
@@ -10,6 +8,7 @@ namespace Herensuge.Modules.Identity.Application.Services;
 public sealed class SignInCompleter(
     IUserSessionRepository sessions,
     IRequestContext requestContext,
+    ISecretHasher hasher,
     TimeProvider timeProvider)
 {
     public UserSession Complete(User user, IEnumerable<string> authenticationMethods)
@@ -19,7 +18,7 @@ public sealed class SignInCompleter(
 
         string? deviceIdHash = string.IsNullOrEmpty(requestContext.DeviceId)
             ? null
-            : Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(requestContext.DeviceId)));
+            : hasher.Hash("identity.device_id", requestContext.DeviceId);
 
         if (deviceIdHash is not null)
         {

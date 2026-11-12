@@ -1,0 +1,32 @@
+{
+	"name": "@paquetes/componentes",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"sideEffects": false,
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"clean": "rimraf .turbo"
+	},
+	"dependencies": {
+		"@paquetes/api": "workspace:*",
+		"@paquetes/utiles": "workspace:*",
+		"uqr": "catalog:"
+	},
+	"devDependencies": {
+		"@paquetes/configuracion-ts": "workspace:*",
+		"@tanstack/react-query": "catalog:",
+		"@types/react": "catalog:",
+		"react": "catalog:",
+		"rimraf": "catalog:",
+		"typescript": "catalog:",
+		"vite": "catalog:"
+	},
+	"peerDependencies": {
+		"@tanstack/react-query": "^5.0.0",
+		"react": "^19.0.0"
+	}
+}

@@ -1,10 +1,11 @@
+using Herensuge.Common.Application.Security;
 using System.Data.Common;
 using Dapper;
 using Herensuge.Common.Application.Data;
 
 namespace Herensuge.Modules.Tenancy.Application.Invitations.GetInvitations;
 
-internal sealed class GetInvitationsQueryHandler(IDbConnectionFactory dbConnectionFactory, TimeProvider timeProvider)
+internal sealed class GetInvitationsQueryHandler(IDbConnectionFactory dbConnectionFactory, IDataEncryptor encryptor, TimeProvider timeProvider)
     : IQueryHandler<GetInvitationsQuery, IReadOnlyList<InvitationResponse>>
 {
     private const string Sql =
@@ -22,6 +23,7 @@ internal sealed class GetInvitationsQueryHandler(IDbConnectionFactory dbConnecti
             Sql,
             new { query.TenantId, Now = timeProvider.GetUtcNow().UtcDateTime },
             cancellationToken: cancellationToken));
-        return Result.Success<IReadOnlyList<InvitationResponse>>([.. invitations]);
+        return Result.Success<IReadOnlyList<InvitationResponse>>(
+            [.. invitations.Select(invitation => invitation with { Email = encryptor.Decrypt(invitation.Email, EncryptedColumns.InvitationEmail) })]);
     }
 }

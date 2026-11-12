@@ -3,6 +3,7 @@ namespace Herensuge.Modules.Identity.Application.Mfa.RegenerateRecoveryCodes;
 internal sealed class RegenerateRecoveryCodesCommandHandler(
     IUserRepository users,
     IUnitOfWork unitOfWork,
+    ISecretHasher hasher,
     TimeProvider timeProvider) : ICommandHandler<RegenerateRecoveryCodesCommand, RecoveryCodesResponse>
 {
     public async Task<Result<RecoveryCodesResponse>> Handle(RegenerateRecoveryCodesCommand command, CancellationToken cancellationToken)
@@ -13,7 +14,7 @@ internal sealed class RegenerateRecoveryCodesCommandHandler(
             return UserErrors.NotFound;
         }
 
-        Result<IReadOnlyList<string>> codes = user.RegenerateRecoveryCodes(timeProvider.GetUtcNow().UtcDateTime);
+        Result<IReadOnlyList<string>> codes = user.RegenerateRecoveryCodes(hasher, timeProvider.GetUtcNow().UtcDateTime);
         if (codes.IsFailure)
         {
             return codes.Error;

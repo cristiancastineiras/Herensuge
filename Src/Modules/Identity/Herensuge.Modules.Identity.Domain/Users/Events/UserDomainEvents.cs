@@ -9,7 +9,8 @@ public sealed record EmailVerifiedDomainEvent(Guid UserId, string Email) : Domai
 public sealed record EmailChangedDomainEvent(Guid UserId, string PreviousEmail, string NewEmail) : DomainEvent;
 
 /// <param name="KeepSessionId">Session that changed the password; every other session is revoked.</param>
-public sealed record PasswordChangedDomainEvent(Guid UserId, Guid? KeepSessionId) : DomainEvent;
+/// <summary>ChangedAtUtc: sessions started after it (for example, the sign-in right after a reset) stay open.</summary>
+public sealed record PasswordChangedDomainEvent(Guid UserId, Guid? KeepSessionId, DateTime ChangedAtUtc) : DomainEvent;
 
 public sealed record SignInFailedDomainEvent(Guid UserId, string Reason) : DomainEvent;
 

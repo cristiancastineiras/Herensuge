@@ -2,7 +2,9 @@ using System.Data.Common;
 using Dapper;
 using Herensuge.Common.Application.Data;
 using Herensuge.Common.Application.Messaging;
+using Herensuge.Common.Application.Security;
 using Herensuge.Common.Domain;
+using Herensuge.Modules.Identity.Application.Abstractions;
 using Herensuge.Modules.Identity.Application.Sessions.ValidateSession;
 using Herensuge.Modules.Identity.Application.SignIn.SignOut;
 using Herensuge.Modules.Identity.Contracts;
@@ -11,6 +13,8 @@ namespace Herensuge.Modules.Identity.Infrastructure.PublicApi;
 
 internal sealed class IdentityModuleApi(
     IDbConnectionFactory dbConnectionFactory,
+    IDataEncryptor encryptor,
+    ISecretHasher hasher,
     ICommandHandler<ValidateSessionCommand> validateSession,
     ICommandHandler<SignOutCommand> signOut) : IIdentityModuleApi
 {
@@ -32,7 +36,7 @@ internal sealed class IdentityModuleApi(
 
         return row is null
             ? null
-            : new UserSnapshot(row.Id, row.Email, row.EmailVerified, row.DisplayName, row.IsPlatformAdmin, row.HasMfa);
+            : new UserSnapshot(row.Id, Email(row), row.EmailVerified, DisplayName(row), row.IsPlatformAdmin, row.HasMfa);
     }
 
     public async Task<IReadOnlyList<UserSummary>> GetUsersAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken)
@@ -48,15 +52,15 @@ internal sealed class IdentityModuleApi(
             new { Ids = userIds.ToArray() },
             cancellationToken: cancellationToken));
 
-        return [.. rows.Select(row => new UserSummary(row.Id, row.Email, row.DisplayName))];
+        return [.. rows.Select(row => new UserSummary(row.Id, Email(row), DisplayName(row)))];
     }
 
     public async Task<Guid?> FindUserIdByEmailAsync(string email, CancellationToken cancellationToken)
     {
         await using DbConnection connection = await dbConnectionFactory.OpenConnectionAsync(cancellationToken);
         return await connection.QuerySingleOrDefaultAsync<Guid?>(new CommandDefinition(
-            "SELECT id FROM identity.users WHERE email = @Email",
-            new { Email = email },
+            "SELECT id FROM identity.users WHERE email_index = @Index",
+            new { Index = hasher.Hash(EncryptedColumns.UserEmailIndex, email.Trim().ToLowerInvariant()) },
             cancellationToken: cancellationToken));
     }
 
@@ -65,6 +69,10 @@ internal sealed class IdentityModuleApi(
         Result result = await validateSession.Handle(new ValidateSessionCommand(sessionId, userId), cancellationToken);
         return result.IsSuccess;
     }
+
+    private string Email(UserRow row) => encryptor.Decrypt(row.Email, EncryptedColumns.UserEmail);
+
+    private string DisplayName(UserRow row) => encryptor.Decrypt(row.DisplayName, EncryptedColumns.UserDisplayName);
 
     private sealed class UserRow
     {

@@ -1,10 +1,11 @@
+using Herensuge.Common.Application.Security;
 using System.Data.Common;
 using Dapper;
 using Herensuge.Common.Application.Data;
 
 namespace Herensuge.Modules.Identity.Application.Users.GetMfaChallenge;
 
-internal sealed class GetMfaChallengeQueryHandler(IDbConnectionFactory dbConnectionFactory)
+internal sealed class GetMfaChallengeQueryHandler(IDbConnectionFactory dbConnectionFactory, IDataEncryptor encryptor)
     : IQueryHandler<GetMfaChallengeQuery, MfaChallengeResponse>
 {
     private const string Sql =
@@ -42,7 +43,9 @@ internal sealed class GetMfaChallengeQueryHandler(IDbConnectionFactory dbConnect
             methods.Add(MfaMethods.RecoveryCode);
         }
 
-        string? hint = row.PhoneNumber is null ? null : PhoneNumber.Mask(row.PhoneNumber);
+        string? hint = row.PhoneNumber is null
+            ? null
+            : PhoneNumber.Mask(encryptor.Decrypt(row.PhoneNumber, EncryptedColumns.UserPhoneNumber));
         return new MfaChallengeResponse(methods, hint);
     }
 

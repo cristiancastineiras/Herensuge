@@ -39,9 +39,10 @@ public sealed class AuditDbContext(DbContextOptions<AuditDbContext> options) : D
             builder.HasKey(entry => entry.Id);
             builder.Property(entry => entry.Id).ValueGeneratedNever();
             builder.Property(entry => entry.Action).HasMaxLength(100);
-            builder.Property(entry => entry.IpAddress).HasMaxLength(64);
-            builder.Property(entry => entry.UserAgent).HasMaxLength(512);
-            builder.Property(entry => entry.Metadata).HasColumnType("jsonb");
+            // Encrypted by AuditLog (see EncryptedColumns): text columns.
+            builder.Property(entry => entry.IpAddress).HasColumnType("text");
+            builder.Property(entry => entry.UserAgent).HasColumnType("text");
+            builder.Property(entry => entry.Metadata).HasColumnType("text");
             builder.HasIndex(entry => entry.EventId).IsUnique();
             builder.HasIndex(entry => entry.OccurredAtUtc);
             builder.HasIndex(entry => new { entry.TenantId, entry.OccurredAtUtc });

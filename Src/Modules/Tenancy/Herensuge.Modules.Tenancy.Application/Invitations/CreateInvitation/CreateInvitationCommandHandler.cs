@@ -10,6 +10,7 @@ internal sealed class CreateInvitationCommandHandler(
     IInvitationRepository invitations,
     IIdentityModuleApi identity,
     IUnitOfWork unitOfWork,
+    ISecretHasher hasher,
     TimeProvider timeProvider) : ICommandHandler<CreateInvitationCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(CreateInvitationCommand command, CancellationToken cancellationToken)
@@ -49,6 +50,7 @@ internal sealed class CreateInvitationCommandHandler(
             email,
             role,
             command.ActorUserId,
+            hasher,
             timeProvider.GetUtcNow().UtcDateTime);
 
         invitations.Add(invitation);

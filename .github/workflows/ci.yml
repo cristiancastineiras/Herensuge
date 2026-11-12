@@ -24,6 +24,10 @@ jobs:
       - name: Build (warnings are errors)
         run: dotnet build Herensuge.slnx --no-restore -c Release
 
+      # The build rewrites Docs/API/Herensuge.Api.json; it must match the committed contract.
+      - name: OpenAPI contract is up to date
+        run: git diff --exit-code -- Docs/API || (echo "::error::Docs/API is out of date. Run 'pnpm -C Src/Web api:generate' and commit." && exit 1)
+
       # Integration tests start PostgreSQL and Valkey with Testcontainers (Docker is available on the runner).
       - name: Test
         run: |
@@ -36,8 +40,41 @@ jobs:
           dotnet list Herensuge.slnx package --vulnerable --include-transitive | tee vulnerable.txt
           ! grep -q "has the following vulnerable packages" vulnerable.txt
 
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Src/Web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: Src/Web/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: Src/Web/.nvmrc
+          cache: pnpm
+          cache-dependency-path: Src/Web/pnpm-lock.yaml
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # The web types are generated from the committed contract; they must match.
+      - name: API types are up to date
+        run: |
+          pnpm api:types
+          git diff --exit-code -- paquetes/api/src/schema.d.ts || (echo "::error::API types are out of date. Run 'pnpm api:generate' and commit." && exit 1)
+
+      - name: Typecheck, lint and format
+        run: pnpm check
+
+      - name: Build
+        run: pnpm build
+
   docker-images:
-    needs: build-and-test
+    needs: [build-and-test, web]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -1,0 +1,24 @@
+{
+	"$schema": "https://turbo.build/schema.json",
+	"globalEnv": ["NODE_ENV", "CI"],
+	"globalDependencies": ["pnpm-lock.yaml", "turbo.json"],
+	"tasks": {
+		"build": {
+			"inputs": ["$TURBO_DEFAULT$", "entorno/.env*", "../../paquetes/*/src/**"],
+			"outputs": ["dist/**"],
+			"env": ["VITE_*"]
+		},
+		"dev": {
+			"cache": false,
+			"persistent": true
+		},
+		"typecheck": {
+			"inputs": ["$TURBO_DEFAULT$", "../../paquetes/**"],
+			"outputs": []
+		},
+		"clean": {
+			"cache": false,
+			"outputs": []
+		}
+	}
+}

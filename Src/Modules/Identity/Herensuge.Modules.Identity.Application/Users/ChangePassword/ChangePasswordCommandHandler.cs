@@ -3,7 +3,8 @@ namespace Herensuge.Modules.Identity.Application.Users.ChangePassword;
 internal sealed class ChangePasswordCommandHandler(
     IUserRepository users,
     IPasswordHasher passwordHasher,
-    IUnitOfWork unitOfWork) : ICommandHandler<ChangePasswordCommand>
+    IUnitOfWork unitOfWork,
+    TimeProvider timeProvider) : ICommandHandler<ChangePasswordCommand>
 {
     public async Task<Result> Handle(ChangePasswordCommand command, CancellationToken cancellationToken)
     {
@@ -20,7 +21,7 @@ internal sealed class ChangePasswordCommandHandler(
             return UserErrors.InvalidCurrentPassword;
         }
 
-        user.ChangePassword(passwordHasher.Hash(command.NewPassword), command.CurrentSessionId);
+        user.ChangePassword(passwordHasher.Hash(command.NewPassword), command.CurrentSessionId, timeProvider.GetUtcNow().UtcDateTime);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

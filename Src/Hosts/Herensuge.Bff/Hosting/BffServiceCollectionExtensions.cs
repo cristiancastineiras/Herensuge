@@ -2,6 +2,7 @@ using System.Security.Cryptography.X509Certificates;
 using Herensuge.Bff.Sessions;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Http;
@@ -61,6 +62,9 @@ internal static class BffServiceCollectionExtensions
             options.AddEphemeralEncryptionKey().AddEphemeralSigningKey();
             options.UseDataProtection();
 
+            // The BFF has no database (no OpenIddict core stores): state tokens are self-contained.
+            options.DisableTokenStorage();
+
             options.UseAspNetCore()
                 .EnableRedirectionEndpointPassthrough()
                 .EnablePostLogoutRedirectionEndpointPassthrough()
@@ -94,7 +98,11 @@ internal static class BffServiceCollectionExtensions
         return services;
     }
 
-    /// <summary>Valkey for sessions, locks and the Data Protection key ring. In-memory only in Development.</summary>
+    /// <summary>
+    /// Valkey for sessions, locks and the Data Protection key ring. In-memory only in Development. The key ring is
+    /// always encrypted at rest: with DataProtection:CertificatePath when it is set, otherwise with
+    /// DataProtection:KeyRingKey (required).
+    /// </summary>
     public static IServiceCollection AddBffState(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         IDataProtectionBuilder dataProtection = services.AddDataProtection().SetApplicationName("herensuge-bff");
@@ -105,6 +113,12 @@ internal static class BffServiceCollectionExtensions
                 certificatePath,
                 configuration["DataProtection:CertificatePassword"],
                 X509KeyStorageFlags.EphemeralKeySet));
+        }
+        else
+        {
+            var keyRingKey = KeyRingKey.From(configuration["DataProtection:KeyRingKey"]);
+            services.AddSingleton(keyRingKey);
+            services.AddOptions<KeyManagementOptions>().Configure(options => options.XmlEncryptor = new KeyRingXmlEncryptor(keyRingKey));
         }
 
         string? valkey = configuration.GetConnectionString("Valkey");

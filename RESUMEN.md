@@ -941,9 +941,9 @@ dotnet run --project Src/Hosts/Herensuge.Bff          # https://localhost:5002
 
 ---
 
-## 22. Estado de la implementación (backend)
+## 22. Estado de la implementación
 
-**Hecho:** backend completo del Nivel 1 (`Herensuge.Api` + `Herensuge.Bff`), migraciones, tests, Dockerfiles, `compose.yaml` y CI. Faltan las SPAs `login` y `portal` y, con ellas, el proyecto E2E.
+**Hecho:** backend completo del Nivel 1 (`Herensuge.Api` + `Herensuge.Bff`), migraciones, tests, Dockerfiles, `compose.yaml`, CI y las SPAs `login` y `portal` (`Src/Web`). Falta el proyecto E2E (`Herensuge.EndToEndTests`).
 
 **Verificado en la máquina de desarrollo (sin Docker):**
 - La solución compila con los warnings tratados como errores.
@@ -953,7 +953,9 @@ dotnet run --project Src/Hosts/Herensuge.Bff          # https://localhost:5002
 - `compose.yaml` y `compose.dev.yaml` validan.
 - Ningún paquete vulnerable.
 
-**Sin verificar todavía:** la ejecución contra PostgreSQL y Valkey reales. Los tests de integración (flujo OIDC completo, bloqueo, MFA, outbox → auditoría) están escritos y necesitan Docker. Las imágenes Docker no se han construido.
+**Verificado con Docker (12/11/2026):** `docker compose up --build` construye las imágenes (con las webs) y levanta todo detrás de Caddy. Recorrido en vivo en Chrome con dos usuarios (22 pasos): registro y verificación, onboarding, perfil, passkey, app autenticadora, teléfono por SMS, invitación aceptada por un segundo usuario, SSO al portal, cambio de rol, MFA obligatoria por la organización (alta forzada en el login), recuperación de contraseña, sesiones, auditoría, plataforma con passkey (clientes OIDC: crear, editar, rotar, borrar), borrado de cuenta y logout. Sin errores de consola, sin violaciones de la CSP y sin 5xx.
+
+**Sin verificar todavía:** los tests de integración (Testcontainers).
 
 **Ajustes respecto a las secciones anteriores, decididos al implementar:**
 
@@ -969,5 +971,15 @@ dotnet run --project Src/Hosts/Herensuge.Bff          # https://localhost:5002
 | Valkey | Opcional en `Development` (caché en memoria); obligatorio en el resto |
 | NuGet | `nuget.config` propio (solo nuget.org) y *transitive pinning* (`System.Formats.Cbor` parcheado) |
 | Tests | Microsoft.Testing.Platform (`dotnet test --project …`) |
+| Webs: estructura | Forma de `plantilla-react-monorepo`: `apps/` + `paquetes/` (`api`, `componentes`, `utiles`, `configuracion-ts`), Turborepo, oxlint + oxfmt. Páginas planas por sección en vez de `features/` |
+| Webs: stack | Sin React Hook Form, Zod ni shadcn/ui: formularios nativos (`formValues`) y una decena de componentes Tailwind propios. Sin Vitest de momento |
+| Contrato OpenAPI | Cada `dotnet build` de `Herensuge.Api` escribe `Docs/API/Herensuge.Api.json` (Microsoft.Extensions.ApiDescription.Server; dentro de `GetDocument.Insider` la API arranca con la configuración de `Development` y sin jobs, así que no necesita base de datos). Cada endpoint declara su respuesta con `.Produces<T>()`. Los números JSON son estrictos (`NumberHandling.Strict`) para que el contrato diga `integer` y no `integer \| string` |
+| Tipos de las webs | Generados con openapi-typescript (`pnpm api:generate`) en `paquetes/api/src/schema.d.ts`; cliente openapi-fetch tipado por ruta. openapi-typescript vive en `paquetes/generador-api` con su propio TypeScript 5 (TypeScript 7 no expone la API en JS). La CI falla si el contrato o los tipos están desactualizados |
+| Cambio de contraseña | `PasswordChangedDomainEvent` lleva `ChangedAtUtc` y solo se revocan las sesiones creadas antes: el handler corre por outbox segundos después y cerraba también la sesión iniciada justo tras un *reset* |
+| Webs: URLs públicas | `VITE_URL_PORTAL` (login) y `VITE_URL_IDP` (portal) como *build args* de las imágenes |
+| BFF | `/bff/login` lee `max_age` (antes esperaba `maxAge` y la re-autenticación no se pedía). El cliente OIDC sin almacenamiento de tokens (`DisableTokenStorage`): la BFF no tiene base de datos |
+| CSP en desarrollo | Con `Spa:DevServerUrl` en `Development` se permite `'unsafe-inline'` en scripts y estilos (Vite). Producción sin cambios |
+| Hosts locales en Docker | `id.herensuge.localhost` / `portal.herensuge.localhost`, RP ID `herensuge.localhost`: con `*.localhost` a secas las passkeys fallan (`localhost` es sufijo público) |
+| Compose | Solo `herensuge-api` construye la imagen; el migrador la reutiliza (dos servicios construyendo la misma etiqueta chocan) |
 
-**Siguientes pasos:** ejecutar los tests de integración y `docker compose up` en la máquina con Docker, implementar las SPAs (sección 9), elegir los proveedores reales de email y SMS y redactar los ADRs.
+**Siguientes pasos:** ejecutar los tests de integración, convertir el recorrido en vivo en `Herensuge.EndToEndTests`, elegir los proveedores reales de email y SMS y redactar los ADRs.

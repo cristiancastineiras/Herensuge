@@ -1,10 +1,11 @@
+using Herensuge.Common.Application.Security;
 using System.Data.Common;
 using Dapper;
 using Herensuge.Common.Application.Data;
 
 namespace Herensuge.Modules.Identity.Application.Sessions.GetSessions;
 
-internal sealed class GetSessionsQueryHandler(IDbConnectionFactory dbConnectionFactory, TimeProvider timeProvider)
+internal sealed class GetSessionsQueryHandler(IDbConnectionFactory dbConnectionFactory, IDataEncryptor encryptor, TimeProvider timeProvider)
     : IQueryHandler<GetSessionsQuery, IReadOnlyList<SessionResponse>>
 {
     private const string Sql =
@@ -25,6 +26,11 @@ internal sealed class GetSessionsQueryHandler(IDbConnectionFactory dbConnectionF
             cancellationToken: cancellationToken));
 
         return Result.Success<IReadOnlyList<SessionResponse>>(
-            [.. sessions.Select(session => session with { IsCurrent = session.Id == query.CurrentSessionId })]);
+            [.. sessions.Select(session => session with
+            {
+                IpAddress = encryptor.DecryptNullable(session.IpAddress, EncryptedColumns.SessionIpAddress),
+                UserAgent = encryptor.DecryptNullable(session.UserAgent, EncryptedColumns.SessionUserAgent),
+                IsCurrent = session.Id == query.CurrentSessionId,
+            })]);
     }
 }

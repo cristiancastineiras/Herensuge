@@ -12,3 +12,6 @@ Docker/.env
 Docs/
 Tests/
 *.md
+**/.turbo/
+**/.vite/
+plantilla-react-monorepo-main/

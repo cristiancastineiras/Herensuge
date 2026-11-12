@@ -4,6 +4,7 @@ using System.Diagnostics.Metrics;
 using System.Reflection;
 using Dapper;
 using Herensuge.Common.Application.Messaging;
+using Herensuge.Common.Application.Security;
 using Herensuge.Common.Domain;
 using Herensuge.Common.Infrastructure.Context;
 using Microsoft.Extensions.DependencyInjection;
@@ -32,6 +33,7 @@ internal sealed class MessageProcessor(
     IServiceScopeFactory scopeFactory,
     IOptions<MessagingOptions> options,
     TimeProvider timeProvider,
+    IDataEncryptor encryptor,
     ILogger<MessageProcessor> logger) : BackgroundService
 {
     private const int PendingRefreshEveryTicks = 15;
@@ -47,7 +49,8 @@ internal sealed class MessageProcessor(
         typeof(MessageProcessor).GetMethod(nameof(InvokeIntegrationHandler), BindingFlags.NonPublic | BindingFlags.Static)!;
 
     private readonly string _kindName = kind == MessageKind.Outbox ? "outbox" : "inbox";
-    private readonly string _messages = kind == MessageKind.Outbox ? $"{module.Schema}.outbox_messages" : $"{module.Schema}.inbox_messages";
+    private readonly string _table = kind == MessageKind.Outbox ? MessageEncryption.OutboxTable : MessageEncryption.InboxTable;
+    private string _messages => $"{module.Schema}.{_table}";
     private readonly string _consumers = kind == MessageKind.Outbox ? $"{module.Schema}.outbox_message_consumers" : $"{module.Schema}.inbox_message_consumers";
     private readonly string _consumerKey = kind == MessageKind.Outbox ? "outbox_message_id" : "inbox_message_id";
 
@@ -135,13 +138,13 @@ internal sealed class MessageProcessor(
         try
         {
             Type messageType = MessageSerializer.ResolveType(message.Type);
-            object payload = MessageSerializer.Deserialize(message.Content, messageType);
+            object payload = MessageSerializer.Deserialize(encryptor.Decrypt(message.Content, Purpose("content")), messageType);
 
             await using AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
             scope.ServiceProvider.GetRequiredService<RequestContextAccessor>().UseMessageContext(new MessageContext(
                 message.ActorUserId,
-                message.IpAddress,
-                message.UserAgent,
+                encryptor.DecryptNullable(message.IpAddress, Purpose("ip_address")),
+                encryptor.DecryptNullable(message.UserAgent, Purpose("user_agent")),
                 message.CorrelationId));
 
             HashSet<string> completed = [.. await connection.QueryAsync<string>(new CommandDefinition(
@@ -288,6 +291,8 @@ internal sealed class MessageProcessor(
             logger.LogInformation("Purged {Count} processed {Kind} messages of module {Module}", deleted, _kindName, module.Name);
         }
     }
+
+    private string Purpose(string column) => MessageEncryption.Purpose(module.Schema, _table, column);
 
     private sealed class MessageRow
     {

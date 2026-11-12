@@ -1,0 +1,22 @@
+{
+	"name": "@paquetes/api",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"sideEffects": false,
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"clean": "rimraf .turbo"
+	},
+	"dependencies": {
+		"openapi-fetch": "catalog:"
+	},
+	"devDependencies": {
+		"@paquetes/configuracion-ts": "workspace:*",
+		"rimraf": "catalog:",
+		"typescript": "catalog:"
+	}
+}

@@ -1,10 +1,13 @@
 using Dapper;
 using Herensuge.Common.Application.Context;
 using Herensuge.Common.Application.Messaging;
+using Herensuge.Common.Application.Security;
+using Herensuge.Common.Domain;
 using Herensuge.Common.Infrastructure.Caching;
 using Herensuge.Common.Infrastructure.Context;
 using Herensuge.Common.Infrastructure.Database;
 using Herensuge.Common.Infrastructure.Messaging;
+using Herensuge.Common.Infrastructure.Security;
 using Herensuge.Common.Infrastructure.Web;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,6 +28,13 @@ public static class DependencyInjection
 
         services.AddHttpContextAccessor();
         services.TryAddSingleton(TimeProvider.System);
+
+        // Keys that protect the data at rest, validated now: the app does not start without them.
+        SecurityKeys keys = SecurityKeys.From(
+            configuration.GetSection(SecurityOptions.SectionName).Get<SecurityOptions>() ?? new SecurityOptions());
+        services.AddSingleton(keys);
+        services.AddSingleton<IDataEncryptor, AesGcmDataEncryptor>();
+        services.AddSingleton<ISecretHasher, HmacSecretHasher>();
 
         services.AddScoped<RequestContextAccessor>();
         services.AddScoped<IRequestContext>(provider => provider.GetRequiredService<RequestContextAccessor>());

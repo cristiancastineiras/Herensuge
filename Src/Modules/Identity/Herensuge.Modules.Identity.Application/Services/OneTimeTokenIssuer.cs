@@ -5,7 +5,7 @@ using Herensuge.Modules.Identity.Domain.Users;
 namespace Herensuge.Modules.Identity.Application.Services;
 
 /// <summary>Issues a new token, invalidating the previous ones of the same purpose. At most one every 30 seconds.</summary>
-public sealed class OneTimeTokenIssuer(IOneTimeTokenRepository tokens, TimeProvider timeProvider)
+public sealed class OneTimeTokenIssuer(IOneTimeTokenRepository tokens, ISecretHasher hasher, TimeProvider timeProvider)
 {
     public static readonly TimeSpan MinimumInterval = TimeSpan.FromSeconds(30);
 
@@ -23,7 +23,7 @@ public sealed class OneTimeTokenIssuer(IOneTimeTokenRepository tokens, TimeProvi
             token.Invalidate(now);
         }
 
-        tokens.Add(OneTimeToken.Issue(userId, purpose, target, now).Token);
+        tokens.Add(OneTimeToken.Issue(userId, purpose, target, hasher, now).Token);
         return Result.Success();
     }
 }

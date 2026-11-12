@@ -78,8 +78,18 @@ public static class WebHostingExtensions
     }
 
     /// <summary>Strict defaults for every response, including the SPA served from wwwroot.</summary>
-    public static IApplicationBuilder UseHerensugeSecurityHeaders(this IApplicationBuilder app) =>
-        app.Use(async (context, next) =>
+    public static IApplicationBuilder UseHerensugeSecurityHeaders(this IApplicationBuilder app)
+    {
+        // Development with the Vite dev server (Spa:DevServerUrl) only: Vite injects the React Refresh
+        // preamble and the CSS as inline code. Production keeps 'self' only.
+        bool viteDevServer = app.ApplicationServices.GetRequiredService<IHostEnvironment>().IsDevelopment()
+            && !string.IsNullOrWhiteSpace(app.ApplicationServices.GetRequiredService<IConfiguration>()["Spa:DevServerUrl"]);
+        string inline = viteDevServer ? " 'unsafe-inline'" : string.Empty;
+        string contentSecurityPolicy =
+            $"default-src 'self'; script-src 'self'{inline}; style-src 'self'{inline}; img-src 'self' data:; font-src 'self'; " +
+            "connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+
+        return app.Use(async (context, next) =>
         {
             context.Response.OnStarting(() =>
             {
@@ -89,13 +99,12 @@ public static class WebHostingExtensions
                 headers["Referrer-Policy"] = "no-referrer";
                 headers["Cross-Origin-Opener-Policy"] = "same-origin";
                 headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()";
-                headers.ContentSecurityPolicy =
-                    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; " +
-                    "connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+                headers.ContentSecurityPolicy = contentSecurityPolicy;
                 return Task.CompletedTask;
             });
             await next();
         });
+    }
 
     public static WebApplication MapHerensugeHealthChecks(this WebApplication app)
     {

@@ -1,4 +1,0 @@
-{%- set html_source -%}
-{% include 'apps/webapp/index.html' %}
-{%- endset -%}
-{{ html_source | replace('<title>WebApp</title>', '<title>' ~ (project_name | e) ~ '</title>') }}

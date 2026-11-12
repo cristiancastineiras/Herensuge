@@ -20,27 +20,34 @@ internal sealed class MfaEndpoints : IEndpoint
         RouteGroupBuilder group = MeRoutes.Group(app).RequireRecentAuthentication();
 
         group.MapPost("/mfa/totp", async (ClaimsPrincipal user, ICommandHandler<BeginTotpSetupCommand, TotpSetupResponse> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new BeginTotpSetupCommand(user.GetUserId()), cancellationToken)).Match(value => Results.Ok(value)));
+            (await handler.Handle(new BeginTotpSetupCommand(user.GetUserId()), cancellationToken)).Match(value => Results.Ok(value)))
+            .Produces<TotpSetupResponse>();
 
         group.MapPost("/mfa/totp/confirm", async (CodeRequest request, ClaimsPrincipal user, ICommandHandler<ConfirmTotpSetupCommand, ConfirmTotpSetupResponse> handler, CancellationToken cancellationToken) =>
             (await handler.Handle(new ConfirmTotpSetupCommand(user.GetUserId(), request.Code, null), cancellationToken))
-                .Match(value => Results.Ok(new RecoveryCodesResult(value.RecoveryCodes))));
+                .Match(value => Results.Ok(new RecoveryCodesResult(value.RecoveryCodes))))
+            .Produces<RecoveryCodesResult>();
 
         group.MapDelete("/mfa/totp", async (ClaimsPrincipal user, ICommandHandler<DisableTotpCommand> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new DisableTotpCommand(user.GetUserId()), cancellationToken)).Match(Results.NoContent));
+            (await handler.Handle(new DisableTotpCommand(user.GetUserId()), cancellationToken)).Match(Results.NoContent))
+            .Produces(StatusCodes.Status204NoContent);
 
         group.MapPost("/mfa/recovery-codes", async (ClaimsPrincipal user, ICommandHandler<RegenerateRecoveryCodesCommand, RecoveryCodesResponse> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new RegenerateRecoveryCodesCommand(user.GetUserId()), cancellationToken)).Match(value => Results.Ok(value)));
+            (await handler.Handle(new RegenerateRecoveryCodesCommand(user.GetUserId()), cancellationToken)).Match(value => Results.Ok(value)))
+            .Produces<RecoveryCodesResponse>();
 
         group.MapPost("/phone", async (PhoneNumberRequest request, ClaimsPrincipal user, ICommandHandler<StartPhoneVerificationCommand> handler, CancellationToken cancellationToken) =>
                 (await handler.Handle(new StartPhoneVerificationCommand(user.GetUserId(), request.PhoneNumber), cancellationToken)).Match(() => Results.Accepted()))
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces(StatusCodes.Status202Accepted);
 
         group.MapPost("/phone/verify", async (CodeRequest request, ClaimsPrincipal user, ICommandHandler<ConfirmPhoneVerificationCommand, RecoveryCodesResponse> handler, CancellationToken cancellationToken) =>
                 (await handler.Handle(new ConfirmPhoneVerificationCommand(user.GetUserId(), request.Code), cancellationToken)).Match(value => Results.Ok(value)))
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces<RecoveryCodesResponse>();
 
         group.MapDelete("/phone", async (ClaimsPrincipal user, ICommandHandler<RemovePhoneNumberCommand> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new RemovePhoneNumberCommand(user.GetUserId()), cancellationToken)).Match(Results.NoContent));
+            (await handler.Handle(new RemovePhoneNumberCommand(user.GetUserId()), cancellationToken)).Match(Results.NoContent))
+            .Produces(StatusCodes.Status204NoContent);
     }
 }

@@ -45,6 +45,7 @@ public sealed class Invitation : AggregateRoot
         string email,
         TenantRole role,
         Guid invitedByUserId,
+        ISecretHasher hasher,
         DateTime utcNow)
     {
         string token = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
@@ -54,7 +55,7 @@ public sealed class Invitation : AggregateRoot
             TenantId = tenantId,
             Email = email,
             Role = role,
-            TokenHash = HashToken(token),
+            TokenHash = HashToken(token, hasher),
             InvitedByUserId = invitedByUserId,
             Status = InvitationStatus.Pending,
             CreatedAtUtc = utcNow,
@@ -66,8 +67,8 @@ public sealed class Invitation : AggregateRoot
         return (invitation, token);
     }
 
-    public static string HashToken(string token) =>
-        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(token.Trim())));
+    /// <summary>Keyed hash (HMAC, key outside the database) used to look the invitation up.</summary>
+    public static string HashToken(string token, ISecretHasher hasher) => hasher.Hash("tenancy.invitations.token", token.Trim());
 
     public bool IsPending(DateTime utcNow) => Status == InvitationStatus.Pending && utcNow < ExpiresAtUtc;
 

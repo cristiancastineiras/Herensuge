@@ -3,7 +3,7 @@
 Proveedor de identidad propio (OAuth 2.1 + OpenID Connect) del SaaS: .NET 10, 100% FOSS, monolito modular con
 Clean Architecture, DDD, CQRS y Outbox/Inbox. El diseño completo está en [RESUMEN.md](RESUMEN.md).
 
-**Estado:** backend del Nivel 1 implementado (Herensuge.Api + Herensuge.Bff). Las SPAs React (`login` y `portal`) están pendientes.
+**Estado:** Nivel 1 implementado: backend (Herensuge.Api + Herensuge.Bff) y webs React (`login` y `portal`, en `Src/Web`).
 
 ## Qué incluye
 
@@ -16,12 +16,24 @@ Clean Architecture, DDD, CQRS y Outbox/Inbox. El diseño completo está en [RESU
 | `Src/Modules/Oidc` | Autorización OIDC, clientes, revocación de tokens por sesión, claves de firma |
 | `Src/Modules/Audit` | Registro inmutable de todos los eventos (sin datos sensibles) |
 | `Src/Modules/Notifications` | Email y SMS detrás de puertos; hoy el proveedor `Log` |
-| `Docker/` | Dockerfiles, `compose.yaml` (producción con Caddy/TLS) y `compose.dev.yaml` (dependencias de desarrollo) |
+| `Src/Web` | Webs React (monorepo pnpm): `apps/login` (servida por la API) y `apps/portal` (servida por la BFF). Ver [Src/Web/README.md](Src/Web/README.md) |
+| `Docker/` | Dockerfiles (compilan también las webs), `compose.yaml` (producción con Caddy/TLS) y `compose.dev.yaml` (dependencias de desarrollo) |
 
 ## Requisitos
 
 - .NET SDK 10 (`global.json` admite cualquier 10.0.x a partir de 10.0.100)
-- Docker con Compose v2 (solo para las dependencias o para desplegar)
+- Node 24 + pnpm 10 (solo para desarrollar las webs)
+- Docker con Compose v2 (para las dependencias o para levantarlo todo)
+
+## Levantarlo todo con Docker
+
+```bash
+cp Docker/.env.example Docker/.env      # y cambia los secretos
+docker compose -f Docker/compose.yaml up -d --build
+```
+
+Portal en `https://portal.herensuge.localhost` y login en `https://id.herensuge.localhost` (detalles en
+[Docker/README.md](Docker/README.md)).
 
 ## Desarrollo local
 
@@ -32,7 +44,10 @@ docker compose -f Docker/compose.dev.yaml up -d
 # 2. Certificado HTTPS de desarrollo (cookies __Host- y OpenIddict exigen HTTPS)
 dotnet dev-certs https --trust
 
-# 3. IdP y BFF (en dos terminales)
+# 3. Webs (Vite; se abren a través de los hosts .NET, no directamente)
+pnpm -C Src/Web install && pnpm -C Src/Web dev
+
+# 4. IdP y BFF (en dos terminales)
 dotnet run --project Src/Hosts/Herensuge.Api --launch-profile https   # https://localhost:5001
 dotnet run --project Src/Hosts/Herensuge.Bff --launch-profile https   # https://localhost:5002
 ```
@@ -66,7 +81,7 @@ El usuario que verifique el email `admin@herensuge.local` (`Identity:BootstrapPl
 | `Bff:Authority` / `Bff:BackchannelAddress` / `Bff:ClientSecret` | Configuración del cliente OIDC de la BFF |
 | `RateLimiting:*`, `Messaging:*`, `Audit:RetentionDays` | Límites, outbox/inbox y retención |
 
-## Rutas que debe implementar la SPA de login
+## Rutas de la SPA de login
 
 La API redirige o enlaza a estas rutas del mismo origen que el IdP:
 

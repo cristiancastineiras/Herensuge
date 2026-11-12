@@ -1,0 +1,35 @@
+{
+	"name": "herensuge-web",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Webs de Herensuge: login (servida por Herensuge.Api) y portal (servida por Herensuge.Bff)",
+	"scripts": {
+		"dev": "turbo run dev",
+		"build": "turbo run build",
+		"build:login": "turbo run build --filter=login",
+		"build:portal": "turbo run build --filter=portal",
+		"api:generate": "dotnet build ../Hosts/Herensuge.Api/Herensuge.Api.csproj -v quiet -nologo && pnpm api:types",
+		"api:types": "pnpm --filter @paquetes/generador-api generate",
+		"typecheck": "turbo run typecheck",
+		"lint": "oxlint .",
+		"lint:fix": "oxlint --fix .",
+		"format": "oxfmt .",
+		"format:check": "oxfmt --check .",
+		"check": "pnpm run typecheck && pnpm run lint && pnpm run format:check",
+		"clean": "turbo run clean && rimraf node_modules/.cache",
+		"audit": "pnpm audit --audit-level=moderate",
+		"deps:check": "pnpm outdated --recursive"
+	},
+	"devDependencies": {
+		"oxfmt": "catalog:",
+		"oxlint": "catalog:",
+		"rimraf": "catalog:",
+		"turbo": "catalog:",
+		"typescript": "catalog:"
+	},
+	"engines": {
+		"node": ">=24.11.0",
+		"pnpm": ">=10.0.0"
+	},
+	"packageManager": "pnpm@10.32.1"
+}

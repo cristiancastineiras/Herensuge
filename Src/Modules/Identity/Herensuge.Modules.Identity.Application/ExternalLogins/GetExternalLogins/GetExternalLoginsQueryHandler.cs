@@ -1,10 +1,11 @@
+using Herensuge.Common.Application.Security;
 using System.Data.Common;
 using Dapper;
 using Herensuge.Common.Application.Data;
 
 namespace Herensuge.Modules.Identity.Application.ExternalLogins.GetExternalLogins;
 
-internal sealed class GetExternalLoginsQueryHandler(IDbConnectionFactory dbConnectionFactory)
+internal sealed class GetExternalLoginsQueryHandler(IDbConnectionFactory dbConnectionFactory, IDataEncryptor encryptor)
     : IQueryHandler<GetExternalLoginsQuery, IReadOnlyList<ExternalLoginResponse>>
 {
     private const string Sql =
@@ -20,6 +21,7 @@ internal sealed class GetExternalLoginsQueryHandler(IDbConnectionFactory dbConne
         await using DbConnection connection = await dbConnectionFactory.OpenConnectionAsync(cancellationToken);
         IEnumerable<ExternalLoginResponse> logins = await connection.QueryAsync<ExternalLoginResponse>(
             new CommandDefinition(Sql, new { query.UserId }, cancellationToken: cancellationToken));
-        return Result.Success<IReadOnlyList<ExternalLoginResponse>>([.. logins]);
+        return Result.Success<IReadOnlyList<ExternalLoginResponse>>(
+            [.. logins.Select(login => login with { Email = encryptor.DecryptNullable(login.Email, EncryptedColumns.ExternalLoginEmail) })]);
     }
 }

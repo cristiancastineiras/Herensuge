@@ -13,9 +13,9 @@ Internet ──443──► Caddy ──► herensuge-api :8080  (id.<dominio>)
 |---|---|---|
 | `herensuge-postgres` | `postgres:17-alpine` | Volumen `postgres-data`; puerto solo en `127.0.0.1` |
 | `herensuge-valkey` | `valkey/valkey:8-alpine` | Con contraseña y AOF (las sesiones sobreviven a reinicios) |
-| `herensuge-migrator` | `herensuge-api` | Aplica las migraciones y termina; la API arranca después |
-| `herensuge-api` | `Herensuge.Api.Dockerfile` | Imagen *chiseled* sin shell y sin root; certificados OIDC en el volumen `oidc-keys` |
-| `herensuge-bff` | `Herensuge.Bff.Dockerfile` | Habla con la API por la red interna (`Bff:BackchannelAddress`) |
+| `herensuge-migrator` | `herensuge-api` | Misma imagen que la API (la construye `herensuge-api`). Aplica las migraciones y termina; la API arranca después |
+| `herensuge-api` | `Herensuge.Api.Dockerfile` | Imagen *chiseled* sin shell y sin root, con la web de login en `wwwroot/`; certificados OIDC en el volumen `oidc-keys` |
+| `herensuge-bff` | `Herensuge.Bff.Dockerfile` | Con la web del portal en `wwwroot/`. Habla con la API por la red interna (`Bff:BackchannelAddress`) |
 | `herensuge-proxy` | `caddy:2.8-alpine` | Certificados Let's Encrypt automáticos; CA interna para `*.localhost` |
 | `herensuge-otel` | `grafana/otel-lgtm` | Opcional (`--profile observability`): Grafana en `127.0.0.1:3000` |
 
@@ -29,12 +29,18 @@ Cambia **todos** los secretos (`openssl rand -base64 32`) y define los nombres p
 
 | Variable | Máquina local | Servidor |
 |---|---|---|
-| `HERENSUGE_ID_HOST` | `id.localhost` | `id.example.com` |
-| `HERENSUGE_PORTAL_HOST` | `portal.localhost` | `portal.example.com` |
-| `PASSKEYS_RP_ID` | `localhost` | `example.com` |
+| `HERENSUGE_ID_HOST` | `id.herensuge.localhost` | `id.example.com` |
+| `HERENSUGE_PORTAL_HOST` | `portal.herensuge.localhost` | `portal.example.com` |
+| `PASSKEYS_RP_ID` | `herensuge.localhost` | `example.com` |
 | `HERENSUGE_ENVIRONMENT` | `Staging` | `Staging` hasta tener un proveedor real de email/SMS |
 
 En un servidor, los dos nombres deben resolver por DNS a la máquina, con los puertos 80 y 443 abiertos.
+
+Los dos nombres deben compartir dominio registrable (`PASSKEYS_RP_ID`): es el RP ID de las passkeys y hace que IdP y
+portal sean *same-site*. En local no sirven `id.localhost` / `portal.localhost`: los navegadores tratan `localhost` como
+sufijo público. Por eso se usa `*.herensuge.localhost` (los navegadores resuelven `*.localhost` a `127.0.0.1`).
+
+Las webs se compilan dentro de las imágenes; las URLs públicas les llegan como *build args* desde estos nombres.
 
 ## 2. Arrancar
 

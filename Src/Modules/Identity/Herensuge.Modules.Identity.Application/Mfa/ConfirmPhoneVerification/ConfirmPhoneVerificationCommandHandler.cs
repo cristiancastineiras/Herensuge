@@ -6,6 +6,7 @@ internal sealed class ConfirmPhoneVerificationCommandHandler(
     IUserRepository users,
     IOneTimeTokenRepository tokens,
     IUnitOfWork unitOfWork,
+    ISecretHasher hasher,
     TimeProvider timeProvider) : ICommandHandler<ConfirmPhoneVerificationCommand, RecoveryCodesResponse>
 {
     public async Task<Result<RecoveryCodesResponse>> Handle(ConfirmPhoneVerificationCommand command, CancellationToken cancellationToken)
@@ -23,7 +24,7 @@ internal sealed class ConfirmPhoneVerificationCommandHandler(
             return OneTimeTokenErrors.InvalidOrExpired;
         }
 
-        Result consumed = token.Consume(command.Code, now);
+        Result consumed = token.Consume(command.Code, hasher, now);
         Result<PhoneNumber> phoneNumber = PhoneNumber.Create(token.Target);
         if (consumed.IsFailure || phoneNumber.IsFailure)
         {
@@ -31,7 +32,7 @@ internal sealed class ConfirmPhoneVerificationCommandHandler(
             return OneTimeTokenErrors.InvalidOrExpired;
         }
 
-        Result<IReadOnlyList<string>> codes = user.SetVerifiedPhoneNumber(phoneNumber.Value, now);
+        Result<IReadOnlyList<string>> codes = user.SetVerifiedPhoneNumber(phoneNumber.Value, hasher, now);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return new RecoveryCodesResponse(codes.Value);
     }

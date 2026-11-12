@@ -1,3 +1,5 @@
+using Herensuge.Common.Infrastructure.Security;
+using Herensuge.Modules.Identity.Application.Abstractions;
 using Herensuge.Modules.Identity.Domain.Sessions;
 using Herensuge.Modules.Identity.Domain.Tokens;
 using Herensuge.Modules.Identity.Domain.Users;
@@ -13,8 +15,8 @@ internal sealed class UserSessionConfiguration : IEntityTypeConfiguration<UserSe
         builder.ToTable("user_sessions");
         builder.HasKey(session => session.Id);
         builder.Property(session => session.Id).ValueGeneratedNever();
-        builder.Property(session => session.IpAddress).HasMaxLength(64);
-        builder.Property(session => session.UserAgent).HasMaxLength(512);
+        builder.Property(session => session.IpAddress).IsEncrypted(EncryptedColumns.SessionIpAddress);
+        builder.Property(session => session.UserAgent).IsEncrypted(EncryptedColumns.SessionUserAgent);
         builder.Property(session => session.DeviceIdHash).HasMaxLength(64);
         builder.Property(session => session.RevocationReason).HasMaxLength(50);
         builder.Property<uint>("Version").IsRowVersion();
@@ -34,7 +36,7 @@ internal sealed class OneTimeTokenConfiguration : IEntityTypeConfiguration<OneTi
         builder.Property(token => token.Id).ValueGeneratedNever();
         builder.Property(token => token.Purpose).HasConversion<string>().HasMaxLength(30);
         builder.Property(token => token.TokenHash).HasMaxLength(64);
-        builder.Property(token => token.Target).HasMaxLength(Email.MaxLength);
+        builder.Property(token => token.Target).IsEncrypted(EncryptedColumns.TokenTarget);
         builder.HasIndex(token => token.TokenHash).IsUnique();
         builder.HasIndex(token => new { token.UserId, token.Purpose });
 

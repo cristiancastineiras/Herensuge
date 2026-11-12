@@ -7,6 +7,7 @@ internal sealed class ConfirmTotpSetupCommandHandler(
     IUserSessionRepository sessions,
     ITotpService totpService,
     IUnitOfWork unitOfWork,
+    ISecretHasher hasher,
     TimeProvider timeProvider) : ICommandHandler<ConfirmTotpSetupCommand, ConfirmTotpSetupResponse>
 {
     public async Task<Result<ConfirmTotpSetupResponse>> Handle(ConfirmTotpSetupCommand command, CancellationToken cancellationToken)
@@ -24,7 +25,7 @@ internal sealed class ConfirmTotpSetupCommandHandler(
 
         DateTime now = timeProvider.GetUtcNow().UtcDateTime;
         TotpVerification verification = totpService.Verify(user.PendingTotpSecret, command.Code);
-        Result<IReadOnlyList<string>> confirmed = user.ConfirmTotpSetup(verification.IsValid, verification.TimeStep, now);
+        Result<IReadOnlyList<string>> confirmed = user.ConfirmTotpSetup(verification.IsValid, verification.TimeStep, hasher, now);
         if (confirmed.IsFailure)
         {
             return confirmed.Error;

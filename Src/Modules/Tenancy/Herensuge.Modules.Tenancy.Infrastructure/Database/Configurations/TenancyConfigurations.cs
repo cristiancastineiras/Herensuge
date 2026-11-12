@@ -1,3 +1,5 @@
+using Herensuge.Common.Infrastructure.Security;
+using Herensuge.Modules.Tenancy.Application.Abstractions;
 using Herensuge.Modules.Tenancy.Domain.Invitations;
 using Herensuge.Modules.Tenancy.Domain.Memberships;
 using Herensuge.Modules.Tenancy.Domain.Tenants;
@@ -43,12 +45,12 @@ internal sealed class InvitationConfiguration : IEntityTypeConfiguration<Invitat
         builder.ToTable("invitations");
         builder.HasKey(invitation => invitation.Id);
         builder.Property(invitation => invitation.Id).ValueGeneratedNever();
-        builder.Property(invitation => invitation.Email).HasMaxLength(254);
+        builder.Property(invitation => invitation.Email).IsEncrypted(EncryptedColumns.InvitationEmail);
         builder.Property(invitation => invitation.Role).HasConversion<string>().HasMaxLength(20);
         builder.Property(invitation => invitation.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(invitation => invitation.TokenHash).HasMaxLength(64);
         builder.HasIndex(invitation => invitation.TokenHash).IsUnique();
-        builder.HasIndex(invitation => new { invitation.TenantId, invitation.Email });
+        builder.HasIndex(invitation => new { invitation.TenantId, invitation.Status });
         builder.Property<uint>("Version").IsRowVersion();
 
         builder.HasOne<Tenant>().WithMany().HasForeignKey(invitation => invitation.TenantId).OnDelete(DeleteBehavior.Cascade);

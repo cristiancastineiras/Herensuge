@@ -14,8 +14,12 @@ internal sealed class UserRepository(IdentityDbContext context) : IUserRepositor
     public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         Users.SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
 
-    public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken) =>
-        Users.SingleOrDefaultAsync(user => user.Email == email, cancellationToken);
+    // The email column is encrypted: users are found through its blind index.
+    public Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken)
+    {
+        string index = context.IndexEmail(email);
+        return Users.SingleOrDefaultAsync(user => EF.Property<string>(user, IdentityDbContext.EmailIndex) == index, cancellationToken);
+    }
 
     public Task<User?> GetByExternalLoginAsync(string provider, string subject, CancellationToken cancellationToken) =>
         Users.SingleOrDefaultAsync(
@@ -27,8 +31,11 @@ internal sealed class UserRepository(IdentityDbContext context) : IUserRepositor
             user => user.Passkeys.Any(passkey => passkey.CredentialId == credentialId),
             cancellationToken);
 
-    public Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken) =>
-        context.Users.AnyAsync(user => user.Email == email, cancellationToken);
+    public Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken)
+    {
+        string index = context.IndexEmail(email);
+        return context.Users.AnyAsync(user => EF.Property<string>(user, IdentityDbContext.EmailIndex) == index, cancellationToken);
+    }
 
     public Task<bool> PasskeyCredentialExistsAsync(byte[] credentialId, CancellationToken cancellationToken) =>
         context.Set<PasskeyCredential>().AnyAsync(passkey => passkey.CredentialId == credentialId, cancellationToken);

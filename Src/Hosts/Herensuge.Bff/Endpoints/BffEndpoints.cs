@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using Herensuge.Bff.Sessions;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using OpenIddict.Client;
 using OpenIddict.Client.AspNetCore;
@@ -37,7 +38,8 @@ internal static class BffEndpoints
     {
         RouteGroupBuilder group = app.MapGroup("/bff").ExcludeFromDescription();
 
-        group.MapGet("/login", (string? returnUrl, string? tenant, string? prompt, int? maxAge) =>
+        // max_age (OIDC name): /bff/login?max_age=0 forces a fresh sign-in (sensitive operations).
+        group.MapGet("/login", (string? returnUrl, string? tenant, string? prompt, [FromQuery(Name = "max_age")] int? maxAge) =>
         {
             var properties = new AuthenticationProperties { RedirectUri = LocalOrRoot(returnUrl) };
             if (Guid.TryParse(tenant, out Guid tenantId))

@@ -21,23 +21,28 @@ internal sealed class PasskeyEndpoints : IEndpoint
         RouteGroupBuilder group = MeRoutes.Group(app);
 
         group.MapGet("/passkeys", async (ClaimsPrincipal user, IQueryHandler<GetPasskeysQuery, IReadOnlyList<PasskeyResponse>> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new GetPasskeysQuery(user.GetUserId()), cancellationToken)).Match(value => Results.Ok(value)));
+            (await handler.Handle(new GetPasskeysQuery(user.GetUserId()), cancellationToken)).Match(value => Results.Ok(value)))
+            .Produces<IReadOnlyList<PasskeyResponse>>();
 
         group.MapPost("/passkeys/options", async (ClaimsPrincipal user, ICommandHandler<CreatePasskeyRegistrationOptionsCommand, string> handler, CancellationToken cancellationToken) =>
                 (await handler.Handle(new CreatePasskeyRegistrationOptionsCommand(user.GetUserId()), cancellationToken))
                     .Match(options => Results.Content(options, "application/json")))
-            .RequireRecentAuthentication();
+            .RequireRecentAuthentication()
+            .Produces<JsonElement>();
 
         group.MapPost("/passkeys", async (AddPasskeyRequest request, ClaimsPrincipal user, ICommandHandler<AddPasskeyCommand, Guid> handler, CancellationToken cancellationToken) =>
                 (await handler.Handle(new AddPasskeyCommand(user.GetUserId(), request.Credential.GetRawText(), request.Name ?? string.Empty), cancellationToken))
                     .Match(id => Results.Ok(new CreatedResult(id))))
-            .RequireRecentAuthentication();
+            .RequireRecentAuthentication()
+            .Produces<CreatedResult>();
 
         group.MapPatch("/passkeys/{passkeyId:guid}", async (Guid passkeyId, RenamePasskeyRequest request, ClaimsPrincipal user, ICommandHandler<RenamePasskeyCommand> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new RenamePasskeyCommand(user.GetUserId(), passkeyId, request.Name), cancellationToken)).Match(Results.NoContent));
+            (await handler.Handle(new RenamePasskeyCommand(user.GetUserId(), passkeyId, request.Name), cancellationToken)).Match(Results.NoContent))
+            .Produces(StatusCodes.Status204NoContent);
 
         group.MapDelete("/passkeys/{passkeyId:guid}", async (Guid passkeyId, ClaimsPrincipal user, ICommandHandler<RemovePasskeyCommand> handler, CancellationToken cancellationToken) =>
                 (await handler.Handle(new RemovePasskeyCommand(user.GetUserId(), passkeyId), cancellationToken)).Match(Results.NoContent))
-            .RequireRecentAuthentication();
+            .RequireRecentAuthentication()
+            .Produces(StatusCodes.Status204NoContent);
     }
 }

@@ -24,3 +24,6 @@ dist/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Turborepo
+.turbo/

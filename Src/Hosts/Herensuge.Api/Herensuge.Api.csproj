@@ -13,12 +13,24 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <!-- Writes the OpenAPI contract on every build (Docs/API/Herensuge.Api.json); the web types are generated from it. -->
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Yarp.ReverseProxy" />
   </ItemGroup>
+  <PropertyGroup>
+    <OpenApiDocumentsDirectory>$(MSBuildThisFileDirectory)../../../Docs/API</OpenApiDocumentsDirectory>
+  </PropertyGroup>
+  <!-- The endpoints live in the module DLLs, which change without Herensuge.Api.dll changing: regenerate on every build. -->
+  <Target Name="AlwaysRegenerateOpenApiDocuments" BeforeTargets="GenerateOpenApiDocuments">
+    <Delete Files="$(BaseIntermediateOutputPath)$(MSBuildProjectName).OpenApiFiles.cache" />
+  </Target>
   <ItemGroup>
     <InternalsVisibleTo Include="Herensuge.IntegrationTests" />
   </ItemGroup>

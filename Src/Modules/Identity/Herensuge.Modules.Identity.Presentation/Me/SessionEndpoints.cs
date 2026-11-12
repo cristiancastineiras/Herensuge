@@ -15,19 +15,24 @@ internal sealed class SessionEndpoints : IEndpoint
         RouteGroupBuilder group = MeRoutes.Group(app);
 
         group.MapGet("/sessions", async (ClaimsPrincipal user, IQueryHandler<GetSessionsQuery, IReadOnlyList<SessionResponse>> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new GetSessionsQuery(user.GetUserId(), user.GetSessionId()), cancellationToken)).Match(value => Results.Ok(value)));
+            (await handler.Handle(new GetSessionsQuery(user.GetUserId(), user.GetSessionId()), cancellationToken)).Match(value => Results.Ok(value)))
+            .Produces<IReadOnlyList<SessionResponse>>();
 
         group.MapDelete("/sessions/{sessionId:guid}", async (Guid sessionId, ClaimsPrincipal user, ICommandHandler<RevokeSessionCommand> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new RevokeSessionCommand(user.GetUserId(), sessionId), cancellationToken)).Match(Results.NoContent));
+            (await handler.Handle(new RevokeSessionCommand(user.GetUserId(), sessionId), cancellationToken)).Match(Results.NoContent))
+            .Produces(StatusCodes.Status204NoContent);
 
         group.MapDelete("/sessions", async (ClaimsPrincipal user, ICommandHandler<RevokeOtherSessionsCommand> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new RevokeOtherSessionsCommand(user.GetUserId(), user.GetSessionId()), cancellationToken)).Match(Results.NoContent));
+            (await handler.Handle(new RevokeOtherSessionsCommand(user.GetUserId(), user.GetSessionId()), cancellationToken)).Match(Results.NoContent))
+            .Produces(StatusCodes.Status204NoContent);
 
         group.MapGet("/external-logins", async (ClaimsPrincipal user, IQueryHandler<GetExternalLoginsQuery, IReadOnlyList<ExternalLoginResponse>> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new GetExternalLoginsQuery(user.GetUserId()), cancellationToken)).Match(value => Results.Ok(value)));
+            (await handler.Handle(new GetExternalLoginsQuery(user.GetUserId()), cancellationToken)).Match(value => Results.Ok(value)))
+            .Produces<IReadOnlyList<ExternalLoginResponse>>();
 
         group.MapDelete("/external-logins/{provider}", async (string provider, ClaimsPrincipal user, ICommandHandler<UnlinkExternalLoginCommand> handler, CancellationToken cancellationToken) =>
                 (await handler.Handle(new UnlinkExternalLoginCommand(user.GetUserId(), provider), cancellationToken)).Match(Results.NoContent))
-            .RequireRecentAuthentication();
+            .RequireRecentAuthentication()
+            .Produces(StatusCodes.Status204NoContent);
     }
 }

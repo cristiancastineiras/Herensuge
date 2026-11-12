@@ -10,6 +10,10 @@ x-api-environment: &api-environment
   ASPNETCORE_ENVIRONMENT: ${HERENSUGE_ENVIRONMENT:-Staging}
   ConnectionStrings__Database: Host=herensuge-postgres;Port=5432;Database=herensuge;Username=herensuge;Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in Docker/.env}
   ConnectionStrings__Valkey: herensuge-valkey:6379,password=${VALKEY_PASSWORD:?Set VALKEY_PASSWORD in Docker/.env}
+  # Data at rest: AES-256-GCM key for personal data and HMAC key for blind indexes, secret hashes and password pepper.
+  Security__EncryptionKeys__k1: ${DATA_ENCRYPTION_KEY:?Set DATA_ENCRYPTION_KEY in Docker/.env}
+  Security__ActiveEncryptionKey: k1
+  Security__HashingKey: ${HASHING_KEY:?Set HASHING_KEY in Docker/.env}
   Herensuge__TrustForwardedHeaders: "true"
   Herensuge__AllowedReturnOrigins__0: https://${HERENSUGE_PORTAL_HOST}
   Oidc__Issuer: https://${HERENSUGE_ID_HOST}/
@@ -67,10 +71,8 @@ services:
     restart: unless-stopped
 
   # One-shot: applies every module migration, then the API starts.
+  # Same image as herensuge-api, which builds it (two services building one tag collide).
   herensuge-migrator:
-    build:
-      context: ..
-      dockerfile: Docker/Herensuge.Api.Dockerfile
     image: herensuge-api:${HERENSUGE_VERSION:-local}
     command: ["--migrate"]
     environment: *api-environment
@@ -85,6 +87,9 @@ services:
     build:
       context: ..
       dockerfile: Docker/Herensuge.Api.Dockerfile
+      # The login web is built inside the API image; it needs the public portal URL ("Ir al portal").
+      args:
+        VITE_URL_PORTAL: https://${HERENSUGE_PORTAL_HOST}
     image: herensuge-api:${HERENSUGE_VERSION:-local}
     environment: *api-environment
     volumes:
@@ -100,6 +105,9 @@ services:
     build:
       context: ..
       dockerfile: Docker/Herensuge.Bff.Dockerfile
+      # The portal web is built inside the BFF image; it needs the public IdP URL (account linking).
+      args:
+        VITE_URL_IDP: https://${HERENSUGE_ID_HOST}
     image: herensuge-bff:${HERENSUGE_VERSION:-local}
     environment:
       ASPNETCORE_ENVIRONMENT: ${HERENSUGE_ENVIRONMENT:-Staging}
@@ -108,6 +116,8 @@ services:
       Bff__Authority: https://${HERENSUGE_ID_HOST}/
       Bff__BackchannelAddress: http://herensuge-api:8080
       Bff__ClientSecret: ${PORTAL_CLIENT_SECRET}
+      # Encrypts the Data Protection key ring kept in Valkey (it protects the session cookies and tokens).
+      DataProtection__KeyRingKey: ${BFF_KEY_RING_KEY:?Set BFF_KEY_RING_KEY in Docker/.env}
       ReverseProxy__Clusters__herensuge-api__Destinations__primary__Address: http://herensuge-api:8080
       OTEL_EXPORTER_OTLP_ENDPOINT: http://herensuge-otel:4317
     depends_on:

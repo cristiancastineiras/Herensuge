@@ -40,7 +40,8 @@ internal sealed class ClientEndpoints : IEndpoint
             .RequireAuthorization(HerensugePolicies.PlatformAdmin);
 
         group.MapGet("/", async (IQueryHandler<GetClientsQuery, IReadOnlyList<ClientResponse>> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new GetClientsQuery(), cancellationToken)).Match(value => Results.Ok(value)));
+            (await handler.Handle(new GetClientsQuery(), cancellationToken)).Match(value => Results.Ok(value)))
+            .Produces<IReadOnlyList<ClientResponse>>();
 
         group.MapPost("/", async (CreateClientRequest request, ICommandHandler<CreateClientCommand, ClientCreatedResponse> handler, CancellationToken cancellationToken) =>
             (await handler.Handle(
@@ -51,17 +52,21 @@ internal sealed class ClientEndpoints : IEndpoint
                     request.RedirectUris,
                     request.PostLogoutRedirectUris ?? [],
                     request.Scopes),
-                cancellationToken)).Match(value => Results.Ok(value)));
+                cancellationToken)).Match(value => Results.Ok(value)))
+            .Produces<ClientCreatedResponse>();
 
         group.MapPatch("/{clientId}", async (string clientId, UpdateClientRequest request, ICommandHandler<UpdateClientCommand> handler, CancellationToken cancellationToken) =>
             (await handler.Handle(
                 new UpdateClientCommand(clientId, request.DisplayName, request.RedirectUris, request.PostLogoutRedirectUris ?? [], request.Scopes),
-                cancellationToken)).Match(Results.NoContent));
+                cancellationToken)).Match(Results.NoContent))
+            .Produces(StatusCodes.Status204NoContent);
 
         group.MapPost("/{clientId}/secret", async (string clientId, ICommandHandler<RotateClientSecretCommand, string> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new RotateClientSecretCommand(clientId), cancellationToken)).Match(secret => Results.Ok(new ClientSecretResponse(secret))));
+            (await handler.Handle(new RotateClientSecretCommand(clientId), cancellationToken)).Match(secret => Results.Ok(new ClientSecretResponse(secret))))
+            .Produces<ClientSecretResponse>();
 
         group.MapDelete("/{clientId}", async (string clientId, ICommandHandler<DeleteClientCommand> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new DeleteClientCommand(clientId), cancellationToken)).Match(Results.NoContent));
+            (await handler.Handle(new DeleteClientCommand(clientId), cancellationToken)).Match(Results.NoContent))
+            .Produces(StatusCodes.Status204NoContent);
     }
 }

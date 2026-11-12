@@ -35,7 +35,8 @@ internal sealed class AuditEndpoints : IEndpoint
             .WithTags("Organization")
             .RequireAuthorization(HerensugePolicies.Api)
             .RequireActiveTenant()
-            .RequireTenantAdministrator();
+            .RequireTenantAdministrator()
+            .Produces<AuditPage>();
 
         app.MapGet("/api/v1/platform/audit", async (
                 Guid? tenantId,
@@ -48,6 +49,7 @@ internal sealed class AuditEndpoints : IEndpoint
                 (await handler.Handle(new GetAuditEntriesQuery(tenantId, userId, action, before, pageSize ?? DefaultPageSize), cancellationToken))
                     .Match(value => Results.Ok(value)))
             .WithTags("Platform")
-            .RequireAuthorization(HerensugePolicies.PlatformAdmin);
+            .RequireAuthorization(HerensugePolicies.PlatformAdmin)
+            .Produces<AuditPage>();
     }
 }

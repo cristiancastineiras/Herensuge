@@ -37,6 +37,20 @@ internal static class HostingExtensions
         return services;
     }
 
+    /// <summary>Migrations, seeders and outbox/inbox jobs (they need the database). Used while generating the OpenAPI document.</summary>
+    public static IServiceCollection RemoveHerensugeHostedServices(this IServiceCollection services)
+    {
+        ServiceDescriptor[] jobs = [.. services.Where(service =>
+            service.ServiceType == typeof(IHostedService)
+            && service.ImplementationType?.Namespace?.StartsWith("Herensuge", StringComparison.Ordinal) == true)];
+        foreach (ServiceDescriptor job in jobs)
+        {
+            services.Remove(job);
+        }
+
+        return services;
+    }
+
     private sealed class StartupMigrator(IServiceProvider services) : IHostedService
     {
         public Task StartAsync(CancellationToken cancellationToken) => services.MigrateDatabasesAsync(cancellationToken);

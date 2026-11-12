@@ -10,6 +10,7 @@ internal sealed class VerifyMfaCommandHandler(
     ITotpService totpService,
     SignInCompleter signInCompleter,
     IUnitOfWork unitOfWork,
+    ISecretHasher hasher,
     TimeProvider timeProvider) : ICommandHandler<VerifyMfaCommand, SignInResult>
 {
     public async Task<Result<SignInResult>> Handle(VerifyMfaCommand command, CancellationToken cancellationToken) =>
@@ -32,7 +33,7 @@ internal sealed class VerifyMfaCommandHandler(
         (Result verification, string methodReference) = command.Method switch
         {
             MfaMethods.Totp => (VerifyTotp(user, command.Code, now), AuthenticationMethods.Otp),
-            MfaMethods.RecoveryCode => (user.RedeemRecoveryCode(command.Code, now), AuthenticationMethods.Otp),
+            MfaMethods.RecoveryCode => (user.RedeemRecoveryCode(command.Code, hasher, now), AuthenticationMethods.Otp),
             MfaMethods.Sms => (await VerifySmsAsync(user, command.Code, now, cancellationToken), AuthenticationMethods.Sms),
             _ => (Result.Failure(UserErrors.MfaMethodNotAvailable), string.Empty),
         };
@@ -86,7 +87,7 @@ internal sealed class VerifyMfaCommandHandler(
         }
 
         OneTimeToken? token = await tokens.GetLatestActiveAsync(user.Id, OneTimeTokenPurpose.SmsMfa, now, cancellationToken);
-        if (token is null || token.Consume(code, now).IsFailure)
+        if (token is null || token.Consume(code, hasher, now).IsFailure)
         {
             return user.RegisterFailedSmsCode(now);
         }

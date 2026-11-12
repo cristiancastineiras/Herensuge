@@ -3,16 +3,18 @@ using System.Text.Json;
 using Dapper;
 using Herensuge.Common.Application.Data;
 using Herensuge.Common.Application.Messaging;
+using Herensuge.Common.Application.Security;
 using Herensuge.Common.Domain;
+using Herensuge.Modules.Audit.Application.Abstractions;
 
 namespace Herensuge.Modules.Audit.Application.Entries.GetAuditEntries;
 
-internal sealed class GetAuditEntriesQueryHandler(IDbConnectionFactory dbConnectionFactory)
+internal sealed class GetAuditEntriesQueryHandler(IDbConnectionFactory dbConnectionFactory, IDataEncryptor encryptor)
     : IQueryHandler<GetAuditEntriesQuery, AuditPage>
 {
     private const string Sql =
         """
-        SELECT id, occurred_at_utc, action, tenant_id, subject_user_id, actor_user_id, ip_address, user_agent, metadata::text AS metadata
+        SELECT id, occurred_at_utc, action, tenant_id, subject_user_id, actor_user_id, ip_address, user_agent, metadata
         FROM audit.audit_entries
         WHERE (@TenantId::uuid IS NULL OR tenant_id = @TenantId)
           AND (@UserId::uuid IS NULL OR subject_user_id = @UserId OR actor_user_id = @UserId)
@@ -45,9 +47,9 @@ internal sealed class GetAuditEntriesQueryHandler(IDbConnectionFactory dbConnect
             row.TenantId,
             row.SubjectUserId,
             row.ActorUserId,
-            row.IpAddress,
-            row.UserAgent,
-            JsonDocument.Parse(row.Metadata).RootElement.Clone()))];
+            encryptor.DecryptNullable(row.IpAddress, EncryptedColumns.IpAddress),
+            encryptor.DecryptNullable(row.UserAgent, EncryptedColumns.UserAgent),
+            JsonDocument.Parse(encryptor.Decrypt(row.Metadata, EncryptedColumns.Metadata)).RootElement.Clone()))];
 
         return new AuditPage(items, hasMore ? items[^1].OccurredAtUtc : null);
     }
@@ -70,6 +72,6 @@ internal sealed class GetAuditEntriesQueryHandler(IDbConnectionFactory dbConnect
 
         public string? UserAgent { get; init; }
 
-        public string Metadata { get; init; } = "{}";
+        public string Metadata { get; init; } = string.Empty;
     }
 }

@@ -1,0 +1,13 @@
+{
+	"name": "@paquetes/generador-api",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Genera paquetes/api/src/schema.d.ts desde el contrato OpenAPI de Herensuge.Api (Docs/API).",
+	"scripts": {
+		"generate": "openapi-typescript ../../../../Docs/API/Herensuge.Api.json --output ../api/src/schema.d.ts --properties-required-by-default"
+	},
+	"devDependencies": {
+		"openapi-typescript": "catalog:",
+		"typescript": "catalog:generador"
+	}
+}

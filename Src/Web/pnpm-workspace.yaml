@@ -1,0 +1,45 @@
+# Workspaces del monorepo y catálogo de versiones (una sola fuente de verdad).
+# Cada package.json usa "catalog:" en lugar de la versión.
+
+packages:
+  # Aplicaciones desplegables
+  - "apps/*"
+  # Paquetes compartidos internos (@paquetes/*)
+  - "paquetes/*"
+
+catalog:
+  # UI
+  react: 19.3.0
+  react-dom: 19.3.0
+  react-router: 7.16.0
+  "@tanstack/react-query": 5.103.1
+  "@simplewebauthn/browser": 14.0.0
+  uqr: 0.1.3
+
+  # Build
+  vite: 8.3.4
+  "@vitejs/plugin-react": 6.1.1
+  tailwindcss: 4.3.3
+  "@tailwindcss/vite": 4.3.3
+
+  # Tipos
+  typescript: 7.0.2
+  "@types/react": 19.3.0
+  "@types/react-dom": 19.3.0
+  "@types/node": 26.6.5
+
+  # Cliente de la API generado desde Docs/API/Herensuge.Api.json
+  openapi-fetch: 0.17.0
+  openapi-typescript: 7.13.0
+
+  # Herramientas
+  turbo: 2.11.8
+  oxlint: 1.88.0
+  oxfmt: 0.73.0
+  rimraf: 6.1.3
+
+catalogs:
+  # Solo para paquetes/generador-api: openapi-typescript usa la API en JS de TypeScript 5,
+  # que TypeScript 7 (nativo) ya no expone. El resto del monorepo usa TypeScript 7.
+  generador:
+    typescript: 5.9.3

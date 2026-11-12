@@ -1,10 +1,11 @@
+using Herensuge.Common.Application.Security;
 using System.Data.Common;
 using Dapper;
 using Herensuge.Common.Application.Data;
 
 namespace Herensuge.Modules.Identity.Application.Users.GetCurrentUser;
 
-internal sealed class GetCurrentUserQueryHandler(IDbConnectionFactory dbConnectionFactory)
+internal sealed class GetCurrentUserQueryHandler(IDbConnectionFactory dbConnectionFactory, IDataEncryptor encryptor)
     : IQueryHandler<GetCurrentUserQuery, CurrentUserResponse>
 {
     private const string Sql =
@@ -31,6 +32,13 @@ internal sealed class GetCurrentUserQueryHandler(IDbConnectionFactory dbConnecti
         CurrentUserResponse? user = await connection.QuerySingleOrDefaultAsync<CurrentUserResponse>(
             new CommandDefinition(Sql, new { query.UserId }, cancellationToken: cancellationToken));
 
-        return user is null ? UserErrors.NotFound : user;
+        return user is null
+            ? UserErrors.NotFound
+            : user with
+            {
+                Email = encryptor.Decrypt(user.Email, EncryptedColumns.UserEmail),
+                DisplayName = encryptor.Decrypt(user.DisplayName, EncryptedColumns.UserDisplayName),
+                PhoneNumber = encryptor.DecryptNullable(user.PhoneNumber, EncryptedColumns.UserPhoneNumber),
+            };
     }
 }

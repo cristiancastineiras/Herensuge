@@ -1,4 +1,5 @@
 using Dapper;
+using Herensuge.Common.Application.Security;
 using Herensuge.Modules.Audit.Application.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -7,7 +8,8 @@ using Npgsql;
 
 namespace Herensuge.Modules.Audit.Infrastructure;
 
-internal sealed class AuditLog(NpgsqlDataSource dataSource) : IAuditLog
+/// <summary>Append-only log. IP address, user agent and metadata are encrypted.</summary>
+internal sealed class AuditLog(NpgsqlDataSource dataSource, IDataEncryptor encryptor) : IAuditLog
 {
     public async Task RecordAsync(AuditRecord record, CancellationToken cancellationToken)
     {
@@ -17,7 +19,7 @@ internal sealed class AuditLog(NpgsqlDataSource dataSource) : IAuditLog
             INSERT INTO audit.audit_entries
                 (id, event_id, occurred_at_utc, action, tenant_id, subject_user_id, actor_user_id, ip_address, user_agent, metadata)
             VALUES
-                (@Id, @EventId, @OccurredAtUtc, @Action, @TenantId, @SubjectUserId, @ActorUserId, @IpAddress, @UserAgent, @Metadata::jsonb)
+                (@Id, @EventId, @OccurredAtUtc, @Action, @TenantId, @SubjectUserId, @ActorUserId, @IpAddress, @UserAgent, @Metadata)
             ON CONFLICT (event_id) DO NOTHING
             """,
             new
@@ -29,9 +31,9 @@ internal sealed class AuditLog(NpgsqlDataSource dataSource) : IAuditLog
                 record.TenantId,
                 record.SubjectUserId,
                 record.ActorUserId,
-                record.IpAddress,
-                record.UserAgent,
-                record.Metadata,
+                IpAddress = encryptor.EncryptNullable(record.IpAddress, EncryptedColumns.IpAddress),
+                UserAgent = encryptor.EncryptNullable(record.UserAgent, EncryptedColumns.UserAgent),
+                Metadata = encryptor.Encrypt(record.Metadata, EncryptedColumns.Metadata),
             },
             cancellationToken: cancellationToken));
     }

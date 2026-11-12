@@ -8,11 +8,14 @@ using Herensuge.Modules.Identity.Domain.Tokens.Events;
 namespace Herensuge.Modules.Identity.Domain.Tokens;
 
 /// <summary>
-/// Single-use secret sent by email (links) or SMS (6-digit codes). Only its SHA-256 hash is stored.
+/// Single-use secret sent by email (links) or SMS (6-digit codes). Only its keyed hash is stored (HMAC with a key
+/// outside the database): a copy of the database is not enough to brute-force a 6-digit code.
 /// </summary>
 public sealed class OneTimeToken : AggregateRoot
 {
     public const int MaxFailedAttempts = 5;
+
+    private const string HashPurpose = "identity.one_time_tokens";
 
     private OneTimeToken()
     {
@@ -37,7 +40,12 @@ public sealed class OneTimeToken : AggregateRoot
 
     public int FailedAttempts { get; private set; }
 
-    public static (OneTimeToken Token, string Value) Issue(Guid userId, OneTimeTokenPurpose purpose, string? target, DateTime utcNow)
+    public static (OneTimeToken Token, string Value) Issue(
+        Guid userId,
+        OneTimeTokenPurpose purpose,
+        string? target,
+        ISecretHasher hasher,
+        DateTime utcNow)
     {
         Guid id = Guid.CreateVersion7();
         string value = purpose.UsesNumericCode()
@@ -50,7 +58,7 @@ public sealed class OneTimeToken : AggregateRoot
             UserId = userId,
             Purpose = purpose,
             Target = target,
-            TokenHash = ComputeHash(id, purpose, value),
+            TokenHash = ComputeHash(id, purpose, value, hasher),
             CreatedAtUtc = utcNow,
             ExpiresAtUtc = utcNow + purpose.Lifetime(),
         };
@@ -59,20 +67,20 @@ public sealed class OneTimeToken : AggregateRoot
         return (token, value);
     }
 
-    /// <summary>Hash used to look a link token up. Links are high-entropy, so they need no salt.</summary>
-    public static string ComputeLinkHash(string value) => Hash(value.Trim());
+    /// <summary>Hash used to look a link token up (links are high-entropy, so they need no per-row salt).</summary>
+    public static string ComputeLinkHash(string value, ISecretHasher hasher) => hasher.Hash(HashPurpose, value.Trim());
 
     public bool IsActive(DateTime utcNow) =>
         ConsumedAtUtc is null && utcNow < ExpiresAtUtc && FailedAttempts < MaxFailedAttempts;
 
-    public Result Consume(string value, DateTime utcNow)
+    public Result Consume(string value, ISecretHasher hasher, DateTime utcNow)
     {
         if (!IsActive(utcNow))
         {
             return OneTimeTokenErrors.InvalidOrExpired;
         }
 
-        string expected = ComputeHash(Id, Purpose, value.Trim());
+        string expected = ComputeHash(Id, Purpose, value.Trim(), hasher);
         if (!CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(expected), Encoding.ASCII.GetBytes(TokenHash)))
         {
             FailedAttempts++;
@@ -89,11 +97,9 @@ public sealed class OneTimeToken : AggregateRoot
         ConsumedAtUtc ??= utcNow;
     }
 
-    // 6-digit codes have little entropy: they are salted with the token id.
-    private static string ComputeHash(Guid id, OneTimeTokenPurpose purpose, string value) =>
-        Hash(purpose.UsesNumericCode() ? $"{id:N}:{value}" : value);
-
-    private static string Hash(string input) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(input)));
+    // 6-digit codes are also salted with the token id.
+    private static string ComputeHash(Guid id, OneTimeTokenPurpose purpose, string value, ISecretHasher hasher) =>
+        hasher.Hash(HashPurpose, purpose.UsesNumericCode() ? $"{id:N}:{value}" : value);
 }
 
 public enum OneTimeTokenPurpose

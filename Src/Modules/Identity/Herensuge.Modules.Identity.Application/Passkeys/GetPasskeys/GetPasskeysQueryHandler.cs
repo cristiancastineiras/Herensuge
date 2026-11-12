@@ -1,10 +1,11 @@
+using Herensuge.Common.Application.Security;
 using System.Data.Common;
 using Dapper;
 using Herensuge.Common.Application.Data;
 
 namespace Herensuge.Modules.Identity.Application.Passkeys.GetPasskeys;
 
-internal sealed class GetPasskeysQueryHandler(IDbConnectionFactory dbConnectionFactory)
+internal sealed class GetPasskeysQueryHandler(IDbConnectionFactory dbConnectionFactory, IDataEncryptor encryptor)
     : IQueryHandler<GetPasskeysQuery, IReadOnlyList<PasskeyResponse>>
 {
     private const string Sql =
@@ -20,6 +21,7 @@ internal sealed class GetPasskeysQueryHandler(IDbConnectionFactory dbConnectionF
         await using DbConnection connection = await dbConnectionFactory.OpenConnectionAsync(cancellationToken);
         IEnumerable<PasskeyResponse> passkeys = await connection.QueryAsync<PasskeyResponse>(
             new CommandDefinition(Sql, new { query.UserId }, cancellationToken: cancellationToken));
-        return Result.Success<IReadOnlyList<PasskeyResponse>>([.. passkeys]);
+        return Result.Success<IReadOnlyList<PasskeyResponse>>(
+            [.. passkeys.Select(passkey => passkey with { Name = encryptor.Decrypt(passkey.Name, EncryptedColumns.PasskeyName) })]);
     }
 }

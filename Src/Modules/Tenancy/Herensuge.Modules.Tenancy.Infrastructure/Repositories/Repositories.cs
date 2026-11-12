@@ -45,10 +45,14 @@ internal sealed class InvitationRepository(TenancyDbContext context) : IInvitati
     public Task<Invitation?> GetByTokenHashAsync(string tokenHash, CancellationToken cancellationToken) =>
         context.Invitations.SingleOrDefaultAsync(invitation => invitation.TokenHash == tokenHash, cancellationToken);
 
-    public async Task<IReadOnlyList<Invitation>> GetPendingByEmailAsync(Guid tenantId, string email, CancellationToken cancellationToken) =>
-        await context.Invitations
-            .Where(invitation => invitation.TenantId == tenantId && invitation.Email == email && invitation.Status == InvitationStatus.Pending)
+    // The email column is encrypted: the pending invitations of the organization (few) are compared once decrypted.
+    public async Task<IReadOnlyList<Invitation>> GetPendingByEmailAsync(Guid tenantId, string email, CancellationToken cancellationToken)
+    {
+        List<Invitation> pending = await context.Invitations
+            .Where(invitation => invitation.TenantId == tenantId && invitation.Status == InvitationStatus.Pending)
             .ToListAsync(cancellationToken);
+        return [.. pending.Where(invitation => string.Equals(invitation.Email, email, StringComparison.Ordinal))];
+    }
 
     public void Add(Invitation invitation) => context.Invitations.Add(invitation);
 }

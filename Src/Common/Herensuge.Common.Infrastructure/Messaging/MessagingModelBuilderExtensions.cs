@@ -4,7 +4,10 @@ namespace Herensuge.Common.Infrastructure.Messaging;
 
 public static class MessagingModelBuilderExtensions
 {
-    /// <summary>Maps outbox (optional) and inbox tables into the module schema.</summary>
+    /// <summary>
+    /// Maps outbox (optional) and inbox tables into the module schema. Content, IP and user agent are stored
+    /// encrypted (see <see cref="MessageEncryption"/>), so they are text columns.
+    /// </summary>
     public static ModelBuilder ApplyMessagingConfiguration(this ModelBuilder modelBuilder, bool includeOutbox)
     {
         if (includeOutbox)
@@ -14,11 +17,11 @@ public static class MessagingModelBuilderExtensions
                 builder.ToTable("outbox_messages");
                 builder.HasKey(m => m.Id);
                 builder.Property(m => m.Type).HasMaxLength(500);
-                builder.Property(m => m.Content).HasColumnType("jsonb");
+                builder.Property(m => m.Content).HasColumnType("text");
                 builder.Property(m => m.CorrelationId).HasMaxLength(100);
                 builder.Property(m => m.TraceParent).HasMaxLength(100);
-                builder.Property(m => m.IpAddress).HasMaxLength(64);
-                builder.Property(m => m.UserAgent).HasMaxLength(512);
+                builder.Property(m => m.IpAddress).HasColumnType("text");
+                builder.Property(m => m.UserAgent).HasColumnType("text");
                 builder.HasIndex(m => m.OccurredOnUtc).HasFilter("processed_on_utc IS NULL");
             });
 
@@ -35,11 +38,11 @@ public static class MessagingModelBuilderExtensions
             builder.ToTable("inbox_messages");
             builder.HasKey(m => m.Id);
             builder.Property(m => m.Type).HasMaxLength(500);
-            builder.Property(m => m.Content).HasColumnType("jsonb");
+            builder.Property(m => m.Content).HasColumnType("text");
             builder.Property(m => m.CorrelationId).HasMaxLength(100);
             builder.Property(m => m.TraceParent).HasMaxLength(100);
-            builder.Property(m => m.IpAddress).HasMaxLength(64);
-            builder.Property(m => m.UserAgent).HasMaxLength(512);
+            builder.Property(m => m.IpAddress).HasColumnType("text");
+            builder.Property(m => m.UserAgent).HasColumnType("text");
             builder.HasIndex(m => m.OccurredOnUtc).HasFilter("processed_on_utc IS NULL");
         });
 

@@ -1,7 +1,10 @@
 using System.Security.Cryptography.X509Certificates;
+using Herensuge.Common.Application.Security;
 using Herensuge.Common.Infrastructure.Database;
+using Herensuge.Common.Infrastructure.Security;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.EntityFrameworkCore;
 
 namespace Herensuge.Api.Hosting;
@@ -23,8 +26,9 @@ public sealed class DataProtectionDbContext(DbContextOptions<DataProtectionDbCon
 internal static class DataProtectionSetup
 {
     /// <summary>
-    /// Keys are shared by every instance through PostgreSQL. In production set
-    /// DataProtection:CertificatePath so the keys are also encrypted at rest.
+    /// Keys are shared by every instance through PostgreSQL and are always encrypted at rest: with
+    /// DataProtection:CertificatePath when it is set, otherwise with Security:EncryptionKeys. A copy of the database
+    /// alone cannot unprotect cookies or TOTP secrets.
     /// </summary>
     public static IServiceCollection AddHerensugeDataProtection(this IServiceCollection services, IConfiguration configuration)
     {
@@ -41,6 +45,11 @@ internal static class DataProtectionSetup
                 certificatePath,
                 configuration["DataProtection:CertificatePassword"],
                 X509KeyStorageFlags.EphemeralKeySet));
+        }
+        else
+        {
+            services.AddOptions<KeyManagementOptions>()
+                .Configure<IDataEncryptor>((options, encryptor) => options.XmlEncryptor = new KeyRingXmlEncryptor(encryptor));
         }
 
         return services;

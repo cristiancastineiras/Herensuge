@@ -214,14 +214,14 @@ public sealed class User : AggregateRoot
         return Result.Success();
     }
 
-    public Result RedeemRecoveryCode(string code, DateTime utcNow)
+    public Result RedeemRecoveryCode(string code, ISecretHasher hasher, DateTime utcNow)
     {
         if (IsLockedOut(utcNow))
         {
             return UserErrors.LockedOut;
         }
 
-        string hash = RecoveryCode.Hash(code);
+        string hash = RecoveryCode.Hash(code, hasher);
         RecoveryCode? match = _recoveryCodes.FirstOrDefault(candidate => candidate.UsedAtUtc is null && candidate.Matches(hash));
         if (match is null)
         {
@@ -289,10 +289,10 @@ public sealed class User : AggregateRoot
 
     // ---------------------------------------------------------------- password
 
-    public void ChangePassword(string passwordHash, Guid? currentSessionId)
+    public void ChangePassword(string passwordHash, Guid? currentSessionId, DateTime utcNow)
     {
         PasswordHash = passwordHash;
-        Raise(new PasswordChangedDomainEvent(Id, currentSessionId));
+        Raise(new PasswordChangedDomainEvent(Id, currentSessionId, utcNow));
     }
 
     /// <summary>The reset link proves ownership of the mailbox, so it also verifies the email.</summary>
@@ -302,7 +302,7 @@ public sealed class User : AggregateRoot
         FailedSignInAttempts = 0;
         LockoutEndsAtUtc = null;
         VerifyEmail(utcNow);
-        Raise(new PasswordChangedDomainEvent(Id, null));
+        Raise(new PasswordChangedDomainEvent(Id, null, utcNow));
     }
 
     public void UpgradePasswordHash(string passwordHash) => PasswordHash = passwordHash;
@@ -321,7 +321,7 @@ public sealed class User : AggregateRoot
     }
 
     /// <returns>New recovery codes when this is the first second factor; otherwise an empty list.</returns>
-    public Result<IReadOnlyList<string>> ConfirmTotpSetup(bool isValid, long timeStep, DateTime utcNow)
+    public Result<IReadOnlyList<string>> ConfirmTotpSetup(bool isValid, long timeStep, ISecretHasher hasher, DateTime utcNow)
     {
         if (IsTotpEnabled)
         {
@@ -344,7 +344,7 @@ public sealed class User : AggregateRoot
         TotpLastUsedTimeStep = timeStep;
         Raise(new MfaEnabledDomainEvent(Id, MfaMethods.Totp));
 
-        return Result.Success(EnsureRecoveryCodes(utcNow));
+        return Result.Success(EnsureRecoveryCodes(hasher, utcNow));
     }
 
     public Result DisableTotp(bool mfaRequiredByOrganization)
@@ -367,12 +367,12 @@ public sealed class User : AggregateRoot
         return Result.Success();
     }
 
-    public Result<IReadOnlyList<string>> SetVerifiedPhoneNumber(PhoneNumber phoneNumber, DateTime utcNow)
+    public Result<IReadOnlyList<string>> SetVerifiedPhoneNumber(PhoneNumber phoneNumber, ISecretHasher hasher, DateTime utcNow)
     {
         PhoneNumber = phoneNumber.Value;
         PhoneVerifiedAtUtc = utcNow;
         Raise(new MfaEnabledDomainEvent(Id, MfaMethods.Sms));
-        return Result.Success(EnsureRecoveryCodes(utcNow));
+        return Result.Success(EnsureRecoveryCodes(hasher, utcNow));
     }
 
     public Result RemovePhoneNumber(bool mfaRequiredByOrganization)
@@ -394,14 +394,14 @@ public sealed class User : AggregateRoot
         return Result.Success();
     }
 
-    public Result<IReadOnlyList<string>> RegenerateRecoveryCodes(DateTime utcNow)
+    public Result<IReadOnlyList<string>> RegenerateRecoveryCodes(ISecretHasher hasher, DateTime utcNow)
     {
         if (!HasMfa)
         {
             return UserErrors.MfaNotEnabled;
         }
 
-        return Result.Success<IReadOnlyList<string>>(GenerateRecoveryCodes(utcNow));
+        return Result.Success<IReadOnlyList<string>>(GenerateRecoveryCodes(hasher, utcNow));
     }
 
     // ---------------------------------------------------------------- passkeys
@@ -529,10 +529,10 @@ public sealed class User : AggregateRoot
         }
     }
 
-    private IReadOnlyList<string> EnsureRecoveryCodes(DateTime utcNow) =>
-        _recoveryCodes.Any(code => code.UsedAtUtc is null) ? [] : GenerateRecoveryCodes(utcNow);
+    private IReadOnlyList<string> EnsureRecoveryCodes(ISecretHasher hasher, DateTime utcNow) =>
+        _recoveryCodes.Any(code => code.UsedAtUtc is null) ? [] : GenerateRecoveryCodes(hasher, utcNow);
 
-    private List<string> GenerateRecoveryCodes(DateTime utcNow)
+    private List<string> GenerateRecoveryCodes(ISecretHasher hasher, DateTime utcNow)
     {
         _recoveryCodes.Clear();
         var codes = new List<string>(RecoveryCodeCount);
@@ -540,7 +540,7 @@ public sealed class User : AggregateRoot
         {
             string code = RecoveryCode.Generate();
             codes.Add(code);
-            _recoveryCodes.Add(RecoveryCode.Create(Id, code, utcNow));
+            _recoveryCodes.Add(RecoveryCode.Create(Id, code, hasher, utcNow));
         }
 
         return codes;

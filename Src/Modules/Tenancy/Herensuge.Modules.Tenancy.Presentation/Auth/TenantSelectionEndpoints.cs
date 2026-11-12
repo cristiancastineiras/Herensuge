@@ -37,7 +37,8 @@ internal sealed class TenantSelectionEndpoints : IEndpoint
             }
 
             return (await handler.Handle(new GetUserTenantsQuery(principal.GetUserId()), cancellationToken)).Match(value => Results.Ok(value));
-        });
+        })
+            .Produces<IReadOnlyList<UserTenantResponse>>();
 
         group.MapPost("/tenants", async (
                 CreateTenantRequest request,
@@ -60,7 +61,8 @@ internal sealed class TenantSelectionEndpoints : IEndpoint
                 await IdentityProviderSession.SetActiveTenantAsync(httpContext, principal, created.Value);
                 return Results.Ok(new TenantSelectedResponse(created.Value));
             })
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces<TenantSelectedResponse>();
 
         group.MapPost("/tenants/select", async (
             SelectTenantRequest request,
@@ -88,13 +90,15 @@ internal sealed class TenantSelectionEndpoints : IEndpoint
 
             await IdentityProviderSession.SetActiveTenantAsync(httpContext, principal, tenant.Id);
             return Results.Ok(new TenantSelectedResponse(tenant.Id));
-        });
+        })
+            .Produces<TenantSelectedResponse>();
 
         group.MapGet("/invitations/{token}", async (
             string token,
             IQueryHandler<GetInvitationPreviewQuery, InvitationPreviewResponse> handler,
             CancellationToken cancellationToken) =>
-            (await handler.Handle(new GetInvitationPreviewQuery(token), cancellationToken)).Match(value => Results.Ok(value)));
+            (await handler.Handle(new GetInvitationPreviewQuery(token), cancellationToken)).Match(value => Results.Ok(value)))
+            .Produces<InvitationPreviewResponse>();
 
         group.MapPost("/invitations/{token}/accept", async (
                 string token,
@@ -117,7 +121,8 @@ internal sealed class TenantSelectionEndpoints : IEndpoint
                 await IdentityProviderSession.SetActiveTenantAsync(httpContext, principal, accepted.Value);
                 return Results.Ok(new TenantSelectedResponse(accepted.Value));
             })
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces<TenantSelectedResponse>();
     }
 
     private static IResult NotSignedIn() =>

@@ -36,7 +36,8 @@ internal sealed class SignInEndpoints : IEndpoint
                 Result<SignInResult> result = await handler.Handle(new SignInWithPasswordCommand(request.Email, request.Password), cancellationToken);
                 return result.IsFailure ? ApiResults.Problem(result) : await SignInCookies.CompleteAsync(httpContext, result.Value);
             })
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces<SignInResponse>();
 
         group.MapGet("/sign-in/mfa", async (
             HttpContext httpContext,
@@ -50,7 +51,8 @@ internal sealed class SignInEndpoints : IEndpoint
             }
 
             return (await handler.Handle(new GetMfaChallengeQuery(mfa.UserId), cancellationToken)).Match(value => Results.Ok(value));
-        });
+        })
+            .Produces<MfaChallengeResponse>();
 
         group.MapPost("/sign-in/mfa", async (
                 VerifyMfaRequest request,
@@ -70,7 +72,8 @@ internal sealed class SignInEndpoints : IEndpoint
 
                 return result.IsFailure ? ApiResults.Problem(result) : await SignInCookies.CompleteAsync(httpContext, result.Value, mfa.TenantId);
             })
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces<SignInResponse>();
 
         group.MapPost("/sign-in/mfa/sms", async (
                 HttpContext httpContext,
@@ -85,13 +88,15 @@ internal sealed class SignInEndpoints : IEndpoint
 
                 return (await handler.Handle(new SendSmsMfaCodeCommand(mfa.UserId), cancellationToken)).Match(() => Results.Accepted());
             })
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces(StatusCodes.Status202Accepted);
 
         group.MapPost("/passkeys/options", async (
             ICommandHandler<CreatePasskeySignInOptionsCommand, string> handler,
             CancellationToken cancellationToken) =>
             (await handler.Handle(new CreatePasskeySignInOptionsCommand(), cancellationToken))
-                .Match(options => Results.Content(options, "application/json")));
+                .Match(options => Results.Content(options, "application/json")))
+            .Produces<JsonElement>();
 
         group.MapPost("/passkeys/sign-in", async (
                 JsonElement assertion,
@@ -102,7 +107,8 @@ internal sealed class SignInEndpoints : IEndpoint
                 Result<SignInResult> result = await handler.Handle(new SignInWithPasskeyCommand(assertion.GetRawText()), cancellationToken);
                 return result.IsFailure ? ApiResults.Problem(result) : await SignInCookies.CompleteAsync(httpContext, result.Value);
             })
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces<SignInResponse>();
 
         // MFA enrolment required by an organization, done from the login SPA with the SSO cookie.
         group.MapPost("/mfa/totp", async (
@@ -117,7 +123,8 @@ internal sealed class SignInEndpoints : IEndpoint
             }
 
             return (await handler.Handle(new BeginTotpSetupCommand(principal.GetUserId()), cancellationToken)).Match(value => Results.Ok(value));
-        });
+        })
+            .Produces<TotpSetupResponse>();
 
         group.MapPost("/mfa/totp/confirm", async (
                 CodeRequest request,
@@ -152,6 +159,7 @@ internal sealed class SignInEndpoints : IEndpoint
 
                 return Results.Ok(new RecoveryCodesResult(result.Value.RecoveryCodes));
             })
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict);
+            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .Produces<RecoveryCodesResult>();
     }
 }

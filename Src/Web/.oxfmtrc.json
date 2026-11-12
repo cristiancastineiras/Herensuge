@@ -1,0 +1,29 @@
+{
+	"$schema": "./node_modules/oxfmt/configuration_schema.json",
+	"useTabs": true,
+	"tabWidth": 2,
+	"printWidth": 110,
+	"endOfLine": "lf",
+	"insertFinalNewline": true,
+	"semi": false,
+	"singleQuote": false,
+	"trailingComma": "all",
+	"arrowParens": "always",
+	"sortTailwindcss": {
+		"attributes": ["class", "className"],
+		"functions": ["cn"]
+	},
+	"ignorePatterns": [
+		"**/node_modules/**",
+		"**/dist/**",
+		"**/.turbo/**",
+		"**/schema.d.ts",
+		"**/pnpm-lock.yaml"
+	],
+	"overrides": [
+		{
+			"files": ["*.json", "*.jsonc"],
+			"options": { "trailingComma": "none" }
+		}
+	]
+}

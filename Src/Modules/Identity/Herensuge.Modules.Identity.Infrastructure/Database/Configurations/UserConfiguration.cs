@@ -1,3 +1,5 @@
+using Herensuge.Common.Infrastructure.Security;
+using Herensuge.Modules.Identity.Application.Abstractions;
 using Herensuge.Modules.Identity.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -12,11 +14,13 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasKey(user => user.Id);
         builder.Property(user => user.Id).ValueGeneratedNever();
 
-        builder.Property(user => user.Email).HasMaxLength(Email.MaxLength);
-        builder.HasIndex(user => user.Email).IsUnique();
-        builder.Property(user => user.DisplayName).HasMaxLength(User.MaxDisplayNameLength);
+        // Personal data is encrypted; the email is unique and searchable through its blind index.
+        builder.Property(user => user.Email).IsEncrypted(EncryptedColumns.UserEmail);
+        builder.Property<string>(IdentityDbContext.EmailIndex).HasMaxLength(64);
+        builder.HasIndex(IdentityDbContext.EmailIndex).IsUnique();
+        builder.Property(user => user.DisplayName).IsEncrypted(EncryptedColumns.UserDisplayName);
+        builder.Property(user => user.PhoneNumber).IsEncrypted(EncryptedColumns.UserPhoneNumber);
         builder.Property(user => user.PasswordHash).HasMaxLength(256);
-        builder.Property(user => user.PhoneNumber).HasMaxLength(20);
         builder.Property(user => user.TotpSecret).HasMaxLength(1024);
         builder.Property(user => user.PendingTotpSecret).HasMaxLength(1024);
 
@@ -55,7 +59,7 @@ internal sealed class ExternalLoginConfiguration : IEntityTypeConfiguration<Exte
         builder.Property(login => login.Id).ValueGeneratedNever();
         builder.Property(login => login.Provider).HasMaxLength(50);
         builder.Property(login => login.Subject).HasMaxLength(255);
-        builder.Property(login => login.Email).HasMaxLength(Email.MaxLength);
+        builder.Property(login => login.Email).IsEncrypted(EncryptedColumns.ExternalLoginEmail);
         builder.HasIndex(login => new { login.Provider, login.Subject }).IsUnique();
         builder.HasIndex(login => new { login.UserId, login.Provider }).IsUnique();
     }
@@ -68,7 +72,7 @@ internal sealed class PasskeyCredentialConfiguration : IEntityTypeConfiguration<
         builder.ToTable("user_passkeys");
         builder.HasKey(passkey => passkey.Id);
         builder.Property(passkey => passkey.Id).ValueGeneratedNever();
-        builder.Property(passkey => passkey.Name).HasMaxLength(PasskeyCredential.MaxNameLength);
+        builder.Property(passkey => passkey.Name).IsEncrypted(EncryptedColumns.PasskeyName);
         builder.HasIndex(passkey => passkey.CredentialId).IsUnique();
     }
 }

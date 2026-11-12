@@ -20,13 +20,15 @@ internal sealed class PlatformTenantEndpoints : IEndpoint
             int? pageSize,
             IQueryHandler<GetTenantsQuery, PagedResponse<PlatformTenantResponse>> handler,
             CancellationToken cancellationToken) =>
-            (await handler.Handle(new GetTenantsQuery(search, page ?? 1, pageSize ?? 25), cancellationToken)).Match(value => Results.Ok(value)));
+            (await handler.Handle(new GetTenantsQuery(search, page ?? 1, pageSize ?? 25), cancellationToken)).Match(value => Results.Ok(value)))
+            .Produces<PagedResponse<PlatformTenantResponse>>();
 
         group.MapPatch("/{tenantId:guid}", async (
             Guid tenantId,
             SetTenantStatusRequest request,
             ICommandHandler<SetTenantStatusCommand> handler,
             CancellationToken cancellationToken) =>
-            (await handler.Handle(new SetTenantStatusCommand(tenantId, request.IsActive), cancellationToken)).Match(Results.NoContent));
+            (await handler.Handle(new SetTenantStatusCommand(tenantId, request.IsActive), cancellationToken)).Match(Results.NoContent))
+            .Produces(StatusCodes.Status204NoContent);
     }
 }

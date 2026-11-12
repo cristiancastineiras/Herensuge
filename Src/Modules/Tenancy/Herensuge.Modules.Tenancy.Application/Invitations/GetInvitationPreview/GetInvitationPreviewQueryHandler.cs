@@ -1,10 +1,15 @@
+using Herensuge.Common.Application.Security;
 using System.Data.Common;
 using Dapper;
 using Herensuge.Common.Application.Data;
 
 namespace Herensuge.Modules.Tenancy.Application.Invitations.GetInvitationPreview;
 
-internal sealed class GetInvitationPreviewQueryHandler(IDbConnectionFactory dbConnectionFactory, TimeProvider timeProvider)
+internal sealed class GetInvitationPreviewQueryHandler(
+    IDbConnectionFactory dbConnectionFactory,
+    IDataEncryptor encryptor,
+    ISecretHasher hasher,
+    TimeProvider timeProvider)
     : IQueryHandler<GetInvitationPreviewQuery, InvitationPreviewResponse>
 {
     private const string Sql =
@@ -20,7 +25,7 @@ internal sealed class GetInvitationPreviewQueryHandler(IDbConnectionFactory dbCo
         await using DbConnection connection = await dbConnectionFactory.OpenConnectionAsync(cancellationToken);
         Row? row = await connection.QuerySingleOrDefaultAsync<Row>(new CommandDefinition(
             Sql,
-            new { TokenHash = Invitation.HashToken(query.Token) },
+            new { TokenHash = Invitation.HashToken(query.Token, hasher) },
             cancellationToken: cancellationToken));
         if (row is null)
         {
@@ -31,7 +36,8 @@ internal sealed class GetInvitationPreviewQueryHandler(IDbConnectionFactory dbCo
             && row.Status == nameof(InvitationStatus.Pending)
             && row.ExpiresAtUtc > timeProvider.GetUtcNow().UtcDateTime;
 
-        return new InvitationPreviewResponse(row.TenantName, row.Email, row.Role, isValid, row.ExpiresAtUtc);
+        string email = encryptor.Decrypt(row.Email, EncryptedColumns.InvitationEmail);
+        return new InvitationPreviewResponse(row.TenantName, email, row.Role, isValid, row.ExpiresAtUtc);
     }
 
     private sealed class Row

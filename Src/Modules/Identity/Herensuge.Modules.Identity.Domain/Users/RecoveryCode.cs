@@ -1,10 +1,14 @@
 using System.Security.Cryptography;
 using System.Text;
+using Herensuge.Common.Domain;
 
 namespace Herensuge.Modules.Identity.Domain.Users;
 
+/// <summary>Single-use backup code. Only its keyed hash (HMAC with a key outside the database) is stored.</summary>
 public sealed class RecoveryCode
 {
+    private const string HashPurpose = "identity.user_recovery_codes";
+
     // No ambiguous characters (0/o, 1/l/i).
     private const string Alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
 
@@ -22,11 +26,11 @@ public sealed class RecoveryCode
 
     public DateTime? UsedAtUtc { get; private set; }
 
-    internal static RecoveryCode Create(Guid userId, string code, DateTime utcNow) => new()
+    internal static RecoveryCode Create(Guid userId, string code, ISecretHasher hasher, DateTime utcNow) => new()
     {
         Id = Guid.CreateVersion7(),
         UserId = userId,
-        CodeHash = Hash(code),
+        CodeHash = Hash(code, hasher),
         CreatedAtUtc = utcNow,
     };
 
@@ -37,13 +41,14 @@ public sealed class RecoveryCode
         return $"{raw[..5]}-{raw[5..]}";
     }
 
-    internal static string Hash(string code)
+    // About 49 bits: a plain SHA-256 could be brute-forced from a copy of the database; the keyed hash cannot.
+    internal static string Hash(string code, ISecretHasher hasher)
     {
         string normalized = code.Replace("-", string.Empty, StringComparison.Ordinal)
             .Replace(" ", string.Empty, StringComparison.Ordinal)
             .Trim()
             .ToLowerInvariant();
-        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(normalized)));
+        return hasher.Hash(HashPurpose, normalized);
     }
 
     internal bool Matches(string hash) =>

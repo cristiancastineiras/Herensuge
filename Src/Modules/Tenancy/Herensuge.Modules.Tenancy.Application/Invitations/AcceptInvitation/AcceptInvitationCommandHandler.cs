@@ -8,11 +8,12 @@ internal sealed class AcceptInvitationCommandHandler(
     IMembershipRepository memberships,
     IIdentityModuleApi identity,
     IUnitOfWork unitOfWork,
+    ISecretHasher hasher,
     TimeProvider timeProvider) : ICommandHandler<AcceptInvitationCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(AcceptInvitationCommand command, CancellationToken cancellationToken)
     {
-        Invitation? invitation = await invitations.GetByTokenHashAsync(Invitation.HashToken(command.Token), cancellationToken);
+        Invitation? invitation = await invitations.GetByTokenHashAsync(Invitation.HashToken(command.Token, hasher), cancellationToken);
         if (invitation is null)
         {
             return InvitationErrors.NotFound;
