@@ -1,0 +1,26 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+*.trx
+
+# Local runtime data (OIDC keys, data protection, logs)
+App_Data/
+*.pfx
+
+# Node / web
+node_modules/
+dist/
+.pnpm-store/
+
+# Environment
+.env
+!.env.example
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json

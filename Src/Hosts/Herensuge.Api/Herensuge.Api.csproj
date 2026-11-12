@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="../../Modules/Identity/Herensuge.Modules.Identity.Infrastructure/Herensuge.Modules.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Identity/Herensuge.Modules.Identity.Presentation/Herensuge.Modules.Identity.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/Tenancy/Herensuge.Modules.Tenancy.Infrastructure/Herensuge.Modules.Tenancy.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Tenancy/Herensuge.Modules.Tenancy.Presentation/Herensuge.Modules.Tenancy.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/Oidc/Herensuge.Modules.Oidc.Infrastructure/Herensuge.Modules.Oidc.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Oidc/Herensuge.Modules.Oidc.Presentation/Herensuge.Modules.Oidc.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/Audit/Herensuge.Modules.Audit.Infrastructure/Herensuge.Modules.Audit.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Audit/Herensuge.Modules.Audit.Presentation/Herensuge.Modules.Audit.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/Notifications/Herensuge.Modules.Notifications.Infrastructure/Herensuge.Modules.Notifications.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Yarp.ReverseProxy" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Herensuge.IntegrationTests" />
+  </ItemGroup>
+</Project>

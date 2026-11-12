@@ -1,0 +1,55 @@
+_min_copier_version: "9.0.0"
+
+_exclude:
+  - copier.yml
+  - copier.yaml
+  - .git
+  - .DS_Store
+  - Thumbs.db
+  - "~*"
+  - "*.py[co]"
+  - __pycache__
+  - node_modules
+  - .pnpm-store
+  - .turbo
+  - .vite
+  - .vite-temp
+  - .cache
+  - dist
+  - coverage
+  - .venv
+  - .env
+  - .env.local
+  - .env.*.local
+  - /tests/test_copier.py
+
+project_name:
+  type: str
+  help: Nombre del proyecto
+  default: Mi proyecto
+  validator: >-
+    {% if not project_name.strip() %}
+    El nombre no puede estar vacio.
+    {% endif %}
+
+project_slug:
+  type: str
+  help: Identificador del proyecto para package.json
+  default: "{{ project_name | lower | regex_replace('[^a-z0-9]+', '-') | trim('-') }}"
+  validator: >-
+    {% if not (project_slug | regex_search('^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$')) or project_slug | length > 214 %}
+    Usa hasta 214 caracteres: letras minusculas, numeros y guiones; empieza con una letra.
+    {% endif %}
+
+project_description:
+  type: str
+  help: Descripcion del proyecto
+  default: Monorepo React con Vite, Turborepo y pnpm.
+
+_message_after_copy: |
+  Proyecto "{{ project_name }}" creado.
+
+  Siguientes pasos:
+    cd "{{ _copier_conf.dst_path }}"
+    pnpm install
+    pnpm dev

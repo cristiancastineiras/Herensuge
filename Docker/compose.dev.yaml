@@ -1,0 +1,40 @@
+# Only the dependencies, for running Herensuge.Api and Herensuge.Bff with `dotnet run`.
+# The credentials match appsettings.Development.json. Never use this file on a server.
+#   docker compose -f Docker/compose.dev.yaml up -d
+#   docker compose -f Docker/compose.dev.yaml --profile observability up -d   # + Grafana on http://127.0.0.1:3000
+
+name: herensuge-dev
+
+services:
+  herensuge-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: herensuge
+      POSTGRES_USER: herensuge
+      POSTGRES_PASSWORD: herensuge-dev
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U herensuge -d herensuge"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  herensuge-valkey:
+    image: valkey/valkey:8-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
+
+  # Set OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 when running the hosts to send telemetry here.
+  herensuge-otel:
+    image: grafana/otel-lgtm:0.8.1
+    profiles: ["observability"]
+    ports:
+      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:4317:4317"
+      - "127.0.0.1:4318:4318"
+
+volumes:
+  postgres-dev-data:

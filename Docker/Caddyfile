@@ -1,0 +1,17 @@
+# TLS termination. Real domains get Let's Encrypt certificates automatically; *.localhost names use
+# Caddy's internal CA. To trust it on the machine running the browser, export its root certificate:
+#   docker compose -f Docker/compose.yaml cp herensuge-proxy:/data/caddy/pki/authorities/local/root.crt ./caddy-root.crt
+# and import caddy-root.crt as a trusted root authority (OS or browser).
+{
+	email {$ACME_EMAIL:admin@example.com}
+}
+
+{$HERENSUGE_ID_HOST} {
+	encode zstd gzip
+	reverse_proxy herensuge-api:8080
+}
+
+{$HERENSUGE_PORTAL_HOST} {
+	encode zstd gzip
+	reverse_proxy herensuge-bff:8080
+}

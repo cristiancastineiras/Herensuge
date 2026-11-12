@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Herensuge.Modules.Notifications.Application/Herensuge.Modules.Notifications.Application.csproj" />
+    <ProjectReference Include="../../../Common/Herensuge.Common.Infrastructure/Herensuge.Common.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Herensuge.Modules.Notifications.UnitTests" />
+  </ItemGroup>
+</Project>

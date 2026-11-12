@@ -1,0 +1,68 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="nuget.config" />
+    <File Path="dotnet-tools.json" />
+    <File Path=".github/workflows/ci.yml" />
+    <File Path="README.md" />
+    <File Path="RESUMEN.md" />
+  </Folder>
+  <Folder Name="/Docker/">
+    <File Path="Docker/compose.yaml" />
+    <File Path="Docker/compose.dev.yaml" />
+    <File Path="Docker/README.md" />
+    <File Path="Docker/Caddyfile" />
+    <File Path="Docker/Herensuge.Api.Dockerfile" />
+    <File Path="Docker/Herensuge.Bff.Dockerfile" />
+    <File Path="Docker/.env.example" />
+  </Folder>
+  <Folder Name="/Src/" />
+  <Folder Name="/Src/Common/">
+    <Project Path="Src/Common/Herensuge.Common.Domain/Herensuge.Common.Domain.csproj" />
+    <Project Path="Src/Common/Herensuge.Common.Application/Herensuge.Common.Application.csproj" />
+    <Project Path="Src/Common/Herensuge.Common.Infrastructure/Herensuge.Common.Infrastructure.csproj" />
+    <Project Path="Src/Common/Herensuge.Common.Presentation/Herensuge.Common.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/Src/Hosts/">
+    <Project Path="Src/Hosts/Herensuge.Api/Herensuge.Api.csproj" />
+    <Project Path="Src/Hosts/Herensuge.Bff/Herensuge.Bff.csproj" />
+  </Folder>
+  <Folder Name="/Src/Modules/" />
+  <Folder Name="/Src/Modules/Identity/">
+    <Project Path="Src/Modules/Identity/Herensuge.Modules.Identity.Domain/Herensuge.Modules.Identity.Domain.csproj" />
+    <Project Path="Src/Modules/Identity/Herensuge.Modules.Identity.Application/Herensuge.Modules.Identity.Application.csproj" />
+    <Project Path="Src/Modules/Identity/Herensuge.Modules.Identity.Infrastructure/Herensuge.Modules.Identity.Infrastructure.csproj" />
+    <Project Path="Src/Modules/Identity/Herensuge.Modules.Identity.Presentation/Herensuge.Modules.Identity.Presentation.csproj" />
+    <Project Path="Src/Modules/Identity/Herensuge.Modules.Identity.Contracts/Herensuge.Modules.Identity.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/Src/Modules/Tenancy/">
+    <Project Path="Src/Modules/Tenancy/Herensuge.Modules.Tenancy.Domain/Herensuge.Modules.Tenancy.Domain.csproj" />
+    <Project Path="Src/Modules/Tenancy/Herensuge.Modules.Tenancy.Application/Herensuge.Modules.Tenancy.Application.csproj" />
+    <Project Path="Src/Modules/Tenancy/Herensuge.Modules.Tenancy.Infrastructure/Herensuge.Modules.Tenancy.Infrastructure.csproj" />
+    <Project Path="Src/Modules/Tenancy/Herensuge.Modules.Tenancy.Presentation/Herensuge.Modules.Tenancy.Presentation.csproj" />
+    <Project Path="Src/Modules/Tenancy/Herensuge.Modules.Tenancy.Contracts/Herensuge.Modules.Tenancy.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/Src/Modules/Oidc/">
+    <Project Path="Src/Modules/Oidc/Herensuge.Modules.Oidc.Application/Herensuge.Modules.Oidc.Application.csproj" />
+    <Project Path="Src/Modules/Oidc/Herensuge.Modules.Oidc.Infrastructure/Herensuge.Modules.Oidc.Infrastructure.csproj" />
+    <Project Path="Src/Modules/Oidc/Herensuge.Modules.Oidc.Presentation/Herensuge.Modules.Oidc.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/Src/Modules/Audit/">
+    <Project Path="Src/Modules/Audit/Herensuge.Modules.Audit.Application/Herensuge.Modules.Audit.Application.csproj" />
+    <Project Path="Src/Modules/Audit/Herensuge.Modules.Audit.Infrastructure/Herensuge.Modules.Audit.Infrastructure.csproj" />
+    <Project Path="Src/Modules/Audit/Herensuge.Modules.Audit.Presentation/Herensuge.Modules.Audit.Presentation.csproj" />
+  </Folder>
+  <Folder Name="/Src/Modules/Notifications/">
+    <Project Path="Src/Modules/Notifications/Herensuge.Modules.Notifications.Application/Herensuge.Modules.Notifications.Application.csproj" />
+    <Project Path="Src/Modules/Notifications/Herensuge.Modules.Notifications.Infrastructure/Herensuge.Modules.Notifications.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Herensuge.ArchitectureTests/Herensuge.ArchitectureTests.csproj" />
+    <Project Path="Tests/Herensuge.IntegrationTests/Herensuge.IntegrationTests.csproj" />
+    <Project Path="Tests/Herensuge.Modules.Identity.UnitTests/Herensuge.Modules.Identity.UnitTests.csproj" />
+    <Project Path="Tests/Herensuge.Modules.Tenancy.UnitTests/Herensuge.Modules.Tenancy.UnitTests.csproj" />
+  </Folder>
+</Solution>

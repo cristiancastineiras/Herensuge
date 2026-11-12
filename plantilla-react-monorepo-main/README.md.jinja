@@ -1,0 +1,55 @@
+{%- set manifest_source -%}
+{% include 'package.json' %}
+{%- endset -%}
+{% set manifest = manifest_source | from_json -%}
+# {{ project_name }}
+
+{{ project_description }}
+
+## Requisitos
+
+- Node.js `{{ manifest.engines.node }}`
+- pnpm `{{ manifest.packageManager.split('@')[1] }}`
+
+## Desarrollo
+
+```bash
+pnpm install
+pnpm dev
+```
+
+## Estructura
+
+```text
+apps/
+  webapp/
+paquetes/
+  api/
+  componentes/
+  configuracion-ts/
+  estados/
+  hooks/
+  modelos/
+  utiles/
+```
+
+## Comandos
+
+```bash
+pnpm build
+pnpm build:webapp
+pnpm typecheck
+pnpm lint
+pnpm format:check
+```
+
+## Actualizar desde la plantilla
+
+Conserva `.copier-answers.yml` en Git. Antes de actualizar, guarda tus cambios
+en un commit y deja limpio el directorio de trabajo.
+
+```bash
+uvx copier update
+```
+
+Revisa los cambios y resuelve posibles conflictos antes de ejecutar `pnpm install`.

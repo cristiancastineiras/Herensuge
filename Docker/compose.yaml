@@ -1,0 +1,152 @@
+# Herensuge: full stack behind Caddy (TLS).
+#   cp Docker/.env.example Docker/.env   # then change every secret
+#   docker compose -f Docker/compose.yaml up -d --build
+# Optional observability (Grafana on http://127.0.0.1:3000):
+#   docker compose -f Docker/compose.yaml --profile observability up -d
+
+name: herensuge
+
+x-api-environment: &api-environment
+  ASPNETCORE_ENVIRONMENT: ${HERENSUGE_ENVIRONMENT:-Staging}
+  ConnectionStrings__Database: Host=herensuge-postgres;Port=5432;Database=herensuge;Username=herensuge;Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in Docker/.env}
+  ConnectionStrings__Valkey: herensuge-valkey:6379,password=${VALKEY_PASSWORD:?Set VALKEY_PASSWORD in Docker/.env}
+  Herensuge__TrustForwardedHeaders: "true"
+  Herensuge__AllowedReturnOrigins__0: https://${HERENSUGE_PORTAL_HOST}
+  Oidc__Issuer: https://${HERENSUGE_ID_HOST}/
+  Oidc__Keys__Directory: /keys
+  Oidc__Keys__Password: ${OIDC_KEYS_PASSWORD:?Set OIDC_KEYS_PASSWORD in Docker/.env}
+  Oidc__PortalClient__ClientSecret: ${PORTAL_CLIENT_SECRET:?Set PORTAL_CLIENT_SECRET in Docker/.env}
+  Oidc__PortalClient__RedirectUris__0: https://${HERENSUGE_PORTAL_HOST}/bff/callback
+  Oidc__PortalClient__PostLogoutRedirectUris__0: https://${HERENSUGE_PORTAL_HOST}/bff/signout-callback
+  Identity__BootstrapPlatformAdminEmail: ${BOOTSTRAP_ADMIN_EMAIL:-}
+  Identity__Passkeys__RelyingPartyId: ${PASSKEYS_RP_ID}
+  Identity__Passkeys__Origins__0: https://${HERENSUGE_ID_HOST}
+  Identity__Passkeys__Origins__1: https://${HERENSUGE_PORTAL_HOST}
+  Identity__ExternalProviders__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+  Identity__ExternalProviders__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+  Identity__ExternalProviders__Microsoft__ClientId: ${MICROSOFT_CLIENT_ID:-}
+  Identity__ExternalProviders__Microsoft__ClientSecret: ${MICROSOFT_CLIENT_SECRET:-}
+  Identity__ExternalProviders__Microsoft__Tenant: ${MICROSOFT_TENANT:-common}
+  Notifications__PublicBaseUrl: https://${HERENSUGE_ID_HOST}
+  Notifications__Email__From: ${EMAIL_FROM:-Herensuge <no-reply@herensuge.local>}
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://herensuge-otel:4317
+
+services:
+  herensuge-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: herensuge
+      POSTGRES_USER: herensuge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in Docker/.env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U herensuge -d herensuge"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  herensuge-valkey:
+    image: valkey/valkey:8-alpine
+    # AOF persistence: BFF sessions and its Data Protection keys survive restarts.
+    command: ["valkey-server", "--appendonly", "yes", "--requirepass", "${VALKEY_PASSWORD:?Set VALKEY_PASSWORD in Docker/.env}"]
+    volumes:
+      - valkey-data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "valkey-cli --no-auth-warning -a \"$${VALKEY_PASSWORD}\" ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    environment:
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD}
+    restart: unless-stopped
+
+  # One-shot: applies every module migration, then the API starts.
+  herensuge-migrator:
+    build:
+      context: ..
+      dockerfile: Docker/Herensuge.Api.Dockerfile
+    image: herensuge-api:${HERENSUGE_VERSION:-local}
+    command: ["--migrate"]
+    environment: *api-environment
+    volumes:
+      - oidc-keys:/keys
+    depends_on:
+      herensuge-postgres:
+        condition: service_healthy
+    restart: "no"
+
+  herensuge-api:
+    build:
+      context: ..
+      dockerfile: Docker/Herensuge.Api.Dockerfile
+    image: herensuge-api:${HERENSUGE_VERSION:-local}
+    environment: *api-environment
+    volumes:
+      - oidc-keys:/keys
+    depends_on:
+      herensuge-migrator:
+        condition: service_completed_successfully
+      herensuge-valkey:
+        condition: service_healthy
+    restart: unless-stopped
+
+  herensuge-bff:
+    build:
+      context: ..
+      dockerfile: Docker/Herensuge.Bff.Dockerfile
+    image: herensuge-bff:${HERENSUGE_VERSION:-local}
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${HERENSUGE_ENVIRONMENT:-Staging}
+      ConnectionStrings__Valkey: herensuge-valkey:6379,password=${VALKEY_PASSWORD}
+      Herensuge__TrustForwardedHeaders: "true"
+      Bff__Authority: https://${HERENSUGE_ID_HOST}/
+      Bff__BackchannelAddress: http://herensuge-api:8080
+      Bff__ClientSecret: ${PORTAL_CLIENT_SECRET}
+      ReverseProxy__Clusters__herensuge-api__Destinations__primary__Address: http://herensuge-api:8080
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://herensuge-otel:4317
+    depends_on:
+      herensuge-valkey:
+        condition: service_healthy
+      herensuge-api:
+        condition: service_started
+    restart: unless-stopped
+
+  herensuge-proxy:
+    image: caddy:2.8-alpine
+    environment:
+      HERENSUGE_ID_HOST: ${HERENSUGE_ID_HOST}
+      HERENSUGE_PORTAL_HOST: ${HERENSUGE_PORTAL_HOST}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - herensuge-api
+      - herensuge-bff
+    restart: unless-stopped
+
+  # Development observability: OTel collector + Loki + Tempo + Prometheus + Grafana in one container.
+  herensuge-otel:
+    image: grafana/otel-lgtm:0.8.1
+    profiles: ["observability"]
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  valkey-data:
+  oidc-keys:
+  caddy-data:
+  caddy-config:

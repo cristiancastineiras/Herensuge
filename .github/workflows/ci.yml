@@ -1,0 +1,47 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore Herensuge.slnx
+
+      - name: Build (warnings are errors)
+        run: dotnet build Herensuge.slnx --no-restore -c Release
+
+      # Integration tests start PostgreSQL and Valkey with Testcontainers (Docker is available on the runner).
+      - name: Test
+        run: |
+          for project in Tests/*/*.csproj; do
+            dotnet test --project "$project" --no-build -c Release
+          done
+
+      - name: Vulnerable packages
+        run: |
+          dotnet list Herensuge.slnx package --vulnerable --include-transitive | tee vulnerable.txt
+          ! grep -q "has the following vulnerable packages" vulnerable.txt
+
+  docker-images:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build herensuge-api
+        run: docker build -f Docker/Herensuge.Api.Dockerfile -t herensuge-api:ci .
+      - name: Build herensuge-bff
+        run: docker build -f Docker/Herensuge.Bff.Dockerfile -t herensuge-bff:ci .

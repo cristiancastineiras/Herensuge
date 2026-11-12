@@ -1,0 +1,4 @@
+{%- set manifest_source -%}
+{% include 'package.json' %}
+{%- endset -%}
+{{ (manifest_source | from_json) | combine({'name': project_slug, 'description': project_description}) | to_nice_json(indent=2, sort_keys=false) }}
