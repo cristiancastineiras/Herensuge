@@ -1,23 +1,8 @@
 # Herensuge Identity API
 
-Proveedor de identidad propio (OAuth 2.1 + OpenID Connect) del SaaS: .NET 10, 100% FOSS, monolito modular con
-Clean Architecture, DDD, CQRS y Outbox/Inbox. El diseño completo está en [RESUMEN.md](RESUMEN.md).
+![Logo](./Logo.svg)
 
-**Estado:** Nivel 1 implementado: backend (Herensuge.Api + Herensuge.Bff) y webs React (`login` y `portal`, en `Src/Web`).
-
-## Qué incluye
-
-| Pieza | Qué hace |
-|---|---|
-| `Src/Hosts/Herensuge.Api` | IdP: endpoints OIDC (OpenIddict), API de login para la SPA, API de gestión, jobs de outbox/inbox |
-| `Src/Hosts/Herensuge.Bff` | BFF del portal: cliente OIDC confidencial, sesión en Valkey, proxy YARP `/api/*` con Bearer |
-| `Src/Modules/Identity` | Usuarios, contraseña (Argon2id), TOTP, SMS, passkeys (WebAuthn), Google/Microsoft, sesiones |
-| `Src/Modules/Tenancy` | Organizaciones, miembros y roles, invitaciones, política de MFA obligatoria |
-| `Src/Modules/Oidc` | Autorización OIDC, clientes, revocación de tokens por sesión, claves de firma |
-| `Src/Modules/Audit` | Registro inmutable de todos los eventos (sin datos sensibles) |
-| `Src/Modules/Notifications` | Email y SMS detrás de puertos; hoy el proveedor `Log` |
-| `Src/Web` | Webs React (monorepo pnpm): `apps/login` (servida por la API) y `apps/portal` (servida por la BFF). Ver [Src/Web/README.md](Src/Web/README.md) |
-| `Docker/` | Dockerfiles (compilan también las webs), `compose.yaml` (producción con Caddy/TLS) y `compose.dev.yaml` (dependencias de desarrollo) |
+Proveedor de identidad y autorización propio
 
 ## Requisitos
 
