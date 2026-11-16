@@ -6,4 +6,6 @@
 - `API/Herensuge.Api.json`: contrato OpenAPI de la API. Lo reescribe cada `dotnet build` de `Herensuge.Api` y de él salen
   los tipos de las webs (`pnpm -C Src/Web api:generate`). La CI falla si está desactualizado.
 - `Arquitectura/`: diagramas y notas de detalle.
+  - [Autorizacion.md](Arquitectura/Autorizacion.md): plan del Nivel 2 para permisos, roles por organización, planes y API
+    de decisión (módulo `Access`).
 - `Decisiones/`: ADRs (pendientes de redactar a partir de la sección 20 del RESUMEN).
