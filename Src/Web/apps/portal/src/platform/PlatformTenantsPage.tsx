@@ -1,4 +1,14 @@
-import { Badge, Button, Card, ConfirmButton, ErrorAlert, Input, Table, Td } from "@paquetes/componentes"
+import {
+	Badge,
+	Button,
+	Card,
+	ConfirmButton,
+	ErrorAlert,
+	Input,
+	Select,
+	Table,
+	Td,
+} from "@paquetes/componentes"
 import { formValues, formatDate } from "@paquetes/utiles"
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
@@ -20,6 +30,15 @@ export default function PlatformTenantsPage() {
 		mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
 			platform.setTenantStatus(id, isActive),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["platform-tenants"] }),
+	})
+	const plans = useQuery({ queryKey: ["plans"], queryFn: platform.plans })
+	const tenantPlans = useQuery({ queryKey: ["tenant-plans"], queryFn: platform.tenantPlans })
+	const planOf = new Map(tenantPlans.data?.map((assigned) => [assigned.tenantId, assigned.planKey]))
+	const defaultPlan = plans.data?.find((plan) => plan.isDefault)
+	const setPlan = useMutation({
+		mutationFn: ({ id, planKey }: { id: string; planKey: string | null }) =>
+			platform.setTenantPlan(id, planKey),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tenant-plans"] }),
 	})
 	const pages = list.data ? Math.max(1, Math.ceil(list.data.totalCount / pageSize)) : 1
 
@@ -56,10 +75,10 @@ export default function PlatformTenantsPage() {
 			>
 				<div className="px-5">
 					<QueryState query={list} />
-					<ErrorAlert error={setStatus.error} />
+					<ErrorAlert error={setStatus.error ?? setPlan.error} />
 				</div>
 				{list.data && (
-					<Table headers={["Organización", "Miembros", "MFA", "Creada", "Estado", ""]}>
+					<Table headers={["Organización", "Miembros", "MFA", "Plan", "Creada", "Estado", ""]}>
 						{list.data.items.map((tenant) => (
 							<tr key={tenant.id}>
 								<Td>
@@ -68,6 +87,28 @@ export default function PlatformTenantsPage() {
 								</Td>
 								<Td>{tenant.memberCount}</Td>
 								<Td>{tenant.requireMfa ? "Obligatorio" : "Opcional"}</Td>
+								<Td>
+									{plans.data && plans.data.length > 0 ? (
+										<Select
+											aria-label={`Plan de ${tenant.name}`}
+											className="w-44 py-1.5"
+											value={planOf.get(tenant.id) ?? ""}
+											disabled={setPlan.isPending}
+											onChange={(event) =>
+												setPlan.mutate({ id: tenant.id, planKey: event.target.value || null })
+											}
+										>
+											<option value="">Por defecto ({defaultPlan?.name ?? "—"})</option>
+											{plans.data.map((plan) => (
+												<option key={plan.key} value={plan.key}>
+													{plan.name}
+												</option>
+											))}
+										</Select>
+									) : (
+										<span className="text-zinc-400">Sin planes</span>
+									)}
+								</Td>
 								<Td className="whitespace-nowrap">{formatDate(tenant.createdAtUtc)}</Td>
 								<Td>
 									{tenant.isActive ? (

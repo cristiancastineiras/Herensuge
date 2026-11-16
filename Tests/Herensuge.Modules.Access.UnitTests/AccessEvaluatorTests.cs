@@ -20,7 +20,7 @@ public sealed class AccessEvaluatorTests
     private static readonly AccessGrants Finance = new(BaseRoles.Admin, ["finance"], new SortedSet<string>(["invoice:read", "invoice:approve"], StringComparer.Ordinal));
 
     // Evaluate is pure: the repositories are only used by ResolveGrantsAsync.
-    private readonly AccessEvaluator _evaluator = new(null!, null!, null!, TimeProvider.System);
+    private readonly AccessEvaluator _evaluator = new(null!, null!, null!, null!, null!, TimeProvider.System);
 
     [Fact]
     public void Steps_deny_in_order_unknown_session_membership_and_role()
@@ -57,7 +57,7 @@ public sealed class AccessEvaluatorTests
 
         Assert.True(decision.Decision);
         Assert.Equal(AccessReasons.GrantedIfCondition, decision.Reason);
-        Assert.Equal(["permission", "session", "membership", "grant", "condition"], trace.Steps.Select(step => step.Name));
+        Assert.Equal(["permission", "session", "membership", "feature", "grant", "condition"], trace.Steps.Select(step => step.Name));
     }
 
     [Fact]

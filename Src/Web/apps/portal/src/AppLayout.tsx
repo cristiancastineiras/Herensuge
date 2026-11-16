@@ -125,7 +125,16 @@ function Navigation({ user }: { user: HerensugeUser }) {
 					{ to: "/organizacion/miembros", label: "Miembros" },
 				]
 			: []),
-		...(canInPortal(user, Permissions.manageRoles) ? [{ to: "/organizacion/roles", label: "Roles" }] : []),
+		...(canInPortal(user, Permissions.manageRoles)
+			? [
+					{ to: "/organizacion/roles", label: "Roles" },
+					{ to: "/organizacion/grupos", label: "Grupos" },
+					{ to: "/organizacion/simulador", label: "Simulador" },
+				]
+			: []),
+		...(canInPortal(user, Permissions.manageServiceAccounts)
+			? [{ to: "/organizacion/cuentas-de-servicio", label: "Cuentas de servicio" }]
+			: []),
 		...(canInPortal(user, Permissions.readAudit)
 			? [{ to: "/organizacion/auditoria", label: "Auditoría" }]
 			: []),
@@ -141,6 +150,7 @@ function Navigation({ user }: { user: HerensugeUser }) {
 				{ to: "/plataforma/organizaciones", label: "Organizaciones" },
 				{ to: "/plataforma/clientes", label: "Clientes OIDC" },
 				{ to: "/plataforma/aplicaciones", label: "Aplicaciones" },
+				{ to: "/plataforma/planes", label: "Planes" },
 				{ to: "/plataforma/auditoria", label: "Auditoría" },
 			],
 		})

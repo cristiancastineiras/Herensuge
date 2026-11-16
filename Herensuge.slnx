@@ -49,6 +49,7 @@
     <Project Path="Src/Modules/Oidc/Herensuge.Modules.Oidc.Application/Herensuge.Modules.Oidc.Application.csproj" />
     <Project Path="Src/Modules/Oidc/Herensuge.Modules.Oidc.Infrastructure/Herensuge.Modules.Oidc.Infrastructure.csproj" />
     <Project Path="Src/Modules/Oidc/Herensuge.Modules.Oidc.Presentation/Herensuge.Modules.Oidc.Presentation.csproj" />
+    <Project Path="Src/Modules/Oidc/Herensuge.Modules.Oidc.Contracts/Herensuge.Modules.Oidc.Contracts.csproj" />
   </Folder>
   <Folder Name="/Src/Modules/Access/">
     <Project Path="Src/Modules/Access/Herensuge.Modules.Access.Domain/Herensuge.Modules.Access.Domain.csproj" />

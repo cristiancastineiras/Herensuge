@@ -10,7 +10,8 @@ internal sealed class TenancyModuleApi(IDbConnectionFactory dbConnectionFactory)
     private const string MembershipSql =
         """
         SELECT t.id AS tenant_id, t.name AS tenant_name, t.slug AS tenant_slug, lower(m.role) AS role,
-               t.is_active AS tenant_is_active, t.require_mfa AS tenant_requires_mfa
+               t.is_active AS tenant_is_active, t.require_mfa AS tenant_requires_mfa,
+               t.trusted_networks AS tenant_trusted_networks
         FROM tenancy.memberships m
         JOIN tenancy.tenants t ON t.id = m.tenant_id
         """;
@@ -67,6 +68,15 @@ internal sealed class TenancyModuleApi(IDbConnectionFactory dbConnectionFactory)
             cancellationToken: cancellationToken));
     }
 
+    public async Task<bool> IsTenantActiveAsync(Guid tenantId, CancellationToken cancellationToken)
+    {
+        await using DbConnection connection = await dbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        return await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+            "SELECT EXISTS (SELECT 1 FROM tenancy.tenants WHERE id = @TenantId AND is_active)",
+            new { TenantId = tenantId },
+            cancellationToken: cancellationToken));
+    }
+
     private sealed class MembershipRow
     {
         public Guid TenantId { get; init; }
@@ -81,7 +91,9 @@ internal sealed class TenancyModuleApi(IDbConnectionFactory dbConnectionFactory)
 
         public bool TenantRequiresMfa { get; init; }
 
+        public string[] TenantTrustedNetworks { get; init; } = [];
+
         public MembershipSnapshot ToSnapshot() =>
-            new(TenantId, TenantName, TenantSlug, Role, TenantIsActive, TenantRequiresMfa);
+            new(TenantId, TenantName, TenantSlug, Role, TenantIsActive, TenantRequiresMfa, TenantTrustedNetworks);
     }
 }

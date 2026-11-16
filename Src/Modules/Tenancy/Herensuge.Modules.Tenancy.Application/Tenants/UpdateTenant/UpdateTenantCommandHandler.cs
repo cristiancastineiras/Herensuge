@@ -14,7 +14,8 @@ internal sealed class UpdateTenantCommandHandler(TenantAccess tenantAccess, IUni
             return access.Error;
         }
 
-        access.Value.Tenant.Update(command.Name, command.RequireMfa);
+        Tenant tenant = access.Value.Tenant;
+        tenant.Update(command.Name, command.RequireMfa, command.TrustedNetworks ?? tenant.TrustedNetworks);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

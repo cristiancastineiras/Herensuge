@@ -1,6 +1,10 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using System.Net;
 using Herensuge.Common.Application.Security;
+using Herensuge.Modules.Access.Domain.Groups;
+using Herensuge.Modules.Access.Domain.Plans;
+using Herensuge.Modules.Access.Domain.ServiceAccounts;
 using Herensuge.Modules.Tenancy.Contracts;
 
 namespace Herensuge.Modules.Access.Application.Decisions;
@@ -10,24 +14,39 @@ public sealed record AccessSubject(Guid TenantId, Guid UserId);
 
 /// <summary>
 /// What is known about the subject at decision time. <see cref="Assumed"/> (simulator): conditions are reported in
-/// the trace, not evaluated.
+/// the trace, not evaluated. <see cref="IsClient"/>: a service account, which never meets a condition.
 /// </summary>
 public sealed record SubjectFacts(
     bool SessionActive,
     IReadOnlyList<string> AuthenticationMethods,
     DateTimeOffset? AuthenticatedAt,
     string? Actor,
-    bool Assumed = false)
+    bool Assumed = false,
+    IPAddress? IpAddress = null,
+    bool IsClient = false)
 {
     /// <summary>Herensuge's own checks: the access token was already validated (session included); no conditions apply.</summary>
     public static readonly SubjectFacts ValidatedSession = new(true, [], null, null);
 }
 
-/// <summary>What the subject holds in one application: role keys and every permission its roles grant (with or without condition).</summary>
-public sealed record AccessGrants(string BaseRole, IReadOnlyList<string> Roles, IReadOnlySet<string> Permissions);
+/// <summary>
+/// What the subject holds in one application: role keys and every permission its roles grant (with or without
+/// condition). <see cref="Entitlements"/>: features of the app in the organization's plan, null when there are no
+/// plans (everything included). <see cref="TrustedNetworks"/>: the organization's, for trusted_network.
+/// </summary>
+public sealed record AccessGrants(
+    string BaseRole,
+    IReadOnlyList<string> Roles,
+    IReadOnlySet<string> Permissions,
+    IReadOnlySet<string>? Entitlements = null,
+    IReadOnlyList<string>? TrustedNetworks = null);
 
-/// <summary>Claims of one application: unconditional permissions and the ones that need a condition (plan D3).</summary>
-public sealed record AccessClaimSet(IReadOnlyList<string> Roles, IReadOnlyList<string> Permissions, IReadOnlyList<string> ConditionalPermissions);
+/// <summary>Claims of one application: unconditional permissions, the ones that need a condition (plan D3) and features (D5).</summary>
+public sealed record AccessClaimSet(
+    IReadOnlyList<string> Roles,
+    IReadOnlyList<string> Permissions,
+    IReadOnlyList<string> ConditionalPermissions,
+    IReadOnlyList<string> Entitlements);
 
 public sealed record EvaluationStep(string Name, bool Passed, string Detail);
 
@@ -42,13 +61,15 @@ public sealed class EvaluationTrace
 }
 
 /// <summary>
-/// The only place that decides (plan §5): the PDP, Herensuge's own checks, the token claims and the subset rule use it.
-/// <see cref="ResolveGrantsAsync"/> reads the database; <see cref="Evaluate"/> is pure.
+/// The only place that decides (plan §5): the PDP, Herensuge's own checks, the token claims, the simulator and the
+/// subset rule use it. The Resolve methods read the database; <see cref="Evaluate"/> is pure.
 /// </summary>
 // shortcut: no cache (a few indexed queries per decision); open a cache WP if the p99 of herensuge.access.decision.duration passes 25 ms.
 public sealed class AccessEvaluator(
     IRoleRepository roles,
     IRoleAssignmentRepository assignments,
+    IGroupRepository groups,
+    IPlanRepository plans,
     ITenancyModuleApi tenancy,
     TimeProvider timeProvider)
 {
@@ -66,7 +87,7 @@ public sealed class AccessEvaluator(
         unit: "ms",
         description: "Time to resolve the grants and evaluate one access decision.");
 
-    /// <summary>Null when the user is not a member of an active organization.</summary>
+    /// <summary>A member: direct assignments, those of their groups and templates by base role. Null when not a member of an active organization.</summary>
     public async Task<AccessGrants?> ResolveGrantsAsync(ResourceServer server, AccessSubject subject, CancellationToken cancellationToken)
     {
         MembershipSnapshot? membership = await tenancy.GetMembershipAsync(subject.TenantId, subject.UserId, cancellationToken);
@@ -75,25 +96,21 @@ public sealed class AccessEvaluator(
             return null;
         }
 
-        DateTime now = timeProvider.GetUtcNow().UtcDateTime;
-        RoleAssignment[] held = [.. (await assignments.ListAsync(subject.TenantId, subject.UserId, cancellationToken)).Where(assignment => assignment.IsActive(now))];
-
-        RoleTemplate[] templates =
-        [
-            .. server.RoleTemplates.Where(template =>
-                template.GrantTo.Contains(membership.Role, StringComparer.Ordinal) || held.Any(assignment => assignment.RoleTemplateId == template.Id)),
-        ];
-
-        Guid[] roleIds = [.. held.Where(assignment => assignment.RoleId is not null).Select(assignment => assignment.RoleId!.Value)];
-        IReadOnlyList<Role> custom = roleIds.Length == 0 ? [] : await roles.GetManyAsync(subject.TenantId, roleIds, cancellationToken);
-
-        Dictionary<Guid, string> active = server.ActivePermissions.ToDictionary(permission => permission.Id, permission => permission.Key);
-        var permissions = new SortedSet<string>(StringComparer.Ordinal);
-        permissions.UnionWith(templates.SelectMany(template => template.PermissionKeys).Where(active.ContainsValue));
-        permissions.UnionWith(custom.SelectMany(role => role.PermissionIds).Where(active.ContainsKey).Select(id => active[id]));
-
-        return new AccessGrants(membership.Role, [.. templates.Select(template => template.Key)], permissions);
+        IReadOnlyList<Group> memberOf = await groups.ListByMemberAsync(subject.TenantId, subject.UserId, cancellationToken);
+        return await GrantsAsync(
+            server,
+            subject.TenantId,
+            membership.Role,
+            [subject.UserId, .. memberOf.Select(group => group.Id)],
+            membership.TenantTrustedNetworks,
+            cancellationToken);
     }
+
+    /// <summary>A service account (plan D7): only its own assignments. Null when its organization is not active.</summary>
+    public async Task<AccessGrants?> ResolveGrantsAsync(ResourceServer server, ServiceAccount account, CancellationToken cancellationToken) =>
+        await tenancy.IsTenantActiveAsync(account.TenantId, cancellationToken)
+            ? await GrantsAsync(server, account.TenantId, baseRole: string.Empty, [account.Id], [], cancellationToken)
+            : null;
 
     /// <summary>Plan §5 for one permission. <paramref name="grants"/> null = not a member of an active organization.</summary>
     public AccessDecision Evaluate(ResourceServer server, AccessGrants? grants, SubjectFacts facts, string permissionKey, EvaluationTrace? trace = null)
@@ -109,23 +126,79 @@ public sealed class AccessEvaluator(
         return decision;
     }
 
-    /// <summary>Plan D3: what goes in "permissions" and what in "conditional_permissions".</summary>
+    /// <summary>Plan D3 and D5: what goes in "permissions", "conditional_permissions" and "entitlements".</summary>
     public static AccessClaimSet ToClaims(ResourceServer server, AccessGrants grants)
     {
         Dictionary<string, Permission> active = server.ActivePermissions.ToDictionary(permission => permission.Key, StringComparer.Ordinal);
         var unconditional = new List<string>();
         var conditional = new List<string>();
-        foreach (string key in grants.Permissions)
+        foreach (string key in grants.Permissions.Where(key => IsEntitled(active[key], grants)))
         {
             (active[key].Requires == PermissionRequirements.None ? unconditional : conditional).Add(key);
         }
 
-        return new AccessClaimSet(grants.Roles, unconditional, conditional);
+        string[] entitlements = grants.Entitlements is { } entitled
+            ? [.. entitled.Order(StringComparer.Ordinal)]
+            : [.. server.Features.Select(feature => feature.Key).Order(StringComparer.Ordinal)];
+        return new AccessClaimSet(grants.Roles, unconditional, conditional, entitlements);
     }
 
     /// <summary>Plan D12: the permissions (keys) of <paramref name="requested"/> the actor does not hold. The owner holds all.</summary>
     public static IReadOnlyList<string> MissingToGrant(AccessGrants? actor, IEnumerable<string> requested) =>
         actor?.BaseRole == BaseRoles.Owner ? [] : [.. requested.Where(key => actor is null || !actor.Permissions.Contains(key)).Distinct(StringComparer.Ordinal)];
+
+    private static bool IsEntitled(Permission permission, AccessGrants grants) =>
+        permission.FeatureKey is null || grants.Entitlements is null || grants.Entitlements.Contains(permission.FeatureKey);
+
+    private async Task<AccessGrants> GrantsAsync(
+        ResourceServer server,
+        Guid tenantId,
+        string baseRole,
+        IReadOnlyCollection<Guid> subjectIds,
+        IReadOnlyList<string> trustedNetworks,
+        CancellationToken cancellationToken)
+    {
+        DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+        RoleAssignment[] held = [.. (await assignments.ListAsync(tenantId, subjectIds, cancellationToken)).Where(assignment => assignment.IsActive(now))];
+
+        RoleTemplate[] templates =
+        [
+            .. server.RoleTemplates.Where(template =>
+                template.GrantTo.Contains(baseRole, StringComparer.Ordinal) || held.Any(assignment => assignment.RoleTemplateId == template.Id)),
+        ];
+
+        Guid[] roleIds = [.. held.Where(assignment => assignment.RoleId is not null).Select(assignment => assignment.RoleId!.Value).Distinct()];
+        IReadOnlyList<Role> custom = roleIds.Length == 0 ? [] : await roles.GetManyAsync(tenantId, roleIds, cancellationToken);
+
+        Dictionary<Guid, string> active = server.ActivePermissions.ToDictionary(permission => permission.Id, permission => permission.Key);
+        var permissions = new SortedSet<string>(StringComparer.Ordinal);
+        permissions.UnionWith(templates.SelectMany(template => template.PermissionKeys).Where(active.ContainsValue));
+        permissions.UnionWith(custom.SelectMany(role => role.PermissionIds).Where(active.ContainsKey).Select(id => active[id]));
+
+        return new AccessGrants(
+            baseRole,
+            [.. templates.Select(template => template.Key)],
+            permissions,
+            await EntitlementsAsync(server, tenantId, cancellationToken),
+            trustedNetworks);
+    }
+
+    /// <summary>Plan D5: features of <paramref name="server"/> in the organization's plan (or the default); null without plans.</summary>
+    private async Task<IReadOnlySet<string>?> EntitlementsAsync(ResourceServer server, Guid tenantId, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<Plan> all = await plans.ListAsync(cancellationToken);
+        if (all.Count == 0)
+        {
+            return null;
+        }
+
+        TenantPlan? assigned = await plans.GetTenantPlanAsync(tenantId, cancellationToken);
+        Plan? plan = all.FirstOrDefault(candidate => candidate.Id == assigned?.PlanId) ?? all.FirstOrDefault(candidate => candidate.IsDefault);
+        string prefix = server.Key + "/";
+        return plan is null
+            ? null
+            : new HashSet<string>(plan.Features.Where(feature => feature.StartsWith(prefix, StringComparison.Ordinal)).Select(feature => feature[prefix.Length..]), StringComparer.Ordinal);
+    }
 
     private AccessDecision EvaluateCore(ResourceServer server, AccessGrants? grants, SubjectFacts facts, string permissionKey, EvaluationTrace? trace)
     {
@@ -136,16 +209,23 @@ public sealed class AccessEvaluator(
             return Deny(AccessReasons.UnknownPermission);
         }
 
-        trace?.Add("session", facts.SessionActive, facts.Assumed ? "supuesta activa" : facts.SessionActive ? "activa" : "cerrada o caducada");
+        trace?.Add("session", facts.SessionActive, facts.IsClient ? "cuenta de servicio" : facts.Assumed ? "supuesta activa" : facts.SessionActive ? "activa" : "cerrada o caducada");
         if (!facts.SessionActive)
         {
             return Deny(AccessReasons.SessionInactive);
         }
 
-        trace?.Add("membership", grants is not null, grants is null ? "no es miembro de una organización activa" : $"rol base {grants.BaseRole}");
+        trace?.Add("membership", grants is not null, grants is null ? "no pertenece a una organización activa" : facts.IsClient ? "de la organización" : $"rol base {grants.BaseRole}");
         if (grants is null)
         {
             return Deny(AccessReasons.NotMember);
+        }
+
+        bool entitled = IsEntitled(permission, grants);
+        trace?.Add("feature", entitled, permission.FeatureKey is null ? "sin feature" : entitled ? $"«{permission.FeatureKey}» contratada" : $"«{permission.FeatureKey}» no está en el plan");
+        if (!entitled)
+        {
+            return Deny(AccessReasons.NotEntitled);
         }
 
         bool granted = grants.Permissions.Contains(permissionKey);
@@ -163,16 +243,21 @@ public sealed class AccessEvaluator(
                 return new AccessDecision(true, AccessReasons.GrantedIfCondition);
             }
 
-            bool met = facts.Actor is null && permission.Requires switch
+            // A delegated token or a machine never meets a condition (plan §5, step 6).
+            bool delegated = facts.Actor is not null || facts.IsClient;
+            bool met = !delegated && permission.Requires switch
             {
                 PermissionRequirements.Mfa => facts.AuthenticationMethods.Contains(AuthenticationMethods.MultiFactor, StringComparer.Ordinal),
                 PermissionRequirements.RecentAuthentication => facts.AuthenticatedAt is { } at && timeProvider.GetUtcNow() - at <= RecentAuthentication,
+                PermissionRequirements.TrustedNetwork => NetworkAddresses.IsTrusted(facts.IpAddress, grants.TrustedNetworks ?? []),
                 _ => false,
             };
             trace?.Add("condition", met, $"requiere {permission.Requires}");
             if (!met)
             {
-                return Deny(facts.Actor is null ? AccessReasons.StepUpRequired : AccessReasons.ConditionNotMet);
+                return Deny(delegated
+                    ? AccessReasons.ConditionNotMet
+                    : permission.Requires == PermissionRequirements.TrustedNetwork ? AccessReasons.UntrustedNetwork : AccessReasons.StepUpRequired);
             }
         }
 

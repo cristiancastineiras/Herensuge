@@ -10,6 +10,7 @@ export const isTenantAdmin = (user: HerensugeUser) =>
 export const Permissions = {
 	manageRoles: "roles:manage",
 	readAudit: "audit:read",
+	manageServiceAccounts: "service-accounts:manage",
 } as const
 
 /**

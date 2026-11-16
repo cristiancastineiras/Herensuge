@@ -20,7 +20,11 @@ internal sealed class OpenIddictClientRegistry(IOpenIddictApplicationManager app
         {
             var descriptor = new OpenIddictApplicationDescriptor();
             await applications.PopulateAsync(descriptor, application, cancellationToken);
-            clients.Add(ToResponse(descriptor));
+            // Service account clients belong to organizations (Access, plan D7), not to the platform list.
+            if (!IsServiceClient(descriptor))
+            {
+                clients.Add(ToResponse(descriptor));
+            }
         }
 
         return [.. clients.OrderBy(client => client.ClientId, StringComparer.Ordinal)];
@@ -57,7 +61,7 @@ internal sealed class OpenIddictClientRegistry(IOpenIddictApplicationManager app
             return OidcErrors.ClientNotFound;
         }
 
-        if (IsSystem(descriptor))
+        if (IsSystem(descriptor) || IsServiceClient(descriptor))
         {
             return OidcErrors.SystemClient;
         }
@@ -75,7 +79,7 @@ internal sealed class OpenIddictClientRegistry(IOpenIddictApplicationManager app
             return OidcErrors.ClientNotFound;
         }
 
-        if (IsSystem(descriptor))
+        if (IsSystem(descriptor) || IsServiceClient(descriptor))
         {
             return OidcErrors.SystemClient;
         }
@@ -98,7 +102,7 @@ internal sealed class OpenIddictClientRegistry(IOpenIddictApplicationManager app
             return OidcErrors.ClientNotFound;
         }
 
-        if (IsSystem(descriptor))
+        if (IsSystem(descriptor) || IsServiceClient(descriptor))
         {
             return OidcErrors.SystemClient;
         }
@@ -171,7 +175,10 @@ internal sealed class OpenIddictClientRegistry(IOpenIddictApplicationManager app
     private static bool IsSystem(OpenIddictApplicationDescriptor descriptor) =>
         descriptor.Properties.TryGetValue(OidcPropertyNames.SystemClient, out JsonElement value) && value.ValueKind == JsonValueKind.True;
 
-    private static string GenerateSecret() => Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
+    internal static bool IsServiceClient(OpenIddictApplicationDescriptor descriptor) =>
+        descriptor.Properties.ContainsKey(OidcPropertyNames.ServiceAccountTenant);
+
+    internal static string GenerateSecret() => Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
 
     private static ClientResponse ToResponse(OpenIddictApplicationDescriptor descriptor) => new(
         descriptor.ClientId ?? string.Empty,

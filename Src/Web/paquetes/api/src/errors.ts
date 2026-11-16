@@ -101,6 +101,19 @@ const messages: Record<string, string> = {
 	"Access.InvalidAssignment":
 		"Revisa los roles: cada uno debe ser un rol o una plantilla, y la caducidad, futura.",
 	"Access.CannotGrant": "Solo puedes conceder permisos que tú tienes.",
+	"Access.GroupNotFound": "El grupo no existe.",
+	"Access.InvalidGroupName": "Escribe un nombre de grupo de como máximo 100 caracteres.",
+	"Access.GroupNameInUse": "Ya hay un grupo con ese nombre.",
+	"Access.TooManyGroups": "La organización ha alcanzado el máximo de grupos.",
+	"Access.TooManyGroupMembers": "El grupo ha alcanzado el máximo de miembros.",
+	"Access.ServiceAccountNotFound": "La cuenta de servicio no existe.",
+	"Access.InvalidServiceAccountName": "Escribe un nombre de como máximo 100 caracteres.",
+	"Access.TooManyServiceAccounts": "La organización ha alcanzado el máximo de cuentas de servicio.",
+	"Access.PlanNotFound": "El plan no existe.",
+	"Access.PlanKeyInUse": "Ya hay un plan con esa clave.",
+	"Access.DefaultPlanRequired": "Marca otro plan como plan por defecto antes de eliminar este.",
+	"Access.UnknownFeature": "Una de las funcionalidades ya no existe. Recarga la página.",
+	"Access.InvalidPlan": "Revisa la clave (minúsculas, números y guiones) y el nombre del plan.",
 
 	"Oidc.SessionInvalid": "Tu sesión ha caducado o se ha cerrado.",
 	"Oidc.TenantInactive": "La organización está desactivada.",
@@ -128,6 +141,8 @@ const fieldMessages: Record<string, string> = {
 	postLogoutRedirectUris: "Revisa las URIs de cierre de sesión: deben ser URLs absolutas.",
 	scopes: "Revisa los scopes.",
 	role: "El rol no es válido.",
+	trustedNetworks:
+		"Las redes de confianza deben ser rangos públicos en CIDR (p. ej. 203.0.113.0/24), sin rangos privados ni de loopback.",
 }
 
 export function errorCode(error: unknown): string | undefined {

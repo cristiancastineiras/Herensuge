@@ -8,6 +8,12 @@ public sealed record RoleUpdatedDomainEvent(Guid TenantId, Guid RoleId, string N
 
 public sealed record RoleDeletedDomainEvent(Guid TenantId, Guid RoleId, string Name) : DomainEvent;
 
-public sealed record RoleAssignedDomainEvent(Guid TenantId, Guid UserId, Guid? RoleId, Guid? RoleTemplateId, DateTime? ExpiresAtUtc) : DomainEvent;
+public sealed record RoleAssignedDomainEvent(
+    Guid TenantId,
+    string SubjectType,
+    Guid SubjectId,
+    Guid? RoleId,
+    Guid? RoleTemplateId,
+    DateTime? ExpiresAtUtc) : DomainEvent;
 
-public sealed record RoleUnassignedDomainEvent(Guid TenantId, Guid UserId, Guid? RoleId, Guid? RoleTemplateId) : DomainEvent;
+public sealed record RoleUnassignedDomainEvent(Guid TenantId, string SubjectType, Guid SubjectId, Guid? RoleId, Guid? RoleTemplateId) : DomainEvent;

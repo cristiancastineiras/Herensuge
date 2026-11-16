@@ -5,7 +5,7 @@ namespace Herensuge.Modules.Tenancy.Contracts.IntegrationEvents;
 public sealed record TenantCreatedIntegrationEvent(Guid TenantId, string Name, string Slug, Guid CreatedByUserId)
     : IntegrationEvent, ITenantIntegrationEvent;
 
-public sealed record TenantUpdatedIntegrationEvent(Guid TenantId, string Name, bool RequireMfa)
+public sealed record TenantUpdatedIntegrationEvent(Guid TenantId, string Name, bool RequireMfa, IReadOnlyList<string> TrustedNetworks)
     : IntegrationEvent, ITenantIntegrationEvent;
 
 public sealed record TenantStatusChangedIntegrationEvent(Guid TenantId, bool IsActive)

@@ -11,7 +11,11 @@ public static class HerensugeClaims
     public const string SessionId = "sid";
     public const string AuthenticationMethods = "amr";
     public const string AuthenticationTime = "auth_time";
+    public const string ClientId = "client_id";
     public const string Roles = "roles";
+
+    /// <summary>Features of the application in the organization's plan.</summary>
+    public const string Entitlements = "entitlements";
 
     /// <summary>Granted without a condition: the SDK allows them without asking.</summary>
     public const string Permissions = "permissions";

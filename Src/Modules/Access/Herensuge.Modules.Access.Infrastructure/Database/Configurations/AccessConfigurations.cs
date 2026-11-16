@@ -1,5 +1,8 @@
+using Herensuge.Modules.Access.Domain.Groups;
+using Herensuge.Modules.Access.Domain.Plans;
 using Herensuge.Modules.Access.Domain.ResourceServers;
 using Herensuge.Modules.Access.Domain.Roles;
+using Herensuge.Modules.Access.Domain.ServiceAccounts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -22,8 +25,81 @@ internal sealed class ResourceServerConfiguration : IEntityTypeConfiguration<Res
 
         builder.HasMany(server => server.Permissions).WithOne().HasForeignKey(permission => permission.ResourceServerId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(server => server.RoleTemplates).WithOne().HasForeignKey(template => template.ResourceServerId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(server => server.Features).WithOne().HasForeignKey(feature => feature.ResourceServerId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(server => server.Permissions).AutoInclude();
         builder.Navigation(server => server.RoleTemplates).AutoInclude();
+        builder.Navigation(server => server.Features).AutoInclude();
+    }
+}
+
+internal sealed class FeatureConfiguration : IEntityTypeConfiguration<Feature>
+{
+    public void Configure(EntityTypeBuilder<Feature> builder)
+    {
+        builder.ToTable("features");
+        builder.HasKey(feature => feature.Id);
+        builder.Property(feature => feature.Id).ValueGeneratedNever();
+        builder.Property(feature => feature.Key).HasMaxLength(50);
+        builder.Property(feature => feature.Name).HasMaxLength(100);
+        builder.HasIndex(feature => new { feature.ResourceServerId, feature.Key }).IsUnique();
+    }
+}
+
+internal sealed class GroupConfiguration : IEntityTypeConfiguration<Group>
+{
+    public void Configure(EntityTypeBuilder<Group> builder)
+    {
+        builder.ToTable("groups");
+        builder.HasKey(group => group.Id);
+        builder.Property(group => group.Id).ValueGeneratedNever();
+        builder.Property(group => group.Name).HasMaxLength(Group.MaxNameLength);
+        builder.Property(group => group.Description).HasMaxLength(500);
+        builder.HasIndex(group => group.TenantId);
+
+        // GIN: "groups of this user" is an array containment query.
+        builder.HasIndex(group => group.MemberUserIds).HasMethod("gin");
+        builder.Property<uint>("Version").IsRowVersion();
+    }
+}
+
+internal sealed class ServiceAccountConfiguration : IEntityTypeConfiguration<ServiceAccount>
+{
+    public void Configure(EntityTypeBuilder<ServiceAccount> builder)
+    {
+        builder.ToTable("service_accounts");
+        builder.HasKey(account => account.Id);
+        builder.Property(account => account.Id).ValueGeneratedNever();
+        builder.Property(account => account.Name).HasMaxLength(ServiceAccount.MaxNameLength);
+        builder.Property(account => account.ClientId).HasMaxLength(100);
+        builder.HasIndex(account => account.ClientId).IsUnique();
+        builder.HasIndex(account => account.TenantId);
+    }
+}
+
+internal sealed class PlanConfiguration : IEntityTypeConfiguration<Plan>
+{
+    public void Configure(EntityTypeBuilder<Plan> builder)
+    {
+        builder.ToTable("plans");
+        builder.HasKey(plan => plan.Id);
+        builder.Property(plan => plan.Id).ValueGeneratedNever();
+        builder.Property(plan => plan.Key).HasMaxLength(50);
+        builder.HasIndex(plan => plan.Key).IsUnique();
+        builder.Property(plan => plan.Name).HasMaxLength(100);
+        builder.Property<uint>("Version").IsRowVersion();
+    }
+}
+
+internal sealed class TenantPlanConfiguration : IEntityTypeConfiguration<TenantPlan>
+{
+    public void Configure(EntityTypeBuilder<TenantPlan> builder)
+    {
+        builder.ToTable("tenant_plans");
+        builder.HasKey(tenantPlan => tenantPlan.TenantId);
+        builder.Property(tenantPlan => tenantPlan.TenantId).ValueGeneratedNever();
+
+        // Deleting a plan sends its organizations back to the default one.
+        builder.HasOne<Plan>().WithMany().HasForeignKey(tenantPlan => tenantPlan.PlanId).OnDelete(DeleteBehavior.Cascade);
     }
 }
 
@@ -37,6 +113,7 @@ internal sealed class PermissionConfiguration : IEntityTypeConfiguration<Permiss
         builder.Property(permission => permission.Key).HasMaxLength(100);
         builder.Property(permission => permission.Description).HasMaxLength(500);
         builder.Property(permission => permission.Requires).HasMaxLength(20);
+        builder.Property(permission => permission.FeatureKey).HasMaxLength(50);
         builder.HasIndex(permission => new { permission.ResourceServerId, permission.Key }).IsUnique();
     }
 }
@@ -76,8 +153,11 @@ internal sealed class RoleAssignmentConfiguration : IEntityTypeConfiguration<Rol
         builder.ToTable("role_assignments");
         builder.HasKey(assignment => assignment.Id);
         builder.Property(assignment => assignment.Id).ValueGeneratedNever();
-        builder.HasIndex(assignment => new { assignment.TenantId, assignment.UserId });
-        builder.HasIndex(assignment => assignment.UserId);
+        builder.Property(assignment => assignment.SubjectType).HasMaxLength(10).HasDefaultValue(SubjectTypes.User);
+
+        // The subject is polymorphic (user, group or service account): no foreign key; groups and accounts remove theirs.
+        builder.HasIndex(assignment => new { assignment.TenantId, assignment.SubjectId });
+        builder.HasIndex(assignment => assignment.SubjectId);
 
         // Same schema, so foreign keys are allowed: deleting a role or an application role removes its assignments.
         builder.HasOne<Role>().WithMany().HasForeignKey(assignment => assignment.RoleId).OnDelete(DeleteBehavior.Cascade);

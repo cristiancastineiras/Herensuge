@@ -12,6 +12,9 @@ public interface ITenancyModuleApi
 
     /// <summary>True when the user is the only owner of at least one organization.</summary>
     Task<bool> IsLastOwnerOfAnyTenantAsync(Guid userId, CancellationToken cancellationToken);
+
+    /// <summary>False when the organization does not exist or is deactivated (service accounts, plan D7).</summary>
+    Task<bool> IsTenantActiveAsync(Guid tenantId, CancellationToken cancellationToken);
 }
 
 public sealed record MembershipSnapshot(
@@ -20,7 +23,8 @@ public sealed record MembershipSnapshot(
     string TenantSlug,
     string Role,
     bool TenantIsActive,
-    bool TenantRequiresMfa);
+    bool TenantRequiresMfa,
+    IReadOnlyList<string> TenantTrustedNetworks);
 
 /// <summary>Values of the tenant_role claim.</summary>
 public static class TenantRoles

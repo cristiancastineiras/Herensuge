@@ -17,10 +17,14 @@ const SessionsPage = lazy(() => import("./account/SessionsPage"))
 const OrganizationPage = lazy(() => import("./organization/OrganizationPage"))
 const MembersPage = lazy(() => import("./organization/MembersPage"))
 const RolesPage = lazy(() => import("./organization/RolesPage"))
+const GroupsPage = lazy(() => import("./organization/GroupsPage"))
+const ServiceAccountsPage = lazy(() => import("./organization/ServiceAccountsPage"))
+const SimulatorPage = lazy(() => import("./organization/SimulatorPage"))
 const OrganizationAuditPage = lazy(() => import("./organization/OrganizationAuditPage"))
 const PlatformTenantsPage = lazy(() => import("./platform/PlatformTenantsPage"))
 const ClientsPage = lazy(() => import("./platform/ClientsPage"))
 const ApplicationsPage = lazy(() => import("./platform/ApplicationsPage"))
+const PlansPage = lazy(() => import("./platform/PlansPage"))
 const PlatformAuditPage = lazy(() => import("./platform/PlatformAuditPage"))
 
 export const router = createBrowserRouter([
@@ -46,7 +50,15 @@ export const router = createBrowserRouter([
 					},
 					{
 						element: <RequirePermission permission={Permissions.manageRoles} />,
-						children: [{ path: "roles", element: <RolesPage /> }],
+						children: [
+							{ path: "roles", element: <RolesPage /> },
+							{ path: "grupos", element: <GroupsPage /> },
+							{ path: "simulador", element: <SimulatorPage /> },
+						],
+					},
+					{
+						element: <RequirePermission permission={Permissions.manageServiceAccounts} />,
+						children: [{ path: "cuentas-de-servicio", element: <ServiceAccountsPage /> }],
 					},
 					{
 						element: <RequirePermission permission={Permissions.readAudit} />,
@@ -64,6 +76,7 @@ export const router = createBrowserRouter([
 					{ path: "organizaciones", element: <PlatformTenantsPage /> },
 					{ path: "clientes", element: <ClientsPage /> },
 					{ path: "aplicaciones", element: <ApplicationsPage /> },
+					{ path: "planes", element: <PlansPage /> },
 					{ path: "auditoria", element: <PlatformAuditPage /> },
 				],
 			},

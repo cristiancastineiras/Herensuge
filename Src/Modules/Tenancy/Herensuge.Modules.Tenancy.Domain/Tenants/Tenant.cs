@@ -24,6 +24,9 @@ public sealed class Tenant : AggregateRoot
 
     public bool RequireMfa { get; private set; }
 
+    /// <summary>Public CIDR ranges for permissions that require "trusted_network" (plan D9). Empty: any public address.</summary>
+    public string[] TrustedNetworks { get; private set; } = [];
+
     public DateTime CreatedAtUtc { get; private set; }
 
     public static Tenant Create(string name, TenantSlug slug, Guid createdByUserId, DateTime utcNow)
@@ -41,17 +44,20 @@ public sealed class Tenant : AggregateRoot
         return tenant;
     }
 
-    public void Update(string name, bool requireMfa)
+    /// <param name="trustedNetworks">Already validated as public ranges (NetworkAddresses.IsPublicNetwork).</param>
+    public void Update(string name, bool requireMfa, IReadOnlyCollection<string> trustedNetworks)
     {
         string normalized = NormalizeName(name);
-        if (normalized == Name && requireMfa == RequireMfa)
+        string[] networks = [.. trustedNetworks.Select(network => network.Trim()).Distinct(StringComparer.OrdinalIgnoreCase)];
+        if (normalized == Name && requireMfa == RequireMfa && networks.SequenceEqual(TrustedNetworks))
         {
             return;
         }
 
         Name = normalized;
         RequireMfa = requireMfa;
-        Raise(new TenantUpdatedDomainEvent(Id, Name, RequireMfa));
+        TrustedNetworks = networks;
+        Raise(new TenantUpdatedDomainEvent(Id, Name, RequireMfa, TrustedNetworks));
     }
 
     public void SetActive(bool isActive)

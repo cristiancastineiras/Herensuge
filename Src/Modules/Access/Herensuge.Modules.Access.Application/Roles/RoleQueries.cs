@@ -16,15 +16,15 @@ public sealed record RoleResponse
 
     public Guid[] PermissionIds { get; init; } = [];
 
-    /// <summary>Members holding it now (expired assignments excluded).</summary>
+    /// <summary>Members, groups and service accounts holding it now (expired assignments excluded).</summary>
     public int Members { get; init; }
 }
 
-/// <summary>Assignments of a member, expired ones included (the screen shows them as expired).</summary>
-public sealed record GetMemberRolesQuery(Guid TenantId, Guid UserId) : IQuery<IReadOnlyList<MemberRoleResponse>>;
+/// <summary>Assignments of a member, group or service account, expired ones included (the screen shows them as expired).</summary>
+public sealed record GetSubjectRolesQuery(Guid TenantId, Guid SubjectId) : IQuery<IReadOnlyList<AssignedRoleResponse>>;
 
 /// <summary>Either <see cref="RoleId"/> (organization role) or <see cref="RoleTemplateId"/> (application role).</summary>
-public sealed record MemberRoleResponse
+public sealed record AssignedRoleResponse
 {
     public Guid? RoleId { get; init; }
 
@@ -41,7 +41,7 @@ internal sealed class GetRolesQueryHandler(IDbConnectionFactory dbConnectionFact
     private const string Sql =
         """
         SELECT r.id, r.name, r.description, r.permission_ids,
-               (SELECT count(DISTINCT a.user_id) FROM access.role_assignments a
+               (SELECT count(DISTINCT a.subject_id) FROM access.role_assignments a
                 WHERE a.role_id = r.id AND (a.expires_at_utc IS NULL OR a.expires_at_utc > @Now))::int AS members
         FROM access.roles r
         WHERE r.tenant_id = @TenantId
@@ -59,22 +59,22 @@ internal sealed class GetRolesQueryHandler(IDbConnectionFactory dbConnectionFact
     }
 }
 
-internal sealed class GetMemberRolesQueryHandler(IDbConnectionFactory dbConnectionFactory)
-    : IQueryHandler<GetMemberRolesQuery, IReadOnlyList<MemberRoleResponse>>
+internal sealed class GetSubjectRolesQueryHandler(IDbConnectionFactory dbConnectionFactory)
+    : IQueryHandler<GetSubjectRolesQuery, IReadOnlyList<AssignedRoleResponse>>
 {
     private const string Sql =
         """
         SELECT role_id, role_template_id, expires_at_utc, granted_at_utc
         FROM access.role_assignments
-        WHERE tenant_id = @TenantId AND user_id = @UserId
+        WHERE tenant_id = @TenantId AND subject_id = @SubjectId
         ORDER BY granted_at_utc
         """;
 
-    public async Task<Result<IReadOnlyList<MemberRoleResponse>>> Handle(GetMemberRolesQuery query, CancellationToken cancellationToken)
+    public async Task<Result<IReadOnlyList<AssignedRoleResponse>>> Handle(GetSubjectRolesQuery query, CancellationToken cancellationToken)
     {
         await using DbConnection connection = await dbConnectionFactory.OpenConnectionAsync(cancellationToken);
-        IEnumerable<MemberRoleResponse> rows = await connection.QueryAsync<MemberRoleResponse>(
-            new CommandDefinition(Sql, new { query.TenantId, query.UserId }, cancellationToken: cancellationToken));
-        return Result.Success<IReadOnlyList<MemberRoleResponse>>([.. rows]);
+        IEnumerable<AssignedRoleResponse> rows = await connection.QueryAsync<AssignedRoleResponse>(
+            new CommandDefinition(Sql, new { query.TenantId, query.SubjectId }, cancellationToken: cancellationToken));
+        return Result.Success<IReadOnlyList<AssignedRoleResponse>>([.. rows]);
     }
 }

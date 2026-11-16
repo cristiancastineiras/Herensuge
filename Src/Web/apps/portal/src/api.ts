@@ -2,7 +2,9 @@ import { reauthenticate, signIn } from "@herensuge/react"
 import {
 	createApiClient,
 	type AccessManifest,
+	type AssignedRoleResponse,
 	type CreateClientRequest,
+	type PlanRequest,
 	type RoleGrant,
 	type RoleRequest,
 } from "@paquetes/api"
@@ -76,8 +78,10 @@ const member = (tenantId: string, userId: string) => ({ params: { path: { tenant
 
 export const tenants = {
 	get: (id: string) => call(api.GET("/api/v1/tenants/{tenantId}", tenant(id))),
-	update: (id: string, body: { name: string; requireMfa: boolean }) =>
+	/** `trustedNetworks: null` deja las redes como están. */
+	update: (id: string, body: { name: string; requireMfa: boolean; trustedNetworks: string[] | null }) =>
 		call(api.PATCH("/api/v1/tenants/{tenantId}", { ...tenant(id), body })),
+	plan: (id: string) => call(api.GET("/api/v1/tenants/{tenantId}/plan", tenant(id))),
 	members: (id: string) => call(api.GET("/api/v1/tenants/{tenantId}/members", tenant(id))),
 	changeRole: (id: string, userId: string, role: string) =>
 		call(api.PATCH("/api/v1/tenants/{tenantId}/members/{userId}", { ...member(id, userId), body: { role } })),
@@ -108,14 +112,90 @@ export const access = {
 		call(api.PATCH("/api/v1/tenants/{tenantId}/roles/{roleId}", { ...role(id, roleId), body })),
 	deleteRole: (id: string, roleId: string) =>
 		call(api.DELETE("/api/v1/tenants/{tenantId}/roles/{roleId}", role(id, roleId))),
-	memberRoles: (id: string, userId: string) =>
-		call(api.GET("/api/v1/tenants/{tenantId}/members/{userId}/roles", member(id, userId))),
-	setMemberRoles: (id: string, userId: string, roles: RoleGrant[]) =>
+	simulate: (id: string, body: { userId: string; resourceServer: string; permission: string }) =>
+		call(api.POST("/api/v1/tenants/{tenantId}/access/simulate", { ...tenant(id), body })),
+}
+
+// Roles de un sujeto (miembro, grupo o cuenta de servicio): mismas operaciones, tres rutas.
+const subject = (tenantId: string, subjectId: string) => ({ params: { path: { tenantId, subjectId } } })
+
+/** Carga y guarda los roles de un sujeto; lo usa el editor de roles. */
+export type SubjectRoles = {
+	load: () => Promise<AssignedRoleResponse[]>
+	save: (roles: RoleGrant[]) => Promise<unknown>
+}
+
+export const subjectRoles = {
+	member: (id: string, userId: string): SubjectRoles => ({
+		load: () => call(api.GET("/api/v1/tenants/{tenantId}/members/{subjectId}/roles", subject(id, userId))),
+		save: (roles) =>
+			call(
+				api.PUT("/api/v1/tenants/{tenantId}/members/{subjectId}/roles", {
+					...subject(id, userId),
+					body: { roles },
+				}),
+			),
+	}),
+	group: (id: string, groupId: string): SubjectRoles => ({
+		load: () => call(api.GET("/api/v1/tenants/{tenantId}/groups/{subjectId}/roles", subject(id, groupId))),
+		save: (roles) =>
+			call(
+				api.PUT("/api/v1/tenants/{tenantId}/groups/{subjectId}/roles", {
+					...subject(id, groupId),
+					body: { roles },
+				}),
+			),
+	}),
+	serviceAccount: (id: string, accountId: string): SubjectRoles => ({
+		load: () =>
+			call(api.GET("/api/v1/tenants/{tenantId}/service-accounts/{subjectId}/roles", subject(id, accountId))),
+		save: (roles) =>
+			call(
+				api.PUT("/api/v1/tenants/{tenantId}/service-accounts/{subjectId}/roles", {
+					...subject(id, accountId),
+					body: { roles },
+				}),
+			),
+	}),
+}
+
+const group = (tenantId: string, groupId: string) => ({ params: { path: { tenantId, groupId } } })
+
+export const groups = {
+	list: (id: string) => call(api.GET("/api/v1/tenants/{tenantId}/groups", tenant(id))),
+	create: (id: string, body: { name: string; description: string | null }) =>
+		call(api.POST("/api/v1/tenants/{tenantId}/groups", { ...tenant(id), body })),
+	update: (id: string, groupId: string, body: { name: string; description: string | null }) =>
+		call(api.PATCH("/api/v1/tenants/{tenantId}/groups/{groupId}", { ...group(id, groupId), body })),
+	remove: (id: string, groupId: string) =>
+		call(api.DELETE("/api/v1/tenants/{tenantId}/groups/{groupId}", group(id, groupId))),
+	setMembers: (id: string, groupId: string, userIds: string[]) =>
 		call(
-			api.PUT("/api/v1/tenants/{tenantId}/members/{userId}/roles", {
-				...member(id, userId),
-				body: { roles },
+			api.PUT("/api/v1/tenants/{tenantId}/groups/{groupId}/members", {
+				...group(id, groupId),
+				body: { userIds },
 			}),
+		),
+}
+
+const account = (tenantId: string, serviceAccountId: string) => ({
+	params: { path: { tenantId, serviceAccountId } },
+})
+
+export const serviceAccounts = {
+	list: (id: string) => call(api.GET("/api/v1/tenants/{tenantId}/service-accounts", tenant(id))),
+	create: (id: string, name: string) =>
+		call(api.POST("/api/v1/tenants/{tenantId}/service-accounts", { ...tenant(id), body: { name } })),
+	rotateSecret: (id: string, accountId: string) =>
+		call(
+			api.POST(
+				"/api/v1/tenants/{tenantId}/service-accounts/{serviceAccountId}/secret",
+				account(id, accountId),
+			),
+		),
+	remove: (id: string, accountId: string) =>
+		call(
+			api.DELETE("/api/v1/tenants/{tenantId}/service-accounts/{serviceAccountId}", account(id, accountId)),
 		),
 }
 
@@ -146,6 +226,25 @@ export const platform = {
 		call(api.POST("/api/v1/platform/clients/{clientId}/secret", client(clientId))),
 	deleteClient: (clientId: string) =>
 		call(api.DELETE("/api/v1/platform/clients/{clientId}", client(clientId))),
+
+	features: () => call(api.GET("/api/v1/platform/features")),
+	plans: () => call(api.GET("/api/v1/platform/plans")),
+	createPlan: (body: PlanRequest) => call(api.POST("/api/v1/platform/plans", { body })),
+	updatePlan: (body: PlanRequest) =>
+		call(api.PATCH("/api/v1/platform/plans/{key}", { params: { path: { key: body.key } }, body })),
+	setDefaultPlan: (key: string) =>
+		call(api.POST("/api/v1/platform/plans/{key}/default", { params: { path: { key } } })),
+	deletePlan: (key: string) =>
+		call(api.DELETE("/api/v1/platform/plans/{key}", { params: { path: { key } } })),
+	tenantPlans: () => call(api.GET("/api/v1/platform/tenant-plans")),
+	/** `planKey: null`: vuelve al plan por defecto. */
+	setTenantPlan: (tenantId: string, planKey: string | null) =>
+		call(
+			api.PUT("/api/v1/platform/tenants/{tenantId}/plan", {
+				params: { path: { tenantId } },
+				body: { planKey },
+			}),
+		),
 
 	resourceServers: () => call(api.GET("/api/v1/platform/resource-servers")),
 	syncManifest: (manifest: AccessManifest) =>

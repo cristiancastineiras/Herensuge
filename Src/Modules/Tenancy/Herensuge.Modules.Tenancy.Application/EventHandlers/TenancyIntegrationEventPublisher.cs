@@ -24,7 +24,7 @@ internal sealed class TenancyIntegrationEventPublisher(IEventBus eventBus) :
 
     public Task Handle(TenantUpdatedDomainEvent domainEvent, CancellationToken cancellationToken) =>
         eventBus.PublishAsync(
-            new TenantUpdatedIntegrationEvent(domainEvent.TenantId, domainEvent.Name, domainEvent.RequireMfa),
+            new TenantUpdatedIntegrationEvent(domainEvent.TenantId, domainEvent.Name, domainEvent.RequireMfa, domainEvent.TrustedNetworks),
             cancellationToken);
 
     public Task Handle(TenantStatusChangedDomainEvent domainEvent, CancellationToken cancellationToken) =>

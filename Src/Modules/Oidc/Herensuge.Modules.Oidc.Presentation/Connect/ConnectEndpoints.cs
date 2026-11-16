@@ -160,7 +160,7 @@ internal sealed class ConnectEndpoints : IEndpoint
 
         if (request.IsClientCredentialsGrantType())
         {
-            return await IssueMachineTokenAsync(request, scopes, cancellationToken);
+            return await IssueMachineTokenAsync(request, scopes, access, cancellationToken);
         }
 
         if (!request.IsAuthorizationCodeGrantType() && !request.IsRefreshTokenGrantType())
@@ -200,19 +200,31 @@ internal sealed class ConnectEndpoints : IEndpoint
     }
 
     /// <summary>
-    /// client_credentials: the backend of an application, to ask the Access decision point. No user and no session
-    /// (sub = client_id), and only the herensuge.access scope. OpenIddict has already checked the secret and permissions.
+    /// client_credentials, no user and no session (sub = client_id). OpenIddict has already checked the secret and the
+    /// scope permissions. Two kinds of machine:
+    /// <list type="bullet">
+    /// <item>an application's backend, with only herensuge.access, to ask the Access decision point;</item>
+    /// <item>a service account of an organization (plan D7), with one application scope ("facturas.api"): the token
+    /// carries tenant_id and the account's roles and permissions there. It needs the account and its organization
+    /// active; a deleted account's token lasts until it expires (5 minutes).</item>
+    /// </list>
     /// </summary>
-    private static async Task<IResult> IssueMachineTokenAsync(OpenIddictRequest request, IOpenIddictScopeManager scopes, CancellationToken cancellationToken)
+    private static async Task<IResult> IssueMachineTokenAsync(
+        OpenIddictRequest request,
+        IOpenIddictScopeManager scopes,
+        IAccessModuleApi access,
+        CancellationToken cancellationToken)
     {
-        if (request.GetScopes() is not [HerensugeScopes.Access])
+        string[] requested = [.. request.GetScopes()];
+        bool decisionClient = requested is [HerensugeScopes.Access];
+        if (!decisionClient && (requested.Length != 1 || requested[0] is HerensugeScopes.Api))
         {
-            return Forbid(Errors.InvalidScope, $"client_credentials only issues the {HerensugeScopes.Access} scope.");
+            return Forbid(Errors.InvalidScope, $"client_credentials issues {HerensugeScopes.Access} or one application scope.");
         }
 
         var identity = new ClaimsIdentity(TokenValidationParameters.DefaultAuthenticationType, Claims.Name, Claims.Role);
         identity.SetClaim(Claims.Subject, request.ClientId).SetClaim(Claims.ClientId, request.ClientId);
-        identity.SetScopes(request.GetScopes());
+        identity.SetScopes(requested);
 
         var resources = new List<string>();
         await foreach (string resource in scopes.ListResourcesAsync(identity.GetScopes(), cancellationToken))
@@ -221,6 +233,18 @@ internal sealed class ConnectEndpoints : IEndpoint
         }
 
         identity.SetResources(resources);
+
+        if (!decisionClient)
+        {
+            if (await access.GetServiceAccountClaimsAsync(request.ClientId!, resources, cancellationToken) is not { } account)
+            {
+                return Forbid(Errors.UnauthorizedClient, "The client is not an active service account of an organization.");
+            }
+
+            identity.SetClaim(HerensugeClaimTypes.TenantId, account.TenantId.ToString());
+            SetAccessClaims(identity, account.Claims);
+        }
+
         identity.SetDestinations(_ => [Destinations.AccessToken]);
         return Results.SignIn(new ClaimsPrincipal(identity), properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }
@@ -237,10 +261,17 @@ internal sealed class ConnectEndpoints : IEndpoint
         CancellationToken cancellationToken)
     {
         AccessClaims? claims = await access.GetAccessClaimsAsync(userId, tenantId, [.. identity.GetResources()], cancellationToken);
+        SetAccessClaims(identity, claims);
+    }
+
+    /// <summary>roles and entitlements always; the permissions only when the application embeds them.</summary>
+    private static void SetAccessClaims(ClaimsIdentity identity, AccessClaims? claims)
+    {
         bool embed = claims?.EmbedPermissions == true;
         identity.SetClaims(HerensugeClaimTypes.Roles, claims is null ? [] : [.. claims.Roles]);
         identity.SetClaims(HerensugeClaimTypes.Permissions, embed ? [.. claims!.Permissions] : []);
         identity.SetClaims(HerensugeClaimTypes.ConditionalPermissions, embed ? [.. claims!.ConditionalPermissions] : []);
+        identity.SetClaims(HerensugeClaimTypes.Entitlements, claims is null ? [] : [.. claims.Entitlements]);
     }
 
     private static async Task<IResult> UserInfoAsync(
@@ -281,6 +312,7 @@ internal sealed class ConnectEndpoints : IEndpoint
             claims[HerensugeClaimTypes.Roles] = accessClaims.Roles;
             claims[HerensugeClaimTypes.Permissions] = accessClaims.Permissions;
             claims[HerensugeClaimTypes.ConditionalPermissions] = accessClaims.ConditionalPermissions;
+            claims[HerensugeClaimTypes.Entitlements] = accessClaims.Entitlements;
         }
 
         return Results.Ok(claims);

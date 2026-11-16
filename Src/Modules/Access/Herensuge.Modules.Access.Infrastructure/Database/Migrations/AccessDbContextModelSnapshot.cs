@@ -197,6 +197,158 @@ namespace Herensuge.Modules.Access.Infrastructure.Database.Migrations
                     b.ToTable("outbox_message_consumers", "access");
                 });
 
+            modelBuilder.Entity("Herensuge.Modules.Access.Domain.Groups.Group", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.PrimitiveCollection<Guid[]>("MemberUserIds")
+                        .IsRequired()
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("member_user_ids");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_groups");
+
+                    b.HasIndex("MemberUserIds")
+                        .HasDatabaseName("ix_groups_member_user_ids");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("MemberUserIds"), "gin");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_groups_tenant_id");
+
+                    b.ToTable("groups", "access");
+                });
+
+            modelBuilder.Entity("Herensuge.Modules.Access.Domain.Plans.Plan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.PrimitiveCollection<string[]>("Features")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("features");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_default");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_plans");
+
+                    b.HasIndex("Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_plans_key");
+
+                    b.ToTable("plans", "access");
+                });
+
+            modelBuilder.Entity("Herensuge.Modules.Access.Domain.Plans.TenantPlan", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("AssignedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("assigned_at_utc");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("plan_id");
+
+                    b.HasKey("TenantId")
+                        .HasName("pk_tenant_plans");
+
+                    b.HasIndex("PlanId")
+                        .HasDatabaseName("ix_tenant_plans_plan_id");
+
+                    b.ToTable("tenant_plans", "access");
+                });
+
+            modelBuilder.Entity("Herensuge.Modules.Access.Domain.ResourceServers.Feature", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("ResourceServerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("resource_server_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_features");
+
+                    b.HasIndex("ResourceServerId", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("ix_features_resource_server_id_key");
+
+                    b.ToTable("features", "access");
+                });
+
             modelBuilder.Entity("Herensuge.Modules.Access.Domain.ResourceServers.Permission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -211,6 +363,11 @@ namespace Herensuge.Modules.Access.Infrastructure.Database.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
                         .HasColumnName("description");
+
+                    b.Property<string>("FeatureKey")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("feature_key");
 
                     b.Property<string>("Key")
                         .IsRequired()
@@ -421,13 +578,21 @@ namespace Herensuge.Modules.Access.Infrastructure.Database.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("role_template_id");
 
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.Property<string>("SubjectType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("user")
+                        .HasColumnName("subject_type");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("user_id");
 
                     b.HasKey("Id")
                         .HasName("pk_role_assignments");
@@ -438,13 +603,76 @@ namespace Herensuge.Modules.Access.Infrastructure.Database.Migrations
                     b.HasIndex("RoleTemplateId")
                         .HasDatabaseName("ix_role_assignments_role_template_id");
 
-                    b.HasIndex("UserId")
-                        .HasDatabaseName("ix_role_assignments_user_id");
+                    b.HasIndex("SubjectId")
+                        .HasDatabaseName("ix_role_assignments_subject_id");
 
-                    b.HasIndex("TenantId", "UserId")
-                        .HasDatabaseName("ix_role_assignments_tenant_id_user_id");
+                    b.HasIndex("TenantId", "SubjectId")
+                        .HasDatabaseName("ix_role_assignments_tenant_id_subject_id");
 
                     b.ToTable("role_assignments", "access");
+                });
+
+            modelBuilder.Entity("Herensuge.Modules.Access.Domain.ServiceAccounts.ServiceAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ClientId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("client_id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_user_id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_service_accounts");
+
+                    b.HasIndex("ClientId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_service_accounts_client_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_service_accounts_tenant_id");
+
+                    b.ToTable("service_accounts", "access");
+                });
+
+            modelBuilder.Entity("Herensuge.Modules.Access.Domain.Plans.TenantPlan", b =>
+                {
+                    b.HasOne("Herensuge.Modules.Access.Domain.Plans.Plan", null)
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_tenant_plans_plans_plan_id");
+                });
+
+            modelBuilder.Entity("Herensuge.Modules.Access.Domain.ResourceServers.Feature", b =>
+                {
+                    b.HasOne("Herensuge.Modules.Access.Domain.ResourceServers.ResourceServer", null)
+                        .WithMany("Features")
+                        .HasForeignKey("ResourceServerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_features_resource_servers_resource_server_id");
                 });
 
             modelBuilder.Entity("Herensuge.Modules.Access.Domain.ResourceServers.Permission", b =>
@@ -484,6 +712,8 @@ namespace Herensuge.Modules.Access.Infrastructure.Database.Migrations
 
             modelBuilder.Entity("Herensuge.Modules.Access.Domain.ResourceServers.ResourceServer", b =>
                 {
+                    b.Navigation("Features");
+
                     b.Navigation("Permissions");
 
                     b.Navigation("RoleTemplates");

@@ -47,33 +47,33 @@ public sealed class SessionAndTokenTests
     [Fact]
     public void Link_tokens_are_single_use()
     {
-        (OneTimeToken token, string value) = OneTimeToken.Issue(Guid.NewGuid(), OneTimeTokenPurpose.PasswordReset, "ana@example.com", Now);
+        (OneTimeToken token, string value) = OneTimeToken.Issue(Guid.NewGuid(), OneTimeTokenPurpose.PasswordReset, "ana@example.com", TestKeys.Hasher, Now);
 
-        Assert.Equal(OneTimeToken.ComputeLinkHash(value), token.TokenHash);
-        Assert.True(token.Consume(value, Now).IsSuccess);
-        Assert.Equal(OneTimeTokenErrors.InvalidOrExpired, token.Consume(value, Now).Error);
+        Assert.Equal(OneTimeToken.ComputeLinkHash(value, TestKeys.Hasher), token.TokenHash);
+        Assert.True(token.Consume(value, TestKeys.Hasher, Now).IsSuccess);
+        Assert.Equal(OneTimeTokenErrors.InvalidOrExpired, token.Consume(value, TestKeys.Hasher, Now).Error);
     }
 
     [Fact]
     public void Tokens_expire()
     {
-        (OneTimeToken token, string value) = OneTimeToken.Issue(Guid.NewGuid(), OneTimeTokenPurpose.PasswordReset, "ana@example.com", Now);
+        (OneTimeToken token, string value) = OneTimeToken.Issue(Guid.NewGuid(), OneTimeTokenPurpose.PasswordReset, "ana@example.com", TestKeys.Hasher, Now);
 
-        Assert.Equal(OneTimeTokenErrors.InvalidOrExpired, token.Consume(value, Now + TimeSpan.FromMinutes(16)).Error);
+        Assert.Equal(OneTimeTokenErrors.InvalidOrExpired, token.Consume(value, TestKeys.Hasher, Now + TimeSpan.FromMinutes(16)).Error);
     }
 
     [Fact]
     public void Numeric_codes_stop_working_after_five_wrong_attempts()
     {
-        (OneTimeToken token, string value) = OneTimeToken.Issue(Guid.NewGuid(), OneTimeTokenPurpose.SmsMfa, "+34600000000", Now);
+        (OneTimeToken token, string value) = OneTimeToken.Issue(Guid.NewGuid(), OneTimeTokenPurpose.SmsMfa, "+34600000000", TestKeys.Hasher, Now);
         Assert.Matches("^[0-9]{6}$", value);
 
         string wrong = value == "000000" ? "000001" : "000000";
         for (int attempt = 0; attempt < OneTimeToken.MaxFailedAttempts; attempt++)
         {
-            Assert.True(token.Consume(wrong, Now).IsFailure);
+            Assert.True(token.Consume(wrong, TestKeys.Hasher, Now).IsFailure);
         }
 
-        Assert.Equal(OneTimeTokenErrors.InvalidOrExpired, token.Consume(value, Now).Error);
+        Assert.Equal(OneTimeTokenErrors.InvalidOrExpired, token.Consume(value, TestKeys.Hasher, Now).Error);
     }
 }

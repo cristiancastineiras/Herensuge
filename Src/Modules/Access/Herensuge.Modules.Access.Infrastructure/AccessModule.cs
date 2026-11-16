@@ -28,6 +28,9 @@ public static class AccessModule
         services.AddScoped<IResourceServerRepository, ResourceServerRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IRoleAssignmentRepository, RoleAssignmentRepository>();
+        services.AddScoped<IGroupRepository, GroupRepository>();
+        services.AddScoped<IServiceAccountRepository, ServiceAccountRepository>();
+        services.AddScoped<IPlanRepository, PlanRepository>();
         services.AddScoped<AccessEvaluator>();
         services.AddScoped<TenantAdministration>();
         services.AddScoped<IAccessModuleApi, AccessModuleApi>();

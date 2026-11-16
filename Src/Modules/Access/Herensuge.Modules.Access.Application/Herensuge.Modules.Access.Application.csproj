@@ -5,6 +5,7 @@
     <ProjectReference Include="../../../Common/Herensuge.Common.Application/Herensuge.Common.Application.csproj" />
     <ProjectReference Include="../../Identity/Herensuge.Modules.Identity.Contracts/Herensuge.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="../../Tenancy/Herensuge.Modules.Tenancy.Contracts/Herensuge.Modules.Tenancy.Contracts.csproj" />
+    <ProjectReference Include="../../Oidc/Herensuge.Modules.Oidc.Contracts/Herensuge.Modules.Oidc.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Herensuge.Modules.Access.UnitTests" />

@@ -9,7 +9,7 @@ internal sealed class GetTenantQueryHandler(IDbConnectionFactory dbConnectionFac
 {
     private const string Sql =
         """
-        SELECT t.id, t.name, t.slug, t.is_active, t.require_mfa, t.created_at_utc,
+        SELECT t.id, t.name, t.slug, t.is_active, t.require_mfa, t.trusted_networks, t.created_at_utc,
                (SELECT count(*) FROM tenancy.memberships m WHERE m.tenant_id = t.id)::int AS member_count
         FROM tenancy.tenants t
         WHERE t.id = @TenantId

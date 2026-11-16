@@ -94,28 +94,33 @@ internal sealed class HerensugeAccessClient(
 
     public void Dispose() => _tokenLock.Dispose();
 
-    /// <summary>AuthZEN request with the subject properties the PDP reads from the user's token.</summary>
+    /// <summary>
+    /// AuthZEN request with the subject properties the PDP reads from the token: a user, or a service account (a
+    /// machine token: sub = client_id, no session).
+    /// </summary>
     internal static JsonObject Evaluation(ClaimsPrincipal user, string type, string action, string? resourceId, IPAddress? ipAddress)
     {
-        var properties = new JsonObject
+        string? subject = user.FindFirstValue(HerensugeClaims.Subject);
+        bool machine = subject is not null && subject == user.FindFirstValue(HerensugeClaims.ClientId);
+        var properties = machine ? new JsonObject { ["tenant_id"] = user.FindFirstValue(HerensugeClaims.TenantId) } : new JsonObject
         {
             ["tenant_id"] = user.FindFirstValue(HerensugeClaims.TenantId),
             ["sid"] = user.FindFirstValue(HerensugeClaims.SessionId),
             ["amr"] = new JsonArray([.. HerensugeClaims.Values(user, HerensugeClaims.AuthenticationMethods).Select(method => JsonValue.Create(method))]),
         };
-        if (long.TryParse(user.FindFirstValue(HerensugeClaims.AuthenticationTime), out long authTime))
+        if (!machine && long.TryParse(user.FindFirstValue(HerensugeClaims.AuthenticationTime), out long authTime))
         {
             properties["auth_time"] = authTime;
         }
 
-        if (user.FindFirstValue(HerensugeClaims.Actor) is { Length: > 0 } act && act.StartsWith('{'))
+        if (!machine && user.FindFirstValue(HerensugeClaims.Actor) is { Length: > 0 } act && act.StartsWith('{'))
         {
             properties["act"] = JsonNode.Parse(act);
         }
 
         var evaluation = new JsonObject
         {
-            ["subject"] = new JsonObject { ["type"] = "user", ["id"] = user.FindFirstValue(HerensugeClaims.Subject), ["properties"] = properties },
+            ["subject"] = new JsonObject { ["type"] = machine ? "client" : "user", ["id"] = subject, ["properties"] = properties },
             ["action"] = new JsonObject { ["name"] = action },
             ["resource"] = new JsonObject { ["type"] = type, ["id"] = resourceId ?? string.Empty },
         };

@@ -4,6 +4,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Herensuge.Modules.Oidc.Application/Herensuge.Modules.Oidc.Application.csproj" />
+    <ProjectReference Include="../Herensuge.Modules.Oidc.Contracts/Herensuge.Modules.Oidc.Contracts.csproj" />
     <ProjectReference Include="../../../Common/Herensuge.Common.Infrastructure/Herensuge.Common.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
