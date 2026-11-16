@@ -66,7 +66,18 @@
     <Project Path="Src/Modules/Notifications/Herensuge.Modules.Notifications.Application/Herensuge.Modules.Notifications.Application.csproj" />
     <Project Path="Src/Modules/Notifications/Herensuge.Modules.Notifications.Infrastructure/Herensuge.Modules.Notifications.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/Src/Sdk/">
+    <Project Path="Src/Sdk/Herensuge.Access.AspNetCore/Herensuge.Access.AspNetCore.csproj" />
+  </Folder>
+  <Folder Name="/Samples/" />
+  <Folder Name="/Samples/Facturas/">
+    <File Path="Samples/Facturas/README.md" />
+    <File Path="Samples/Facturas/herensuge.access.json" />
+    <File Path="Samples/Facturas/bff.appsettings.json" />
+    <Project Path="Samples/Facturas/Facturas.Api/Facturas.Api.csproj" />
+  </Folder>
   <Folder Name="/Tests/">
+    <Project Path="Tests/Herensuge.Access.AspNetCore.UnitTests/Herensuge.Access.AspNetCore.UnitTests.csproj" />
     <Project Path="Tests/Herensuge.ArchitectureTests/Herensuge.ArchitectureTests.csproj" />
     <Project Path="Tests/Herensuge.IntegrationTests/Herensuge.IntegrationTests.csproj" />
     <Project Path="Tests/Herensuge.Modules.Access.UnitTests/Herensuge.Modules.Access.UnitTests.csproj" />
