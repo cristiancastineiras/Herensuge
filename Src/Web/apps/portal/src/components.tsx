@@ -98,6 +98,8 @@ const actionLabels: Record<string, string> = {
 	ServiceAccountDeleted: "Cuenta de servicio eliminada",
 	PlanChanged: "Plan creado, editado o eliminado",
 	TenantPlanChanged: "Plan de la organización cambiado",
+	RelationshipWritten: "Objeto compartido",
+	RelationshipDeleted: "Objeto dejado de compartir",
 }
 
 /**
@@ -197,4 +199,12 @@ export function AuditLog({ id, load, names = noNames }: AuditLogProps) {
 			)}
 		</Card>
 	)
+}
+
+const relationNames: Record<string, string> = { owner: "propietario", editor: "editor", viewer: "lector" }
+
+/** Permiso por objeto (relation / relationMode del manifiesto) → texto. */
+export function relationLabel(relation: string, mode: string | null): string {
+	const name = relationNames[relation] ?? relation
+	return mode === "and" ? `solo en objetos donde sea ${name}` : `o como ${name} de cada objeto`
 }

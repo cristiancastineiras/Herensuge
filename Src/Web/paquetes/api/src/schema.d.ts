@@ -3352,6 +3352,103 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/access/v1/relationships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RelationshipRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RelationshipRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access/v1/search/resource": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ResourceSearchRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResourceSearchResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -3581,6 +3678,8 @@ export interface components {
             description: null | string;
             requires: null | string;
             feature?: null | string;
+            relation?: null | string;
+            relationMode?: null | string;
         };
         ManifestRole: {
             key: string;
@@ -3637,6 +3736,8 @@ export interface components {
             description: null | string;
             requires: string;
             featureKey: null | string;
+            relation: null | string;
+            relationMode: null | string;
         };
         PhoneNumberRequest: {
             phoneNumber: string;
@@ -3690,12 +3791,41 @@ export interface components {
             password: string;
             displayName: string;
         };
+        RelationshipEntity: {
+            type: string;
+            id: string;
+        };
+        RelationshipRequest: {
+            /** Format: uuid */
+            tenantId: string;
+            object: null | components["schemas"]["RelationshipEntity"];
+            relation: null | string;
+            subject: null | components["schemas"]["RelationshipEntity"];
+        };
         RenamePasskeyRequest: {
             name: string;
         };
         ResetPasswordRequest: {
             token: string;
             newPassword: string;
+        };
+        ResourceSearchContext: {
+            allObjects: boolean;
+            reason: null | string;
+        };
+        ResourceSearchItem: {
+            type: string;
+            id: string;
+        };
+        ResourceSearchRequest: {
+            subject: null | components["schemas"]["AuthZenEntity"];
+            action: null | components["schemas"]["AuthZenAction"];
+            resource: null | components["schemas"]["AuthZenEntity"];
+            context?: null | components["schemas"]["AuthZenContext"];
+        };
+        ResourceSearchResponse: {
+            results: components["schemas"]["ResourceSearchItem"][];
+            context: components["schemas"]["ResourceSearchContext"];
         };
         ResourceServerResponse: {
             key: string;

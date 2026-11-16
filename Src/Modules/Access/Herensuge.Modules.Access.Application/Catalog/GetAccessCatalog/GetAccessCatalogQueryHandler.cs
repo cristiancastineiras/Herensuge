@@ -11,7 +11,7 @@ internal sealed class GetAccessCatalogQueryHandler(IDbConnectionFactory dbConnec
         """
         SELECT id, key, name FROM access.resource_servers ORDER BY name;
 
-        SELECT id, resource_server_id, key, description, requires, feature_key
+        SELECT id, resource_server_id, key, description, requires, feature_key, relation, relation_mode
         FROM access.permissions
         WHERE deprecated_at_utc IS NULL
         ORDER BY key;

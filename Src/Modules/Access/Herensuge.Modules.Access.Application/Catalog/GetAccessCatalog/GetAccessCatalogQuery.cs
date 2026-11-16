@@ -25,6 +25,12 @@ public sealed record PermissionResponse
 
     /// <summary>Feature of the application the organization's plan must include; null: always.</summary>
     public string? FeatureKey { get; init; }
+
+    /// <summary>owner, editor or viewer when it is also granted per object (plan D10).</summary>
+    public string? Relation { get; init; }
+
+    /// <summary>or / and, with a relation.</summary>
+    public string? RelationMode { get; init; }
 }
 
 public sealed record RoleTemplateResponse

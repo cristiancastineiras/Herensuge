@@ -61,3 +61,22 @@ public sealed record PlanChangedIntegrationEvent(string Key, string Name, IReadO
 
 /// <param name="PlanKey">Null: the organization has the default plan.</param>
 public sealed record TenantPlanChangedIntegrationEvent(Guid TenantId, string? PlanKey) : IntegrationEvent, ITenantIntegrationEvent;
+
+/// <summary>An application shared one of its objects (plan D10). Subject: user, group, client or object (parent).</summary>
+public sealed record RelationshipWrittenIntegrationEvent(
+    Guid TenantId,
+    string ResourceServer,
+    string ObjectType,
+    string ObjectId,
+    string Relation,
+    string SubjectType,
+    string SubjectId) : IntegrationEvent, ITenantIntegrationEvent;
+
+public sealed record RelationshipDeletedIntegrationEvent(
+    Guid TenantId,
+    string ResourceServer,
+    string ObjectType,
+    string ObjectId,
+    string Relation,
+    string SubjectType,
+    string SubjectId) : IntegrationEvent, ITenantIntegrationEvent;

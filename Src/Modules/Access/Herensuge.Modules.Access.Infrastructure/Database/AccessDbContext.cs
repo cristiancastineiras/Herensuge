@@ -5,6 +5,7 @@ using Herensuge.Modules.Access.Domain.Plans;
 using Herensuge.Modules.Access.Domain.ResourceServers;
 using Herensuge.Modules.Access.Domain.Roles;
 using Herensuge.Modules.Access.Domain.ServiceAccounts;
+using Herensuge.Modules.Access.Infrastructure.Relationships;
 using Microsoft.EntityFrameworkCore;
 
 namespace Herensuge.Modules.Access.Infrastructure.Database;
@@ -24,6 +25,8 @@ public sealed class AccessDbContext(DbContextOptions<AccessDbContext> options) :
     internal DbSet<Plan> Plans => Set<Plan>();
 
     internal DbSet<TenantPlan> TenantPlans => Set<TenantPlan>();
+
+    internal DbSet<RelationshipStoreSettings> RelationshipStores => Set<RelationshipStoreSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -2,7 +2,9 @@ using System.Net;
 using System.Security.Claims;
 using System.Text.Json;
 using Herensuge.Modules.Access.Application.Decisions;
+using Herensuge.Modules.Access.Application.Relationships;
 using Herensuge.Modules.Access.Application.ResourceServers.SyncManifest;
+using Herensuge.Modules.Access.Domain;
 using Herensuge.Modules.Access.Domain.ResourceServers;
 
 namespace Herensuge.Modules.Access.Presentation.Decisions;
@@ -26,6 +28,22 @@ public sealed record EvaluationsRequest(
     AuthZenContext? Context = null);
 
 public sealed record EvaluationResponse(bool Decision, EvaluationContext Context);
+
+/// <summary>{ tenantId, object: { type, id }, relation, subject: { type: user|group|client|object, id } } (plan D10).</summary>
+public sealed record RelationshipRequest(Guid TenantId, RelationshipEntity? Object, string? Relation, RelationshipEntity? Subject);
+
+public sealed record RelationshipEntity(string Type, string Id);
+
+/// <summary>AuthZEN resource search: resource.type and action.name; no resource.id.</summary>
+public sealed record ResourceSearchRequest(AuthZenEntity? Subject, AuthZenAction? Action, AuthZenEntity? Resource, AuthZenContext? Context = null);
+
+public sealed record ResourceSearchItem(string Type, string Id);
+
+/// <param name="AllObjects">A role grants the action on every object; the results are only the objects shared with the subject.</param>
+/// <param name="Reason">Why there is nothing, when the subject cannot do the action at all.</param>
+public sealed record ResourceSearchContext(bool AllObjects, string? Reason);
+
+public sealed record ResourceSearchResponse(IReadOnlyList<ResourceSearchItem> Results, ResourceSearchContext Context);
 
 public sealed record EvaluationContext(string Reason);
 
@@ -93,7 +111,48 @@ internal sealed class AuthZenEndpoints : IEndpoint
         group.MapPut("/manifest", async (AccessManifest manifest, ClaimsPrincipal caller, ICommandHandler<SyncManifestCommand, ManifestSyncResponse> handler, CancellationToken cancellationToken) =>
             (await handler.Handle(new SyncManifestCommand(manifest, CallerClientId(caller)), cancellationToken)).Match(value => Results.Ok(value)))
             .Produces<ManifestSyncResponse>();
+
+        // Plan D10: the application shares its objects. The subject must belong to the organization.
+        group.MapPut("/relationships", (RelationshipRequest request, ClaimsPrincipal caller, ICommandHandler<WriteRelationshipCommand> handler, CancellationToken cancellationToken) =>
+            WriteRelationshipAsync(request, caller, handler, delete: false, cancellationToken))
+            .Produces(StatusCodes.Status204NoContent);
+
+        // DELETE with a body (as in AuthZEN): explicit, because minimal APIs do not infer it for DELETE.
+        group.MapDelete("/relationships", ([Microsoft.AspNetCore.Mvc.FromBody] RelationshipRequest request, ClaimsPrincipal caller, ICommandHandler<WriteRelationshipCommand> handler, CancellationToken cancellationToken) =>
+            WriteRelationshipAsync(request, caller, handler, delete: true, cancellationToken))
+            .Produces(StatusCodes.Status204NoContent);
+
+        // AuthZEN resource search: the objects of a type the subject can do the action on.
+        group.MapPost("/search/resource", async (ResourceSearchRequest request, ClaimsPrincipal caller, IQueryHandler<SearchResourcesQuery, ResourceSearchResult> handler, CancellationToken cancellationToken) =>
+        {
+            Result<EvaluateAccessQuery> subject = ToQuery(caller, request.Subject, [new EvaluationRequest(request.Subject, request.Action, request.Resource)], request.Context);
+            if (subject.IsFailure)
+            {
+                return ApiResults.Problem(subject);
+            }
+
+            Result<ResourceSearchResult> found = await handler.Handle(
+                new SearchResourcesQuery(CallerClientId(caller), subject.Value.Subject, request.Resource!.Type, request.Action!.Name),
+                cancellationToken);
+            return found.Match(result => Results.Ok(new ResourceSearchResponse(
+                [.. result.Ids.Select(id => new ResourceSearchItem(request.Resource.Type, id))],
+                new ResourceSearchContext(result.AllObjects, result.Reason))));
+        })
+            .Produces<ResourceSearchResponse>();
     }
+
+    private static async Task<IResult> WriteRelationshipAsync(
+        RelationshipRequest request,
+        ClaimsPrincipal caller,
+        ICommandHandler<WriteRelationshipCommand> handler,
+        bool delete,
+        CancellationToken cancellationToken) =>
+        request is { Object: { } target, Subject: { } subject, Relation: { } relation }
+            ? (await handler.Handle(
+                    new WriteRelationshipCommand(CallerClientId(caller), request.TenantId, target.Type, target.Id, relation, subject.Type, subject.Id, delete),
+                    cancellationToken))
+                .Match(Results.NoContent)
+            : ApiResults.Problem(AccessErrors.InvalidRelationship("tenantId, object { type, id }, relation and subject { type, id } are required."));
 
     internal static string CallerClientId(ClaimsPrincipal caller) =>
         caller.FindFirstValue(HerensugeClaimTypes.ClientId) ?? caller.FindFirstValue(HerensugeClaimTypes.Subject) ?? string.Empty;
@@ -118,7 +177,13 @@ internal sealed class AuthZenEndpoints : IEndpoint
             return InvalidRequest("Every evaluation needs resource.type and action.name.");
         }
 
-        AccessCheck[] checks = [.. items.Select(item => new AccessCheck(Text(item.Resource!.Properties, "resource_server"), $"{item.Resource.Type}:{item.Action!.Name}"))];
+        AccessCheck[] checks =
+        [
+            .. items.Select(item => new AccessCheck(
+                Text(item.Resource!.Properties, "resource_server"),
+                $"{item.Resource.Type}:{item.Action!.Name}",
+                string.IsNullOrEmpty(item.Resource.Id) ? null : item.Resource.Id)),
+        ];
         IPAddress? ip = IPAddress.TryParse(context?.Ip, out IPAddress? parsed) ? parsed : null;
         if (subject.Type == "client")
         {

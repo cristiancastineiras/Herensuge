@@ -105,6 +105,10 @@ public sealed class AccessSdkTests
             Calls++;
             return Task.FromResult(answer);
         }
+
+        public Task WriteRelationshipAsync(Guid tenantId, Relationship relationship, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task DeleteRelationshipAsync(Guid tenantId, Relationship relationship, CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 
     /// <summary>Herensuge's token endpoint and decision point, as an HttpClient factory.</summary>

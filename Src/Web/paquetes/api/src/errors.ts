@@ -114,6 +114,8 @@ const messages: Record<string, string> = {
 	"Access.DefaultPlanRequired": "Marca otro plan como plan por defecto antes de eliminar este.",
 	"Access.UnknownFeature": "Una de las funcionalidades ya no existe. Recarga la página.",
 	"Access.InvalidPlan": "Revisa la clave (minúsculas, números y guiones) y el nombre del plan.",
+	"Access.RelationshipsDisabled": "Los permisos por objeto no están activados en esta instalación.",
+	"Access.RelationshipsUnavailable": "El almacén de relaciones no responde. Prueba de nuevo en un momento.",
 
 	"Oidc.SessionInvalid": "Tu sesión ha caducado o se ha cerrado.",
 	"Oidc.TenantInactive": "La organización está desactivada.",

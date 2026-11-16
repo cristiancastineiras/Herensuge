@@ -73,6 +73,16 @@ public static class AccessErrors
 
     public static readonly Error UnknownFeature = Error.Validation("Access.UnknownFeature", "One of the features does not exist in its application.");
 
+    public static readonly Error RelationshipsDisabled = Error.Conflict(
+        "Access.RelationshipsDisabled",
+        "Per-object permissions are not enabled in this installation (Access:OpenFga:ApiUrl).");
+
+    public static readonly Error RelationshipsUnavailable = Error.Failure(
+        "Access.RelationshipsUnavailable",
+        "The relationship store did not answer. Try again in a moment.");
+
+    public static Error InvalidRelationship(string reason) => Error.Validation("Access.InvalidRelationship", reason);
+
     public static Error InvalidPlan(string reason) => Error.Validation("Access.InvalidPlan", reason);
 
     public static Error InvalidManifest(string reason) => Error.Failure("Access.InvalidManifest", reason);

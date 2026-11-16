@@ -18,7 +18,15 @@ public sealed record AccessManifest(
 /// <param name="Key">"invoice:approve": the resource type and the action of AuthZEN requests.</param>
 /// <param name="Requires">none, mfa, recent_auth or trusted_network.</param>
 /// <param name="Feature">Key of a feature of the manifest: without it in the organization's plan, the permission grants nothing.</param>
-public sealed record ManifestPermission(string Key, string? Description, string? Requires, string? Feature = null);
+/// <param name="Relation">owner, editor or viewer: the permission is also (or only) granted per object (plan D10).</param>
+/// <param name="RelationMode">or (default): role or relation; and: role and relation.</param>
+public sealed record ManifestPermission(
+    string Key,
+    string? Description,
+    string? Requires,
+    string? Feature = null,
+    string? Relation = null,
+    string? RelationMode = null);
 
 /// <param name="Permissions">Keys, "invoice:*" or "*"; expanded when the manifest is applied.</param>
 /// <param name="GrantTo">Organization base roles (owner, admin, member) that get this role without an assignment.</param>

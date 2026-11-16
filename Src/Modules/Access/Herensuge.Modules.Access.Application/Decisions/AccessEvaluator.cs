@@ -112,11 +112,20 @@ public sealed class AccessEvaluator(
             ? await GrantsAsync(server, account.TenantId, baseRole: string.Empty, [account.Id], [], cancellationToken)
             : null;
 
-    /// <summary>Plan §5 for one permission. <paramref name="grants"/> null = not a member of an active organization.</summary>
-    public AccessDecision Evaluate(ResourceServer server, AccessGrants? grants, SubjectFacts facts, string permissionKey, EvaluationTrace? trace = null)
+    /// <summary>
+    /// Plan §5 for one permission. <paramref name="grants"/> null = not a member of an active organization.
+    /// <paramref name="relation"/>: the relation check on the object, when <see cref="RelationNeeded"/> asked for one.
+    /// </summary>
+    public AccessDecision Evaluate(
+        ResourceServer server,
+        AccessGrants? grants,
+        SubjectFacts facts,
+        string permissionKey,
+        EvaluationTrace? trace = null,
+        RelationCheck? relation = null)
     {
         long started = Stopwatch.GetTimestamp();
-        AccessDecision decision = EvaluateCore(server, grants, facts, permissionKey, trace);
+        AccessDecision decision = EvaluateCore(server, grants, facts, permissionKey, trace, relation);
         Duration.Record(Stopwatch.GetElapsedTime(started).TotalMilliseconds, new KeyValuePair<string, object?>("resource_server", server.Key));
         Decisions.Add(
             1,
@@ -134,7 +143,8 @@ public sealed class AccessEvaluator(
         var conditional = new List<string>();
         foreach (string key in grants.Permissions.Where(key => IsEntitled(active[key], grants)))
         {
-            (active[key].Requires == PermissionRequirements.None ? unconditional : conditional).Add(key);
+            Permission permission = active[key];
+            (permission.Requires == PermissionRequirements.None && !permission.NeedsRelationWithRole ? unconditional : conditional).Add(key);
         }
 
         string[] entitlements = grants.Entitlements is { } entitled
@@ -146,6 +156,22 @@ public sealed class AccessEvaluator(
     /// <summary>Plan D12: the permissions (keys) of <paramref name="requested"/> the actor does not hold. The owner holds all.</summary>
     public static IReadOnlyList<string> MissingToGrant(AccessGrants? actor, IEnumerable<string> requested) =>
         actor?.BaseRole == BaseRoles.Owner ? [] : [.. requested.Where(key => actor is null || !actor.Permissions.Contains(key)).Distinct(StringComparer.Ordinal)];
+
+    /// <summary>
+    /// The relation (owner, editor, viewer) to check on the object before <see cref="Evaluate"/>, or null when the
+    /// decision does not depend on one: "or" with the role (the role suffices), "and" without it (denied anyway).
+    /// </summary>
+    public static string? RelationNeeded(ResourceServer server, AccessGrants? grants, string permissionKey)
+    {
+        Permission? permission = server.ActivePermissions.FirstOrDefault(candidate => candidate.Key == permissionKey);
+        if (permission?.Relation is null || grants is null)
+        {
+            return null;
+        }
+
+        bool granted = grants.Permissions.Contains(permissionKey);
+        return (permission.RelationMode == RelationModes.And) == granted ? permission.Relation : null;
+    }
 
     private static bool IsEntitled(Permission permission, AccessGrants grants) =>
         permission.FeatureKey is null || grants.Entitlements is null || grants.Entitlements.Contains(permission.FeatureKey);
@@ -200,7 +226,13 @@ public sealed class AccessEvaluator(
             : new HashSet<string>(plan.Features.Where(feature => feature.StartsWith(prefix, StringComparison.Ordinal)).Select(feature => feature[prefix.Length..]), StringComparer.Ordinal);
     }
 
-    private AccessDecision EvaluateCore(ResourceServer server, AccessGrants? grants, SubjectFacts facts, string permissionKey, EvaluationTrace? trace)
+    private AccessDecision EvaluateCore(
+        ResourceServer server,
+        AccessGrants? grants,
+        SubjectFacts facts,
+        string permissionKey,
+        EvaluationTrace? trace,
+        RelationCheck? relation)
     {
         Permission? permission = server.ActivePermissions.FirstOrDefault(candidate => candidate.Key == permissionKey);
         trace?.Add("permission", permission is not null, permission is null ? $"«{permissionKey}» no existe o está retirado" : permissionKey);
@@ -228,11 +260,29 @@ public sealed class AccessEvaluator(
             return Deny(AccessReasons.NotEntitled);
         }
 
+        // Step 5: role, relation on the object, or both (relationMode).
         bool granted = grants.Permissions.Contains(permissionKey);
-        trace?.Add("grant", granted, granted ? $"roles: {string.Join(", ", grants.Roles)}" : "ningún rol lo concede");
-        if (!granted)
+        bool viaRelation = permission.Relation is not null && permission.RelationMode == RelationModes.Or && !granted;
+        trace?.Add("grant", granted || viaRelation, granted ? $"roles: {string.Join(", ", grants.Roles)}" : viaRelation ? "sin rol: solo por relación" : "ningún rol lo concede");
+        if (!granted && !viaRelation)
         {
             return Deny(AccessReasons.NoRole);
+        }
+
+        if (permission.Relation is not null && (viaRelation || permission.RelationMode == RelationModes.And))
+        {
+            if (facts.Assumed)
+            {
+                trace?.Add("relation", granted, $"requiere relación {permission.Relation} con cada objeto (no evaluada)");
+                return granted ? new AccessDecision(true, AccessReasons.GrantedIfCondition) : Deny(AccessReasons.NoRole);
+            }
+
+            RelationCheck check = relation ?? RelationCheck.Missing;
+            trace?.Add("relation", check.Holds, check.FailureReason ?? (check.Holds ? $"{permission.Relation} del objeto" : $"sin relación {permission.Relation}"));
+            if (!check.Holds)
+            {
+                return Deny(check.FailureReason ?? AccessReasons.NoRelation);
+            }
         }
 
         if (permission.Requires != PermissionRequirements.None)

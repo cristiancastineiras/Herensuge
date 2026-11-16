@@ -32,7 +32,18 @@ public interface IHerensugeAccess
         string? resourceId = null,
         IPAddress? ipAddress = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Shares an object of this application: <paramref name="relation"/> (owner, editor, viewer; parent for an object)
+    /// for a subject of the organization (user id, group id, a service account's client_id, or "type/id" of an object).
+    /// </summary>
+    Task WriteRelationshipAsync(Guid tenantId, Relationship relationship, CancellationToken cancellationToken = default);
+
+    Task DeleteRelationshipAsync(Guid tenantId, Relationship relationship, CancellationToken cancellationToken = default);
 }
+
+/// <param name="SubjectType">user, group, client or object.</param>
+public sealed record Relationship(string ObjectType, string ObjectId, string Relation, string SubjectType, string SubjectId);
 
 /// <summary>
 /// Calls /access/v1/evaluation with the application's own token (client_credentials, scope herensuge.access), cached
@@ -92,7 +103,31 @@ internal sealed class HerensugeAccessClient(
         }
     }
 
+    public Task WriteRelationshipAsync(Guid tenantId, Relationship relationship, CancellationToken cancellationToken = default) =>
+        SendRelationshipAsync(HttpMethod.Put, tenantId, relationship, cancellationToken);
+
+    public Task DeleteRelationshipAsync(Guid tenantId, Relationship relationship, CancellationToken cancellationToken = default) =>
+        SendRelationshipAsync(HttpMethod.Delete, tenantId, relationship, cancellationToken);
+
     public void Dispose() => _tokenLock.Dispose();
+
+    /// <summary>Writes are not decisions: errors throw (HttpRequestException) instead of failing closed.</summary>
+    private async Task SendRelationshipAsync(HttpMethod method, Guid tenantId, Relationship relationship, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(method, "access/v1/relationships")
+        {
+            Content = JsonContent.Create(new
+            {
+                tenantId,
+                @object = new { type = relationship.ObjectType, id = relationship.ObjectId },
+                relation = relationship.Relation,
+                subject = new { type = relationship.SubjectType, id = relationship.SubjectId },
+            }),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", await GetTokenAsync(cancellationToken));
+        using HttpResponseMessage response = await Client().SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
 
     /// <summary>
     /// AuthZEN request with the subject properties the PDP reads from the token: a user, or a service account (a
