@@ -103,9 +103,13 @@ public sealed class User : AggregateRoot
 
     public bool IsLockedOut(DateTime utcNow) => LockoutEndsAtUtc > utcNow;
 
+    /// <summary>
+    /// Ways to answer the second-factor challenge. A code sent to the verified email is an alternative for
+    /// users who already have MFA (TOTP or phone); on its own it does not turn MFA on.
+    /// </summary>
     public IReadOnlyList<string> GetMfaMethods()
     {
-        var methods = new List<string>(3);
+        var methods = new List<string>(4);
         if (IsTotpEnabled)
         {
             methods.Add(MfaMethods.Totp);
@@ -114,6 +118,11 @@ public sealed class User : AggregateRoot
         if (HasVerifiedPhone)
         {
             methods.Add(MfaMethods.Sms);
+        }
+
+        if (HasMfa && IsEmailVerified)
+        {
+            methods.Add(MfaMethods.Email);
         }
 
         if (_recoveryCodes.Any(code => code.UsedAtUtc is null))
@@ -233,9 +242,10 @@ public sealed class User : AggregateRoot
         return Result.Success();
     }
 
-    public Result RegisterFailedSmsCode(DateTime utcNow)
+    /// <param name="method">sms or email.</param>
+    public Result RegisterFailedOneTimeCode(string method, DateTime utcNow)
     {
-        RegisterFailedAttempt("invalid_sms_code", utcNow);
+        RegisterFailedAttempt($"invalid_{method}_code", utcNow);
         return UserErrors.InvalidMfaCode;
     }
 
@@ -565,5 +575,6 @@ public static class MfaMethods
 {
     public const string Totp = "totp";
     public const string Sms = "sms";
+    public const string Email = "email";
     public const string RecoveryCode = "recovery_code";
 }

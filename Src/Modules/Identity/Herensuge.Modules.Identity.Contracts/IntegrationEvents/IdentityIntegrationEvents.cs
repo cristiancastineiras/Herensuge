@@ -58,6 +58,13 @@ public sealed record SmsMfaCodeRequestedIntegrationEvent(
     [property: SensitiveData] string Code,
     DateTime ExpiresAtUtc) : IntegrationEvent;
 
+public sealed record EmailMfaCodeRequestedIntegrationEvent(
+    Guid UserId,
+    string Email,
+    string DisplayName,
+    [property: SensitiveData] string Code,
+    DateTime ExpiresAtUtc) : IntegrationEvent;
+
 public sealed record PasskeyAddedIntegrationEvent(Guid UserId, Guid PasskeyId, string Name) : IntegrationEvent;
 
 public sealed record PasskeyRemovedIntegrationEvent(Guid UserId, Guid PasskeyId) : IntegrationEvent;

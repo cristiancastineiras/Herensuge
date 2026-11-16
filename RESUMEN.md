@@ -86,7 +86,8 @@ Los dos hosts comparten dominio registrable (`<dominio>`, o `localhost` en desar
 2. El SPA navega a `/bff/login?returnUrl=/`. El BFF genera `state`, `nonce` y `code_verifier` y redirige a `/connect/authorize` (code + PKCE S256).
 3. El endpoint *authorize* no encuentra sesión del IdP y redirige al SPA de login: `/login?returnUrl=<authorize>`. `returnUrl` solo admite rutas locales (protección contra *open redirect*).
 4. El SPA envía las credenciales a `POST /api/v1/auth/sign-in`. Respuestas posibles: `signed-in` · `mfa-required` (con los métodos disponibles) · `email-not-verified` · `locked-out` · `invalid-credentials`.
-5. Si la respuesta es `mfa-required`: se crea la cookie temporal `__Host-herensuge-mfa` (5 min) y el usuario completa `POST /api/v1/auth/sign-in/mfa` con TOTP, SMS o un código de recuperación.
+5. Si la respuesta es `mfa-required`: se crea la cookie temporal `__Host-herensuge-mfa` (5 min) y el usuario completa `POST /api/v1/auth/sign-in/mfa` con TOTP, un código por SMS, un código por email o un código de recuperación (o entra con una passkey). El código por email (`POST /sign-in/mfa/email`, 6 dígitos, 5 min) solo se ofrece a quien ya tiene MFA (TOTP o teléfono) y el email verificado: es una alternativa, no activa el MFA por sí solo.
+   Activar el MFA (el primer factor, TOTP o teléfono) cierra las demás sesiones del usuario, como el cambio de contraseña: vuelven a entrar pasando por el segundo factor.
 6. Al completar el login se crean el agregado `UserSession` y la cookie `__Host-herensuge-idp`. Si el usuario no tiene MFA y alguna de sus organizaciones lo exige, debe dar de alta TOTP o una passkey antes de continuar.
 7. Organización activa:
    - Ninguna → onboarding (crear organización) o aceptar una invitación pendiente.
@@ -219,7 +220,7 @@ Prohibido: leer tablas de otro módulo y hacer transacciones que abarquen varios
 |---|---|---|
 | `User` | `Email`, `PasswordHash?`, `PhoneNumber?`, TOTP (secreto cifrado y último *time step*), `RecoveryCodes`, `ExternalLogins`, `PasskeyCredentials`, `KnownDevices`, `Lockout`, `IsPlatformAdmin` | Email único. No se puede quitar el último método de acceso. 5 fallos (contraseña o segundo factor) → bloqueo de 15 min. El login con contraseña exige email verificado. Un código TOTP no se puede reutilizar. Cambiar la contraseña revoca las demás sesiones. Los códigos de recuperación son de un solo uso |
 | `UserSession` | `UserId`, `Amr`, `AuthTime`, `Ip`, `UserAgent`, `DeviceId`, `LastSeenAt`, `ExpiresAt`, `RevokedAt` | Una sesión revocada no se reactiva |
-| `OneTimeToken` | `UserId`, `Purpose`, `TokenHash`, `ExpiresAt`, `ConsumedAt` | Un solo uso. Caducidad según el propósito: verificar email 24 h, cambio de email 1 h, reset 15 min, verificar teléfono 10 min, MFA por SMS 5 min |
+| `OneTimeToken` | `UserId`, `Purpose`, `TokenHash`, `ExpiresAt`, `ConsumedAt` | Un solo uso. Caducidad según el propósito: verificar email 24 h, cambio de email 1 h, reset 15 min, verificar teléfono 10 min, MFA por SMS o email 5 min |
 
 **Tenancy**
 
@@ -232,7 +233,7 @@ Prohibido: leer tablas de otro módulo y hacer transacciones que abarquen varios
 **Value objects:** `Email` (normalizado), `PhoneNumber` (E.164), `PasswordHash`, `TenantSlug`, `TenantRole`.
 
 **Domain events:**
-- **Identity:** `UserRegistered`, `EmailVerified`, `EmailChangeRequested`, `PasswordChanged`, `PasswordResetRequested`, `SignInFailed`, `UserLockedOut`, `SessionStarted`, `NewDeviceSignedIn`, `SessionRevoked`, `MfaEnabled`, `MfaDisabled`, `SmsMfaCodeRequested`, `PhoneVerificationRequested`, `PasskeyAdded`, `PasskeyRemoved`, `ExternalLoginLinked`, `ExternalLoginUnlinked`, `UserDeleted`.
+- **Identity:** `UserRegistered`, `EmailVerified`, `EmailChangeRequested`, `PasswordChanged`, `PasswordResetRequested`, `SignInFailed`, `UserLockedOut`, `SessionStarted`, `NewDeviceSignedIn`, `SessionRevoked`, `MfaEnabled`, `MfaDisabled`, `SmsMfaCodeRequested`, `EmailMfaCodeRequested`, `PhoneVerificationRequested`, `PasskeyAdded`, `PasskeyRemoved`, `ExternalLoginLinked`, `ExternalLoginUnlinked`, `UserDeleted`.
 - **Tenancy:** `TenantCreated`, `TenantDeactivated`, `TenantMfaPolicyChanged`, `MemberAdded`, `MemberRoleChanged`, `MemberRemoved`, `InvitationCreated`, `InvitationAccepted`, `InvitationRevoked`.
 
 ### 6.5 CQRS
@@ -393,6 +394,7 @@ Texto plano, en español. Una clase por plantilla, con *raw string literals*. No
 | `InvitationCreated` | Email | Enlace de invitación (7 días) |
 | `PhoneVerificationRequested` | SMS | Código de 6 dígitos (10 min) |
 | `SmsMfaCodeRequested` | SMS | Código de 6 dígitos (5 min) |
+| `EmailMfaCodeRequested` | Email | Código de 6 dígitos (5 min) |
 
 - **Latencia esperada:** unos 2 s entre la acción y el envío (dos saltos de polling de 1 s).
 - **Fallos de envío:** los reintenta el job de inbox. Cuando un proveedor admita claves de idempotencia, se le pasa el id del evento.
@@ -664,7 +666,7 @@ GET|POST  /connect/logout
 GET   /providers                          proveedores externos configurados
 POST  /register
 POST  /verify-email                       · POST /verify-email/resend
-POST  /sign-in                            · POST /sign-in/mfa · POST /sign-in/mfa/sms
+POST  /sign-in                            · POST /sign-in/mfa · POST /sign-in/mfa/sms · POST /sign-in/mfa/email
 POST  /passkeys/options                   · POST /passkeys/sign-in
 GET   /external/{provider}                · GET  /external/{provider}/callback
 POST  /password/forgot                    · POST /password/reset

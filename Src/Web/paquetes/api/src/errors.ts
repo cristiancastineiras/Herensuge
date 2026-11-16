@@ -51,6 +51,7 @@ const messages: Record<string, string> = {
 	"Users.InvalidMfaCode": "El código no es correcto.",
 	"Users.MfaMethodNotAvailable": "Ese método de verificación no está activado.",
 	"Users.MfaNotEnabled": "No tienes la verificación en dos pasos activada.",
+	"Users.CodeRequestedTooRecently": "Ya te hemos enviado un código. Espera unos segundos antes de pedir otro.",
 	"Users.LastAccessMethod": "No puedes quitar tu último método de acceso.",
 	"Users.TotpAlreadyEnabled": "La app autenticadora ya está activada.",
 	"Users.TotpNotEnabled": "La app autenticadora no está activada.",

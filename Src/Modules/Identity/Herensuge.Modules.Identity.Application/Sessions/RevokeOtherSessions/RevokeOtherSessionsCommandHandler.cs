@@ -1,3 +1,5 @@
+using Herensuge.Modules.Identity.Application.Services;
+
 namespace Herensuge.Modules.Identity.Application.Sessions.RevokeOtherSessions;
 
 internal sealed class RevokeOtherSessionsCommandHandler(
@@ -7,14 +9,8 @@ internal sealed class RevokeOtherSessionsCommandHandler(
 {
     public async Task<Result> Handle(RevokeOtherSessionsCommand command, CancellationToken cancellationToken)
     {
-        DateTime now = timeProvider.GetUtcNow().UtcDateTime;
-        IReadOnlyList<UserSession> active = await sessions.GetActiveByUserAsync(command.UserId, now, cancellationToken);
-
-        foreach (UserSession session in active.Where(session => session.Id != command.CurrentSessionId))
-        {
-            session.Revoke(SessionRevocationReasons.RevokedByUser, now);
-        }
-
+        await sessions.RevokeOthersAsync(
+            command.UserId, command.CurrentSessionId, SessionRevocationReasons.RevokedByUser, timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }

@@ -24,7 +24,7 @@ internal sealed class MfaEndpoints : IEndpoint
             .Produces<TotpSetupResponse>();
 
         group.MapPost("/mfa/totp/confirm", async (CodeRequest request, ClaimsPrincipal user, ICommandHandler<ConfirmTotpSetupCommand, ConfirmTotpSetupResponse> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new ConfirmTotpSetupCommand(user.GetUserId(), request.Code, null), cancellationToken))
+            (await handler.Handle(new ConfirmTotpSetupCommand(user.GetUserId(), request.Code, user.GetSessionId()), cancellationToken))
                 .Match(value => Results.Ok(new RecoveryCodesResult(value.RecoveryCodes))))
             .Produces<RecoveryCodesResult>();
 
@@ -42,7 +42,7 @@ internal sealed class MfaEndpoints : IEndpoint
             .Produces(StatusCodes.Status202Accepted);
 
         group.MapPost("/phone/verify", async (CodeRequest request, ClaimsPrincipal user, ICommandHandler<ConfirmPhoneVerificationCommand, RecoveryCodesResponse> handler, CancellationToken cancellationToken) =>
-                (await handler.Handle(new ConfirmPhoneVerificationCommand(user.GetUserId(), request.Code), cancellationToken)).Match(value => Results.Ok(value)))
+                (await handler.Handle(new ConfirmPhoneVerificationCommand(user.GetUserId(), request.Code, user.GetSessionId()), cancellationToken)).Match(value => Results.Ok(value)))
             .RequireRateLimiting(RateLimitPolicies.AuthStrict)
             .Produces<RecoveryCodesResponse>();
 

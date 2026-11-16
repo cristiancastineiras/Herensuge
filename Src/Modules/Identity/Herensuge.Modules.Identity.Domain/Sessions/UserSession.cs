@@ -114,6 +114,7 @@ public static class SessionRevocationReasons
     public const string SignOut = "sign_out";
     public const string RevokedByUser = "revoked_by_user";
     public const string PasswordChanged = "password_changed";
+    public const string MfaEnabled = "mfa_enabled";
 }
 
 public static class SessionErrors

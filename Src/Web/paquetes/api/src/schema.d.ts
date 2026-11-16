@@ -1342,6 +1342,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/sign-in/mfa/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/passkeys/options": {
         parameters: {
             query?: never;
@@ -2288,6 +2321,7 @@ export interface components {
         MfaChallengeResponse: {
             methods: string[];
             phoneNumberHint: null | string;
+            emailHint: null | string;
         };
         PagedResponseOfPlatformTenantResponse: {
             items: components["schemas"]["PlatformTenantResponse"][];

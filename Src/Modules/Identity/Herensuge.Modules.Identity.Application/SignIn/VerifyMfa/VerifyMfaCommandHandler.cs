@@ -34,7 +34,8 @@ internal sealed class VerifyMfaCommandHandler(
         {
             MfaMethods.Totp => (VerifyTotp(user, command.Code, now), AuthenticationMethods.Otp),
             MfaMethods.RecoveryCode => (user.RedeemRecoveryCode(command.Code, hasher, now), AuthenticationMethods.Otp),
-            MfaMethods.Sms => (await VerifySmsAsync(user, command.Code, now, cancellationToken), AuthenticationMethods.Sms),
+            MfaMethods.Sms => (await VerifyOneTimeCodeAsync(user, MfaMethods.Sms, OneTimeTokenPurpose.SmsMfa, command.Code, now, cancellationToken), AuthenticationMethods.Sms),
+            MfaMethods.Email => (await VerifyOneTimeCodeAsync(user, MfaMethods.Email, OneTimeTokenPurpose.EmailMfa, command.Code, now, cancellationToken), AuthenticationMethods.Otp),
             _ => (Result.Failure(UserErrors.MfaMethodNotAvailable), string.Empty),
         };
 
@@ -79,17 +80,24 @@ internal sealed class VerifyMfaCommandHandler(
         return user.VerifyTotpCode(verification.IsValid, verification.TimeStep, now);
     }
 
-    private async Task<Result> VerifySmsAsync(User user, string code, DateTime now, CancellationToken cancellationToken)
+    /// <summary>6-digit code sent by SMS or email (SendMfaCode).</summary>
+    private async Task<Result> VerifyOneTimeCodeAsync(
+        User user,
+        string method,
+        OneTimeTokenPurpose purpose,
+        string code,
+        DateTime now,
+        CancellationToken cancellationToken)
     {
-        if (!user.HasVerifiedPhone)
+        if (!user.GetMfaMethods().Contains(method))
         {
             return UserErrors.MfaMethodNotAvailable;
         }
 
-        OneTimeToken? token = await tokens.GetLatestActiveAsync(user.Id, OneTimeTokenPurpose.SmsMfa, now, cancellationToken);
+        OneTimeToken? token = await tokens.GetLatestActiveAsync(user.Id, purpose, now, cancellationToken);
         if (token is null || token.Consume(code, hasher, now).IsFailure)
         {
-            return user.RegisterFailedSmsCode(now);
+            return user.RegisterFailedOneTimeCode(method, now);
         }
 
         return Result.Success();

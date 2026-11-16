@@ -939,6 +939,18 @@
         }
       }
     },
+    "/api/v1/auth/sign-in/mfa/email": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
     "/api/v1/auth/passkeys/options": {
       "post": {
         "tags": [
@@ -2138,7 +2150,8 @@
       "MfaChallengeResponse": {
         "required": [
           "methods",
-          "phoneNumberHint"
+          "phoneNumberHint",
+          "emailHint"
         ],
         "type": "object",
         "properties": {
@@ -2149,6 +2162,12 @@
             }
           },
           "phoneNumberHint": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "emailHint": {
             "type": [
               "null",
               "string"

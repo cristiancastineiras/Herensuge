@@ -1,4 +1,5 @@
 using Herensuge.Common.Application.Security;
+using Herensuge.Modules.Identity.Application.Services;
 
 namespace Herensuge.Modules.Identity.Application.Mfa.ConfirmTotpSetup;
 
@@ -24,6 +25,7 @@ internal sealed class ConfirmTotpSetupCommandHandler(
         }
 
         DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+        bool hadMfa = user.HasMfa;
         TotpVerification verification = totpService.Verify(user.PendingTotpSecret, command.Code);
         Result<IReadOnlyList<string>> confirmed = user.ConfirmTotpSetup(verification.IsValid, verification.TimeStep, hasher, now);
         if (confirmed.IsFailure)
@@ -44,6 +46,12 @@ internal sealed class ConfirmTotpSetupCommandHandler(
             {
                 session = null;
             }
+        }
+
+        // Turning MFA on closes the sessions opened without it (other browsers and devices): they sign in again with it.
+        if (!hadMfa)
+        {
+            await sessions.RevokeOthersAsync(user.Id, session?.Id, SessionRevocationReasons.MfaEnabled, now, cancellationToken);
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

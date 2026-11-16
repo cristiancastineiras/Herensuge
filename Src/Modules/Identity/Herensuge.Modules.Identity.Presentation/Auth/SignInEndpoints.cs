@@ -4,7 +4,7 @@ using Herensuge.Modules.Identity.Application.Mfa.BeginTotpSetup;
 using Herensuge.Modules.Identity.Application.Mfa.ConfirmTotpSetup;
 using Herensuge.Modules.Identity.Application.SignIn;
 using Herensuge.Modules.Identity.Application.SignIn.CreatePasskeySignInOptions;
-using Herensuge.Modules.Identity.Application.SignIn.SendSmsMfaCode;
+using Herensuge.Modules.Identity.Application.SignIn.SendMfaCode;
 using Herensuge.Modules.Identity.Application.SignIn.SignInWithPasskey;
 using Herensuge.Modules.Identity.Application.SignIn.SignInWithPassword;
 using Herensuge.Modules.Identity.Application.SignIn.VerifyMfa;
@@ -75,21 +75,25 @@ internal sealed class SignInEndpoints : IEndpoint
             .RequireRateLimiting(RateLimitPolicies.AuthStrict)
             .Produces<SignInResponse>();
 
-        group.MapPost("/sign-in/mfa/sms", async (
-                HttpContext httpContext,
-                ICommandHandler<SendSmsMfaCodeCommand> handler,
-                CancellationToken cancellationToken) =>
-            {
-                MfaContext? mfa = await MfaContext.ResolveAsync(httpContext);
-                if (mfa is null)
+        // 6-digit code by SMS or to the verified email (an alternative for users who already have MFA).
+        foreach (string method in new[] { "sms", "email" })
+        {
+            group.MapPost($"/sign-in/mfa/{method}", async (
+                    HttpContext httpContext,
+                    ICommandHandler<SendMfaCodeCommand> handler,
+                    CancellationToken cancellationToken) =>
                 {
-                    return AuthProblems.NotSignedIn();
-                }
+                    MfaContext? mfa = await MfaContext.ResolveAsync(httpContext);
+                    if (mfa is null)
+                    {
+                        return AuthProblems.NotSignedIn();
+                    }
 
-                return (await handler.Handle(new SendSmsMfaCodeCommand(mfa.UserId), cancellationToken)).Match(() => Results.Accepted());
-            })
-            .RequireRateLimiting(RateLimitPolicies.AuthStrict)
-            .Produces(StatusCodes.Status202Accepted);
+                    return (await handler.Handle(new SendMfaCodeCommand(mfa.UserId, method), cancellationToken)).Match(() => Results.Accepted());
+                })
+                .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+                .Produces(StatusCodes.Status202Accepted);
+        }
 
         group.MapPost("/passkeys/options", async (
             ICommandHandler<CreatePasskeySignInOptionsCommand, string> handler,

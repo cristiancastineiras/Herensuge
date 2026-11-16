@@ -26,6 +26,13 @@ public sealed record Email
         return new Email(normalized);
     }
 
+    /// <summary>a•••@example.com: enough for the user to recognise the mailbox.</summary>
+    public static string Mask(string email)
+    {
+        int at = email.IndexOf('@', StringComparison.Ordinal);
+        return at <= 1 ? email : $"{email[0]}•••{email[at..]}";
+    }
+
     public override string ToString() => Value;
 }
 
