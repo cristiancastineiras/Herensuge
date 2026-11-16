@@ -944,7 +944,8 @@ dotnet run --project Src/Hosts/Herensuge.Bff          # https://localhost:5002
 - [ ] Revisar la retención: auditoría 365 días (`Audit:RetentionDays`), sesiones terminadas 30 días, tokens 1 día, mensajes procesados 7 días.
 - [ ] Hosting (VPS Hetzner/OVH o Kubernetes) y dominio de producción.
 - [ ] Escribir los ADRs de la sección 20 en `Docs/Decisiones/`.
-- [ ] Diseñar el Nivel 2.
+- [ ] Diseñar el Nivel 2. Autorización (permisos, roles por organización, planes, API de decisión): propuesta en
+  [Docs/Arquitectura/Autorizacion.md](Docs/Arquitectura/Autorizacion.md).
 
 ---
 
