@@ -1,3 +1,4 @@
+import { HerensugeProvider } from "@herensuge/react"
 import { ApiError } from "@paquetes/api"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { StrictMode } from "react"
@@ -19,8 +20,10 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById("root") as HTMLElement).render(
 	<StrictMode>
-		<QueryClientProvider client={queryClient}>
-			<RouterProvider router={router} />
-		</QueryClientProvider>
+		<HerensugeProvider>
+			<QueryClientProvider client={queryClient}>
+				<RouterProvider router={router} />
+			</QueryClientProvider>
+		</HerensugeProvider>
 	</StrictMode>,
 )

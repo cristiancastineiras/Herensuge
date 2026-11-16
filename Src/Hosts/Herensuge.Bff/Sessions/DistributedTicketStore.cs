@@ -21,6 +21,7 @@ internal sealed class DistributedTicketStore(
     public const string SessionKeyItem = ".herensuge.session_key";
 
     private const string Prefix = "herensuge-bff:session:";
+    private const string SidPrefix = "herensuge-bff:sid:";
 
     private readonly IDataProtector _protector = dataProtectionProvider.CreateProtector("Herensuge.Bff.Tickets.v1");
 
@@ -32,14 +33,30 @@ internal sealed class DistributedTicketStore(
         return key;
     }
 
-    public Task RenewAsync(string key, AuthenticationTicket ticket) =>
-        cache.SetAsync(
-            Prefix + key,
-            _protector.Protect(TicketSerializer.Default.Serialize(ticket)),
-            new DistributedCacheEntryOptions
-            {
-                AbsoluteExpiration = ticket.Properties.ExpiresUtc ?? timeProvider.GetUtcNow() + options.Value.SessionLifetime,
-            });
+    public async Task RenewAsync(string key, AuthenticationTicket ticket)
+    {
+        var entry = new DistributedCacheEntryOptions
+        {
+            AbsoluteExpiration = ticket.Properties.ExpiresUtc ?? timeProvider.GetUtcNow() + options.Value.SessionLifetime,
+        };
+        await cache.SetAsync(Prefix + key, _protector.Protect(TicketSerializer.Default.Serialize(ticket)), entry);
+
+        // sid → key: lets a session closed at the IdP (another device, another app) be dropped at once.
+        if (ticket.Principal.FindFirst("sid")?.Value is { } sid)
+        {
+            await cache.SetStringAsync(SidPrefix + sid, key, entry);
+        }
+    }
+
+    /// <summary>Drops the BFF session opened from an SSO session that has ended at the IdP.</summary>
+    public async Task RemoveBySessionIdAsync(string sid)
+    {
+        if (await cache.GetStringAsync(SidPrefix + sid) is { } key)
+        {
+            await cache.RemoveAsync(Prefix + key);
+            await cache.RemoveAsync(SidPrefix + sid);
+        }
+    }
 
     public async Task<AuthenticationTicket?> RetrieveAsync(string key)
     {

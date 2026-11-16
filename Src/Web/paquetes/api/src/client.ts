@@ -1,7 +1,6 @@
 import createClient from "openapi-fetch"
 import { ApiError, type ProblemDetails } from "./errors"
 import type { paths } from "./schema"
-import type { BffPaths } from "./types"
 
 export type ApiClientOptions = {
 	/** Se llama con cada 401 antes de lanzar el error (por ejemplo, para volver a iniciar sesión). */
@@ -17,7 +16,7 @@ export type ApiClientOptions = {
  *   const user = await call(api.GET("/api/v1/me"))
  */
 export function createApiClient(options: ApiClientOptions = {}) {
-	const api = createClient<paths & BffPaths>({
+	const api = createClient<paths>({
 		credentials: "same-origin",
 		headers: { Accept: "application/json", "X-CSRF": "1" },
 	})

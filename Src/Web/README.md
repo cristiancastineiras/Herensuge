@@ -47,8 +47,8 @@ apps/
 │   └── pages/                       # una pantalla (o un par relacionado) por fichero
 └── portal/src/
     ├── main.tsx · router.tsx        # rutas; cada página se carga lazy
-    ├── api.ts                       # /bff/*, /api/v1/me, /tenants, /platform; 401 → login
-    ├── user.ts                      # usuario de la sesión (/bff/user) y reglas de rol
+    ├── api.ts                       # /api/v1/me, /tenants, /platform; 401 → login
+    ├── user.ts                      # usuario de la sesión (@herensuge/react) y reglas de rol
     ├── AppLayout.tsx                # cabecera, navegación por rol, guardas
     ├── components.tsx               # PageHeader, AuditLog…
     ├── account/                     # Perfil, Seguridad, Sesiones
@@ -58,11 +58,13 @@ paquetes/
 ├── api/            # cliente tipado (openapi-fetch + X-CSRF), ProblemDetails → español; src/schema.d.ts GENERADO
 ├── componentes/    # Button, Field, Card, Alert, Table, ConfirmButton, TotpSetup… (+ public/logo.svg)
 ├── utiles/         # cn, formValues, formato de fechas
+├── herensuge-react/  # @herensuge/react: SDK de la sesión de la BFF (login, logout en tiempo real); ver su README
 ├── generador-api/  # openapi-typescript (con su propio TypeScript 5): Docs/API → api/src/schema.d.ts
 └── configuracion-ts/
 ```
 
 Los paquetes se consumen desde `src/` (sin build propio): Vite y TypeScript los resuelven por `exports`.
+`@herensuge/react` es el único que además se puede empaquetar para otros repositorios (`pnpm build` → `dist/`).
 
 ## Reglas
 
@@ -75,7 +77,8 @@ Los paquetes se consumen desde `src/` (sin build propio): Vite y TypeScript los 
 - **Tipos de la API generados, nunca a mano.** Cada `dotnet build` de `Herensuge.Api` escribe el contrato
   `Docs/API/Herensuge.Api.json`; `pnpm api:generate` lo regenera y crea `paquetes/api/src/schema.d.ts`. El cliente
   (`createApiClient`) comprueba al compilar rutas, parámetros, cuerpos y respuestas. La CI falla si el contrato o los
-  tipos no están al día. `types.ts` solo da nombres cortos a los esquemas (y define el contrato de la BFF, `/bff/user`).
+  tipos no están al día. `types.ts` solo da nombres cortos a los esquemas. El contrato de la BFF (`/bff/user`,
+  `/bff/events`) lo lleva `@herensuge/react`.
 - **Rutas por rol** solo como comodidad: la autorización real la aplica siempre la API.
 - Código en inglés; interfaz en español.
 

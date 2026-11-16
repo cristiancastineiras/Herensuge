@@ -16,8 +16,22 @@ internal sealed class IdentityModuleApi(
     IDataEncryptor encryptor,
     ISecretHasher hasher,
     ICommandHandler<ValidateSessionCommand> validateSession,
-    ICommandHandler<SignOutCommand> signOut) : IIdentityModuleApi
+    ICommandHandler<SignOutCommand> signOut,
+    TimeProvider timeProvider) : IIdentityModuleApi
 {
+    public async Task<bool> IsSessionActiveAsync(Guid sessionId, Guid userId, CancellationToken cancellationToken)
+    {
+        await using DbConnection connection = await dbConnectionFactory.OpenConnectionAsync(cancellationToken);
+        return await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+            """
+            SELECT EXISTS (
+                SELECT 1 FROM identity.user_sessions
+                WHERE id = @SessionId AND user_id = @UserId AND revoked_at_utc IS NULL AND expires_at_utc > @Now)
+            """,
+            new { SessionId = sessionId, UserId = userId, Now = timeProvider.GetUtcNow().UtcDateTime },
+            cancellationToken: cancellationToken));
+    }
+
     public async Task RevokeSessionAsync(Guid sessionId, CancellationToken cancellationToken) =>
         await signOut.Handle(new SignOutCommand(sessionId), cancellationToken);
 

@@ -16,6 +16,7 @@ using Herensuge.Modules.Oidc.Infrastructure.Tokens;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenIddict.Validation;
 using OpenIddict.Validation.AspNetCore;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -86,8 +87,13 @@ public static class OidcModule
                 validation.UseAspNetCore();
                 validation.AddAudiences(HerensugeScopes.ApiResource);
 
-                // Each API call checks the authorization is still valid: a revoked session cuts access at once.
+                // Each API call checks the authorization is still valid (revoked a moment after its session or user)...
                 validation.EnableAuthorizationEntryValidation();
+
+                // ...and the session itself, so closing it cuts access at once.
+                validation.AddEventHandler<OpenIddictValidationEvents.ProcessAuthenticationContext>(handler => handler
+                    .UseScopedHandler<ValidateSessionHandler>()
+                    .SetOrder(OpenIddictValidationHandlers.ValidateAccessToken.Descriptor.Order + 500));
             });
 
         services.AddAuthorizationBuilder()

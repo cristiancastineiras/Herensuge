@@ -138,11 +138,15 @@ Si el refresh falla (token revocado), el BFF borra la sesión y responde `401`; 
 
 ### 5.7 Revocar sesiones ("cerrar sesión en otros dispositivos")
 
-1. `UserSession.Revoke()` emite el evento `SessionRevoked`.
-2. El módulo Oidc revoca las autorizaciones y tokens con ese `sid`.
-3. El siguiente refresh de ese BFF falla y el usuario queda fuera.
+Vale para cualquier cierre: logout, "cerrar sesión" en la lista de sesiones o cambio de contraseña.
 
-Desfase máximo: la vida de un access token (5 min). La cookie del IdP se revalida contra `UserSession` cada minuto.
+1. `UserSession.Revoke()` marca la sesión como revocada. **Desde ese instante no tiene acceso**: la cookie del IdP y cada access token se comprueban contra `UserSession` en cada petición (`IsSessionActiveAsync`), sin esperar al outbox.
+2. El evento `SessionRevoked` sale por el outbox (≈1 s):
+   - El módulo Oidc revoca las autorizaciones y tokens con ese `sid` (el refresh token deja de servir).
+   - Identity publica el `sid` en el canal de Valkey `herensuge:session-revoked`.
+3. Cada instancia del BFF escucha ese canal: borra su sesión de ese `sid` y avisa por `/bff/events` (server-sent events) a las pestañas abiertas, que vuelven al login al momento (`@herensuge/react`).
+
+El aviso es solo la experiencia en tiempo real; si se pierde (Valkey caído), el acceso ya está cortado en el servidor y el navegador sale en su siguiente llamada. Las APIs de otras apps que validen el JWT solo con el JWKS, sin consultar la sesión, mantienen el desfase de la vida del access token (5 min).
 
 ### 5.8 Operaciones sensibles (re-autenticación)
 
@@ -404,6 +408,7 @@ Texto plano, en español. Una clase por plantilla, con *raw string literals*. No
 | `/bff/login` | GET | Inicia OIDC (code + PKCE). Parámetros: `returnUrl` (solo local), `tenant`, `prompt`, `max_age` |
 | `/bff/callback` | GET | Recibe el code, canjea los tokens y crea la sesión |
 | `/bff/user` | GET | Claims para el SPA (`sub`, `name`, `email`, `tenant_id`, `tenant_role`, `amr`) o `401` |
+| `/bff/events` | GET | Server-sent events: `ping` mientras la sesión vive y `signed-out` en cuanto se cierra (ver 5.7) |
 | `/bff/logout?sid=…` | GET | Revoca el refresh token, borra la sesión y cierra la sesión del IdP (navegación de nivel superior) |
 | `/bff/signout-callback` | GET | Vuelta del IdP tras el logout |
 | `/api/{**}` | * | YARP → `Herensuge.Api` con `Authorization: Bearer` |
@@ -733,7 +738,7 @@ GET /health/live · GET /health/ready · GET /openapi/v1.json (solo en desarroll
 | Flujo | Solo authorization code + PKCE S256. Sin implicit, sin password grant y sin tokens en el navegador |
 | Access token | JWT firmado, 5 min. Claims: `sub`, `sid`, `tenant_id`, `tenant_role`, `amr`, `auth_time`, `scope` |
 | Refresh token | 7 días, con **rotación** en cada uso. Si se reutiliza, OpenIddict revoca toda la cadena (con un margen configurable para carreras) |
-| Sesión del IdP | 14 días deslizantes con un máximo absoluto de 30 días; se revalida contra `UserSession` cada minuto. Un nuevo inicio de sesión en el mismo navegador revoca la sesión anterior |
+| Sesión del IdP | 14 días deslizantes con un máximo absoluto de 30 días; se comprueba contra `UserSession` en cada petición (la caducidad se desliza una vez por minuto). Un nuevo inicio de sesión en el mismo navegador revoca la sesión anterior |
 | Contraseñas | Argon2id con el mínimo de OWASP (19 MiB, t=2, p=1), configurable y ajustado con prueba de carga. Mínimo 12 caracteres, sin reglas de composición |
 | Bloqueo | 5 fallos → 15 min de bloqueo + aviso por email |
 | Rate limit | 10 peticiones/min por IP en `/api/v1/auth/*` (límite por instancia en el Nivel 1) |

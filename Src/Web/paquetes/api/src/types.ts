@@ -25,31 +25,3 @@ export type CreateClientRequest = Schemas["CreateClientRequest"]
 
 // Valores que la API envía como texto (el contrato solo dice `string`).
 export type TenantRole = "owner" | "admin" | "member"
-
-// ── Contrato de Herensuge.Bff (no forma parte del OpenAPI de la API) ─────────
-
-export type BffUser = {
-	subject: string
-	sessionId: string | null
-	name: string | null
-	email: string | null
-	tenantId: string | null
-	tenantRole: TenantRole | null
-	authenticationMethods: string[]
-	/** Segundos desde epoch. */
-	authenticationTime: number | null
-	isPlatformAdmin: boolean
-	logoutUrl: string
-}
-
-/** GET /bff/user en el formato de openapi-typescript, para usar el mismo cliente tipado. */
-export type BffPaths = {
-	"/bff/user": {
-		parameters: { query?: never; header?: never; path?: never; cookie?: never }
-		get: {
-			parameters: { query?: never; header?: never; path?: never; cookie?: never }
-			requestBody?: never
-			responses: { 200: { headers: Record<string, unknown>; content: { "application/json": BffUser } } }
-		}
-	}
-}

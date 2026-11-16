@@ -1,0 +1,34 @@
+{
+	"name": "@herensuge/react",
+	"version": "0.1.0",
+	"description": "SDK de Herensuge para React: sesión de la BFF, inicio de sesión y cierre en tiempo real.",
+	"type": "module",
+	"sideEffects": false,
+	"files": ["dist"],
+	"exports": {
+		".": "./src/index.tsx"
+	},
+	"publishConfig": {
+		"exports": {
+			".": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
+			}
+		}
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"typecheck": "tsc --noEmit",
+		"clean": "rimraf dist .turbo"
+	},
+	"devDependencies": {
+		"@paquetes/configuracion-ts": "workspace:*",
+		"@types/react": "catalog:",
+		"react": "catalog:",
+		"rimraf": "catalog:",
+		"typescript": "catalog:"
+	},
+	"peerDependencies": {
+		"react": "^19.0.0"
+	}
+}

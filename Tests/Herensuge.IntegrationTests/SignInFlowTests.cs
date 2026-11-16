@@ -71,6 +71,10 @@ public sealed partial class SignInFlowTests(HerensugeApiFactory factory) : IClas
 
         // The registration reached the audit log through outbox → inbox.
         Assert.True(await WaitForAuditAsync("UserRegistered", email));
+
+        // Closing the session cuts its access token at once, even though the token has not expired.
+        Assert.Equal(HttpStatusCode.NoContent, (await browser.PostAsync("/api/v1/auth/sign-out", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await api.GetAsync("/api/v1/me")).StatusCode);
     }
 
     [Fact]

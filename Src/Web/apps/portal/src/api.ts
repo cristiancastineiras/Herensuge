@@ -1,35 +1,17 @@
+import { reauthenticate, signIn } from "@herensuge/react"
 import { createApiClient, type CreateClientRequest } from "@paquetes/api"
 import { startRegistration, type PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/browser"
 
-// El portal solo habla con su BFF (mismo origen): /bff/* y /api/* (que la BFF reenvía a Herensuge.Api
-// con el access token). Ningún token llega al navegador. Rutas, cuerpos y respuestas los comprueba
-// TypeScript contra el contrato OpenAPI generado.
+// El portal solo habla con su BFF (mismo origen): la sesión (/bff/*) la lleva @herensuge/react y aquí
+// están las llamadas a /api/* (que la BFF reenvía a Herensuge.Api con el access token). Ningún token llega
+// al navegador. Rutas, cuerpos y respuestas los comprueba TypeScript contra el contrato OpenAPI generado.
 
-const currentPath = () => window.location.pathname + window.location.search
-
-/** Inicia sesión (o la renueva) en el IdP y vuelve a la página actual. */
-export function signIn(returnUrl = currentPath()): void {
-	window.location.assign(`/bff/login?returnUrl=${encodeURIComponent(returnUrl)}`)
-}
-
-/** Operaciones sensibles: exige volver a introducir las credenciales (max_age=0). */
-export function reauthenticate(returnUrl = currentPath()): void {
-	window.location.assign(`/bff/login?max_age=0&returnUrl=${encodeURIComponent(returnUrl)}`)
-}
-
-/** Cambia de organización: tokens nuevos para ese tenant (sin pedir credenciales si la sesión sigue viva). */
-export function switchTenant(tenantId: string): void {
-	window.location.assign(`/bff/login?tenant=${encodeURIComponent(tenantId)}&returnUrl=/`)
-}
+export { reauthenticate, signIn, switchTenant } from "@herensuge/react"
 
 const { api, call } = createApiClient({
-	// 401: sesión caducada → login. 401 con reauth_required → login reciente y volver aquí.
+	// 401: sesión caducada o cerrada → login. 401 con reauth_required → login reciente y volver aquí.
 	onUnauthorized: (error) => (error.requiresReauthentication ? reauthenticate() : signIn()),
 })
-
-export const bff = {
-	user: () => call(api.GET("/bff/user")),
-}
 
 // ── Mi cuenta: /api/v1/me ───────────────────────────────────────────────────
 

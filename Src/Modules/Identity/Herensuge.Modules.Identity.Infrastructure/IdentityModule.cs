@@ -64,6 +64,8 @@ public static class IdentityModule
         services.AddScoped<OneTimeTokenIssuer>();
         services.AddScoped<IIdentityModuleApi, IdentityModuleApi>();
 
+        services.AddSingleton<ISessionRevocationNotifier, ValkeySessionRevocationNotifier>();
+
         services.AddIdentityAuthentication(configuration);
         services.AddHostedService<IdentityCleanupJob>();
 

@@ -145,6 +145,9 @@ importers:
 
   apps/portal:
     dependencies:
+      '@herensuge/react':
+        specifier: workspace:*
+        version: link:../../paquetes/herensuge-react
       '@paquetes/api':
         specifier: workspace:*
         version: link:../../paquetes/api
@@ -258,6 +261,24 @@ importers:
       typescript:
         specifier: catalog:generador
         version: 5.9.3
+
+  paquetes/herensuge-react:
+    devDependencies:
+      '@paquetes/configuracion-ts':
+        specifier: workspace:*
+        version: link:../configuracion-ts
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      react:
+        specifier: 'catalog:'
+        version: 19.3.0
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
 
   paquetes/utiles:
     devDependencies:

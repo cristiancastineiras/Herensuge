@@ -1,9 +1,9 @@
 using System.Globalization;
 using Herensuge.Common.Application.Messaging;
 using Herensuge.Common.Application.Security;
-using Herensuge.Common.Domain;
 using Herensuge.Modules.Identity.Application;
 using Herensuge.Modules.Identity.Application.Sessions.ValidateSession;
+using Herensuge.Modules.Identity.Contracts;
 using Herensuge.Modules.Identity.Domain.Sessions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -97,35 +97,39 @@ internal static class IdentityAuthentication
         });
     }
 
-    /// <summary>Every minute the cookie is checked against identity.user_sessions (revoked or expired → signed out).</summary>
+    /// <summary>
+    /// Every request checks the cookie against identity.user_sessions (revoked or expired → signed out at
+    /// once). Once a minute the check also slides the expiration of the session and of the cookie.
+    /// </summary>
     private static async Task ValidateSessionAsync(CookieValidatePrincipalContext context)
     {
-        DateTimeOffset now = context.HttpContext.RequestServices.GetRequiredService<TimeProvider>().GetUtcNow();
-        if (context.Properties.Items.TryGetValue(ValidatedAtKey, out string? validatedAt)
-            && DateTimeOffset.TryParse(validatedAt, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTimeOffset last)
-            && now - last < ValidationInterval)
-        {
-            return;
-        }
+        IServiceProvider services = context.HttpContext.RequestServices;
+        CancellationToken cancellationToken = context.HttpContext.RequestAborted;
+        DateTimeOffset now = services.GetRequiredService<TimeProvider>().GetUtcNow();
+        bool slide = !context.Properties.Items.TryGetValue(ValidatedAtKey, out string? validatedAt)
+            || !DateTimeOffset.TryParse(validatedAt, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTimeOffset last)
+            || now - last >= ValidationInterval;
 
         bool hasIds = Guid.TryParse(context.Principal?.FindFirst(HerensugeClaimTypes.Subject)?.Value, out Guid userId)
             & Guid.TryParse(context.Principal?.FindFirst(HerensugeClaimTypes.SessionId)?.Value, out Guid sessionId);
 
-        Result result = hasIds
-            ? await context.HttpContext.RequestServices
-                .GetRequiredService<ICommandHandler<ValidateSessionCommand>>()
-                .Handle(new ValidateSessionCommand(sessionId, userId), context.HttpContext.RequestAborted)
-            : SessionErrors.Inactive;
+        bool active = hasIds && (slide
+            ? (await services.GetRequiredService<ICommandHandler<ValidateSessionCommand>>()
+                .Handle(new ValidateSessionCommand(sessionId, userId), cancellationToken)).IsSuccess
+            : await services.GetRequiredService<IIdentityModuleApi>().IsSessionActiveAsync(sessionId, userId, cancellationToken));
 
-        if (result.IsFailure)
+        if (!active)
         {
             context.RejectPrincipal();
             await context.HttpContext.SignOutAsync(context.Scheme.Name);
             return;
         }
 
-        context.Properties.Items[ValidatedAtKey] = now.ToString("O", CultureInfo.InvariantCulture);
-        context.ShouldRenew = true;
+        if (slide)
+        {
+            context.Properties.Items[ValidatedAtKey] = now.ToString("O", CultureInfo.InvariantCulture);
+            context.ShouldRenew = true;
+        }
     }
 
     private static Func<RedirectContext<CookieAuthenticationOptions>, Task> StatusCode(int statusCode) => context =>

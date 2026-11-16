@@ -1,23 +1,18 @@
-import { ApiError, type BffUser } from "@paquetes/api"
-import { Alert, Button, Card, ErrorAlert, Loading, Logo, Select, buttonClass } from "@paquetes/componentes"
+import { RedirectToSignIn, useHerensuge, type HerensugeUser } from "@herensuge/react"
+import { Alert, Button, Card, Loading, Logo, Select, buttonClass } from "@paquetes/componentes"
 import { cn } from "@paquetes/utiles"
 import { useQuery } from "@tanstack/react-query"
 import { Suspense, type ReactNode } from "react"
 import { Link, NavLink, Outlet, useSearchParams } from "react-router"
-import { bff, me, reauthenticate, signIn, switchTenant } from "./api"
+import { me, reauthenticate, signIn, switchTenant } from "./api"
 import { PageHeader } from "./components"
-import { UserContext, isTenantAdmin, usedPasskey, useUser } from "./user"
+import { isTenantAdmin, usedPasskey, useUser } from "./user"
 
-/** Carga la sesión (/bff/user) y pinta la cabecera, la navegación y la página. */
+/** Con sesión pinta la cabecera, la navegación y la página; sin ella (o si se cierra), lleva al login. */
 export function AppLayout() {
 	// La BFF vuelve a /?error=… si el inicio de sesión falla: no se reintenta solo (evita un bucle).
 	const callbackError = useSearchParams()[0].get("error")
-	const user = useQuery({
-		queryKey: ["bff-user"],
-		queryFn: bff.user,
-		enabled: !callbackError,
-		staleTime: Infinity,
-	})
+	const session = useHerensuge()
 
 	if (callbackError) {
 		return (
@@ -28,40 +23,41 @@ export function AppLayout() {
 		)
 	}
 
-	if (user.isPending || (user.error instanceof ApiError && user.error.status === 401)) {
-		// Un 401 ya está redirigiendo a /bff/login.
-		return (
-			<CenteredMessage title="Herensuge">
-				<Loading />
-			</CenteredMessage>
-		)
-	}
-
-	if (user.isError) {
+	if (session.status === "error") {
 		return (
 			<CenteredMessage title="No se ha podido cargar el portal">
-				<ErrorAlert error={user.error} />
+				<Alert tone="error">No se ha podido conectar con el servidor. Comprueba tu conexión.</Alert>
 				<Button onClick={() => window.location.reload()}>Recargar</Button>
 			</CenteredMessage>
 		)
 	}
 
+	if (session.status !== "signedIn") {
+		// Sin sesión, o recién cerrada (aquí, en otra pestaña o desde otro dispositivo): al login.
+		return (
+			<CenteredMessage title="Herensuge">
+				{session.status === "signedOut" && <RedirectToSignIn />}
+				<Loading />
+			</CenteredMessage>
+		)
+	}
+
 	return (
-		<UserContext value={user.data}>
-			<Header user={user.data} />
+		<>
+			<Header user={session.user} />
 			<div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 md:grid-cols-[200px_minmax(0,1fr)]">
-				<Navigation user={user.data} />
+				<Navigation user={session.user} />
 				<main className="min-w-0 space-y-6">
 					<Suspense fallback={<Loading />}>
 						<Outlet />
 					</Suspense>
 				</main>
 			</div>
-		</UserContext>
+		</>
 	)
 }
 
-function Header({ user }: { user: BffUser }) {
+function Header({ user }: { user: HerensugeUser }) {
 	return (
 		<header className="border-b border-zinc-200 bg-white">
 			<div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
@@ -82,7 +78,7 @@ function Header({ user }: { user: BffUser }) {
 }
 
 /** Organización activa. Cambiarla pide al IdP tokens nuevos para la elegida. */
-function TenantSwitcher({ user }: { user: BffUser }) {
+function TenantSwitcher({ user }: { user: HerensugeUser }) {
 	const tenants = useQuery({ queryKey: ["my-tenants"], queryFn: me.tenants })
 	if (!tenants.data || tenants.data.length === 0) {
 		return null
@@ -110,7 +106,7 @@ function TenantSwitcher({ user }: { user: BffUser }) {
 
 type NavItem = { to: string; label: string; end?: boolean }
 
-function Navigation({ user }: { user: BffUser }) {
+function Navigation({ user }: { user: HerensugeUser }) {
 	const sections: { title: string; items: NavItem[] }[] = [
 		{
 			title: "Mi cuenta",

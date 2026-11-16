@@ -13,6 +13,12 @@ public interface IIdentityModuleApi
     /// <summary>True when the session exists, belongs to the user and is active. Slides its expiration.</summary>
     Task<bool> ValidateSessionAsync(Guid sessionId, Guid userId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Same check without sliding the expiration (read-only): it runs on every request, so a closed
+    /// session loses access at once.
+    /// </summary>
+    Task<bool> IsSessionActiveAsync(Guid sessionId, Guid userId, CancellationToken cancellationToken);
+
     /// <summary>Ends the SSO session (OIDC logout). Its tokens are revoked through SessionRevoked.</summary>
     Task RevokeSessionAsync(Guid sessionId, CancellationToken cancellationToken);
 }

@@ -1,7 +1,10 @@
+using System.Net.ServerSentEvents;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
 using System.Text.Json;
 using Herensuge.Bff.Sessions;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using OpenIddict.Client;
@@ -33,6 +36,8 @@ internal static class BffEndpoints
 
     private static readonly string[] InteractiveErrors =
         [Errors.LoginRequired, Errors.InteractionRequired, Errors.ConsentRequired, Errors.AccountSelectionRequired];
+
+    private static readonly TimeSpan EventsHeartbeat = TimeSpan.FromSeconds(25);
 
     public static WebApplication MapBffEndpoints(this WebApplication app)
     {
@@ -83,6 +88,17 @@ internal static class BffEndpoints
                 long.TryParse(user.FindFirstValue(Claims.AuthenticationTime), out long authTime) ? authTime : null,
                 user.HasClaim(Claims.Role, "platform_admin"),
                 $"/bff/logout?sid={Uri.EscapeDataString(sessionId ?? string.Empty)}"));
+        });
+
+        // Server-sent events (EventSource): tells every open tab the moment its session ends, whoever closed it.
+        group.MapGet("/events", async (HttpContext httpContext, SessionEndedSignal signal, ITicketStore tickets, CancellationToken cancellationToken) =>
+        {
+            AuthenticateResult authenticated = await httpContext.AuthenticateAsync(BffDefaults.CookieScheme);
+            return authenticated.Principal?.FindFirstValue("sid") is { } sid
+                && authenticated.Properties?.Items.TryGetValue(DistributedTicketStore.SessionKeyItem, out string? sessionKey) == true
+                && sessionKey is not null
+                    ? Results.ServerSentEvents(WatchSessionAsync(sid, sessionKey, signal, tickets, cancellationToken))
+                    : Results.Unauthorized();
         });
 
         // Top-level navigation (it redirects to the IdP). The sid parameter, only readable by the SPA
@@ -180,6 +196,48 @@ internal static class BffEndpoints
         }
 
         return Results.SignOut(signOut, [OpenIddictClientAspNetCoreDefaults.AuthenticationScheme]);
+    }
+
+    /// <summary>
+    /// "ping" while the session is alive, then one "signed-out" and the stream ends. The signal makes it
+    /// immediate; the heartbeat keeps proxies from closing the stream and re-checks the session, which
+    /// covers what the signal cannot see (expiry, a lost message, development without Valkey).
+    /// </summary>
+    private static async IAsyncEnumerable<SseItem<string>> WatchSessionAsync(
+        string sid,
+        string sessionKey,
+        SessionEndedSignal signal,
+        ITicketStore tickets,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var ended = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnEnded(string endedSid)
+        {
+            if (endedSid == sid)
+            {
+                ended.TrySetResult();
+            }
+        }
+
+        signal.Ended += OnEnded;
+        try
+        {
+            while (!ended.Task.IsCompleted && await tickets.RetrieveAsync(sessionKey) is not null)
+            {
+                yield return new SseItem<string>("ping", "ping");
+                await Task.WhenAny(ended.Task, Task.Delay(EventsHeartbeat, cancellationToken));
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    yield break;
+                }
+            }
+
+            yield return new SseItem<string>("signed-out", "signed-out");
+        }
+        finally
+        {
+            signal.Ended -= OnEnded;
+        }
     }
 
     private static string LocalOrRoot(string? url) =>

@@ -50,7 +50,9 @@ internal static class BffServiceCollectionExtensions
                 };
             });
 
-        services.AddSingleton<ITicketStore, DistributedTicketStore>();
+        services.AddSingleton<DistributedTicketStore>();
+        services.AddSingleton<ITicketStore>(provider => provider.GetRequiredService<DistributedTicketStore>());
+        services.AddSingleton<SessionEndedSignal>();
         services.AddOptions<CookieAuthenticationOptions>(BffDefaults.CookieScheme)
             .Configure<ITicketStore>((options, store) => options.SessionStore = store);
 
@@ -146,6 +148,7 @@ internal static class BffServiceCollectionExtensions
             options.ConnectionMultiplexerFactory = () => Task.FromResult(multiplexer);
         });
         services.AddSingleton<ISessionLock, ValkeySessionLock>();
+        services.AddHostedService<SessionRevocationListener>();
         dataProtection.PersistKeysToStackExchangeRedis(multiplexer, "herensuge-bff:data-protection-keys");
 
         services.AddHealthChecks().AddCheck("valkey", () =>
