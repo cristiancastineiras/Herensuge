@@ -1,0 +1,23 @@
+{
+  "Bff": {
+    "Authority": "https://localhost:5001/",
+    "ClientId": "facturas-app",
+    "ClientSecret": "",
+    "Scopes": [ "openid", "profile", "email", "offline_access", "facturas.api" ]
+  },
+  "ReverseProxy": {
+    "Routes": {
+      "herensuge-api": {
+        "ClusterId": "herensuge-api",
+        "Match": { "Path": "/api/{**catch-all}" }
+      }
+    },
+    "Clusters": {
+      "herensuge-api": {
+        "Destinations": {
+          "primary": { "Address": "https://localhost:5101" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "resourceServer": "facturas",
+  "name": "Facturación",
+  "clientId": "facturas-app",
+  "permissions": [
+    { "key": "invoice:read", "description": "Ver facturas" },
+    { "key": "invoice:approve", "description": "Aprobar facturas", "requires": "mfa" },
+    { "key": "invoice:delete", "description": "Borrar facturas", "requires": "recent_auth" }
+  ],
+  "roles": [
+    {
+      "key": "finance",
+      "name": "Finanzas",
+      "description": "Lee y aprueba facturas",
+      "permissions": ["invoice:read", "invoice:approve"],
+      "grantTo": ["owner"]
+    },
+    {
+      "key": "invoice-admin",
+      "name": "Administración de facturas",
+      "permissions": ["invoice:*"]
+    }
+  ]
+}
