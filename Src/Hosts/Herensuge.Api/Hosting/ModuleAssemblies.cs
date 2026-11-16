@@ -10,6 +10,7 @@ internal static class ModuleAssemblies
         Modules.Identity.Application.AssemblyReference.Assembly,
         Modules.Tenancy.Application.AssemblyReference.Assembly,
         Modules.Oidc.Application.AssemblyReference.Assembly,
+        Modules.Access.Application.AssemblyReference.Assembly,
         Modules.Audit.Application.AssemblyReference.Assembly,
         Modules.Notifications.Application.AssemblyReference.Assembly,
     ];
@@ -20,6 +21,7 @@ internal static class ModuleAssemblies
         Modules.Identity.Presentation.AssemblyReference.Assembly,
         Modules.Tenancy.Presentation.AssemblyReference.Assembly,
         Modules.Oidc.Presentation.AssemblyReference.Assembly,
+        Modules.Access.Presentation.AssemblyReference.Assembly,
         Modules.Audit.Presentation.AssemblyReference.Assembly,
     ];
 }

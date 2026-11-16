@@ -6,6 +6,8 @@
     <ProjectReference Include="../../Modules/Tenancy/Herensuge.Modules.Tenancy.Presentation/Herensuge.Modules.Tenancy.Presentation.csproj" />
     <ProjectReference Include="../../Modules/Oidc/Herensuge.Modules.Oidc.Infrastructure/Herensuge.Modules.Oidc.Infrastructure.csproj" />
     <ProjectReference Include="../../Modules/Oidc/Herensuge.Modules.Oidc.Presentation/Herensuge.Modules.Oidc.Presentation.csproj" />
+    <ProjectReference Include="../../Modules/Access/Herensuge.Modules.Access.Infrastructure/Herensuge.Modules.Access.Infrastructure.csproj" />
+    <ProjectReference Include="../../Modules/Access/Herensuge.Modules.Access.Presentation/Herensuge.Modules.Access.Presentation.csproj" />
     <ProjectReference Include="../../Modules/Audit/Herensuge.Modules.Audit.Infrastructure/Herensuge.Modules.Audit.Infrastructure.csproj" />
     <ProjectReference Include="../../Modules/Audit/Herensuge.Modules.Audit.Presentation/Herensuge.Modules.Audit.Presentation.csproj" />
     <ProjectReference Include="../../Modules/Notifications/Herensuge.Modules.Notifications.Infrastructure/Herensuge.Modules.Notifications.Infrastructure.csproj" />

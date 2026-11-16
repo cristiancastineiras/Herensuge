@@ -12,6 +12,14 @@ public static class HerensugeClaimTypes
     public const string AuthenticationMethod = "amr";
     public const string AuthenticationTime = "auth_time";
     public const string Role = "role";
+
+    /// <summary>Roles of the app (Access role templates) in a token issued for that app's API (RFC 9068).</summary>
+    public const string Roles = "roles";
+
+    /// <summary>Permissions ("invoices:approve") in a token issued for that app's API.</summary>
+    public const string Permissions = "permissions";
+
+    public const string ClientId = "client_id";
 }
 
 /// <summary>Authentication method references (RFC 8176).</summary>
@@ -50,10 +58,16 @@ public static class HerensugePolicies
 
     /// <summary>Api + platform_admin role + passkey authentication.</summary>
     public const string PlatformAdmin = "herensuge.platform_admin";
+
+    /// <summary>Machine token (client_credentials) of an app's backend with the herensuge.access scope: decisions and manifest.</summary>
+    public const string AccessClient = "herensuge.access_client";
 }
 
 public static class HerensugeScopes
 {
     public const string Api = "herensuge.api";
     public const string ApiResource = "herensuge-api";
+
+    /// <summary>Lets an app's backend call the Access decision API (client_credentials). Audience: herensuge-api.</summary>
+    public const string Access = "herensuge.access";
 }

@@ -4,9 +4,9 @@ using Herensuge.Common.Application.Security;
 namespace Herensuge.Modules.Oidc.Application.Clients;
 
 /// <summary>Validation shared by client creation and update.</summary>
-internal static class ClientRules
+internal static partial class ClientRules
 {
-    public static readonly string[] AllowedScopes = ["openid", "profile", "email", "offline_access", HerensugeScopes.Api];
+    public static readonly string[] AllowedScopes = ["openid", "profile", "email", "offline_access", HerensugeScopes.Api, HerensugeScopes.Access];
 
     public static IRuleBuilderOptions<T, string> ValidClientId<T>(this IRuleBuilder<T, string> rule) =>
         rule.NotEmpty()
@@ -22,8 +22,12 @@ internal static class ClientRules
 
     public static IRuleBuilderOptions<T, IReadOnlyList<string>> ValidScopes<T>(this IRuleBuilder<T, IReadOnlyList<string>> rule) =>
         rule.NotNull()
-            .Must(scopes => scopes.Contains("openid") && scopes.All(scope => AllowedScopes.Contains(scope)))
-            .WithMessage($"Scopes must include openid and be a subset of: {string.Join(", ", AllowedScopes)}.");
+            .Must(scopes => scopes.Contains("openid") && scopes.All(scope => AllowedScopes.Contains(scope) || ApplicationScope().IsMatch(scope)))
+            .WithMessage($"Scopes must include openid and be a subset of: {string.Join(", ", AllowedScopes)}, <application>.api.");
+
+    /// <summary>API scope of an Access application ("facturas.api"), created when it syncs its manifest.</summary>
+    [System.Text.RegularExpressions.GeneratedRegex("^[a-z][a-z0-9-]*\\.api$")]
+    private static partial System.Text.RegularExpressions.Regex ApplicationScope();
 
     private static bool IsValidRedirectUri(string value) =>
         Uri.TryCreate(value, UriKind.Absolute, out Uri? uri)

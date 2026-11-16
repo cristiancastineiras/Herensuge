@@ -5,6 +5,7 @@ using Herensuge.Common.Application;
 using Herensuge.Common.Infrastructure;
 using Herensuge.Common.Infrastructure.Web;
 using Herensuge.Common.Presentation.Endpoints;
+using Herensuge.Modules.Access.Infrastructure;
 using Herensuge.Modules.Audit.Infrastructure;
 using Herensuge.Modules.Identity.Infrastructure;
 using Herensuge.Modules.Notifications.Infrastructure;
@@ -37,6 +38,7 @@ builder.Services
     .AddIdentityModule(builder.Configuration)
     .AddTenancyModule()
     .AddOidcModule(builder.Configuration, builder.Environment)
+    .AddAccessModule()
     .AddAuditModule(builder.Configuration)
     .AddNotificationsModule(builder.Configuration, builder.Environment);
 builder.Services.AddEndpoints(ModuleAssemblies.Presentation);

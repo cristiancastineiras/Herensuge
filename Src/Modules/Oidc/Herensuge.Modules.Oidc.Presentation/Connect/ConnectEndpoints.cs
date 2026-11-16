@@ -5,6 +5,7 @@ using Herensuge.Common.Application.Security;
 using Herensuge.Common.Domain;
 using Herensuge.Common.Presentation.Endpoints;
 using Herensuge.Common.Presentation.Security;
+using Herensuge.Modules.Access.Contracts;
 using Herensuge.Modules.Oidc.Application;
 using Herensuge.Modules.Oidc.Application.Authorization;
 using Herensuge.Modules.Oidc.Application.Authorization.Authorize;
@@ -45,6 +46,7 @@ internal sealed class ConnectEndpoints : IEndpoint
         IOpenIddictApplicationManager applications,
         IOpenIddictAuthorizationManager authorizations,
         IOpenIddictScopeManager scopes,
+        IAccessModuleApi access,
         TimeProvider timeProvider,
         CancellationToken cancellationToken)
     {
@@ -121,6 +123,7 @@ internal sealed class ConnectEndpoints : IEndpoint
         }
 
         identity.SetResources(resources);
+        await SetAccessClaimsAsync(identity, access, user.UserId, user.TenantId, cancellationToken);
         identity.SetDestinations(GetDestinations);
 
         // An explicit authorization ties the tokens to the SSO session so both can be revoked together.
@@ -148,10 +151,17 @@ internal sealed class ConnectEndpoints : IEndpoint
     private static async Task<IResult> ExchangeAsync(
         HttpContext httpContext,
         IQueryHandler<ValidateTokenRequestQuery, AuthorizedUser> handler,
+        IAccessModuleApi access,
+        IOpenIddictScopeManager scopes,
         CancellationToken cancellationToken)
     {
         OpenIddictRequest request = httpContext.GetOpenIddictServerRequest()
             ?? throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
+
+        if (request.IsClientCredentialsGrantType())
+        {
+            return await IssueMachineTokenAsync(request, scopes, cancellationToken);
+        }
 
         if (!request.IsAuthorizationCodeGrantType() && !request.IsRefreshTokenGrantType())
         {
@@ -183,9 +193,52 @@ internal sealed class ConnectEndpoints : IEndpoint
             .SetClaim(Claims.EmailVerified, user.EmailVerified)
             .SetClaim(HerensugeClaimTypes.TenantRole, user.TenantRole);
         identity.SetClaims(Claims.Role, user.IsPlatformAdmin ? [PlatformRoles.PlatformAdmin] : []);
+        await SetAccessClaimsAsync(identity, access, userId, tenantId, cancellationToken);
         identity.SetDestinations(GetDestinations);
 
         return Results.SignIn(new ClaimsPrincipal(identity), properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>
+    /// client_credentials: the backend of an application, to ask the Access decision point. No user and no session
+    /// (sub = client_id), and only the herensuge.access scope. OpenIddict has already checked the secret and permissions.
+    /// </summary>
+    private static async Task<IResult> IssueMachineTokenAsync(OpenIddictRequest request, IOpenIddictScopeManager scopes, CancellationToken cancellationToken)
+    {
+        if (request.GetScopes() is not [HerensugeScopes.Access])
+        {
+            return Forbid(Errors.InvalidScope, $"client_credentials only issues the {HerensugeScopes.Access} scope.");
+        }
+
+        var identity = new ClaimsIdentity(TokenValidationParameters.DefaultAuthenticationType, Claims.Name, Claims.Role);
+        identity.SetClaim(Claims.Subject, request.ClientId).SetClaim(Claims.ClientId, request.ClientId);
+        identity.SetScopes(request.GetScopes());
+
+        var resources = new List<string>();
+        await foreach (string resource in scopes.ListResourcesAsync(identity.GetScopes(), cancellationToken))
+        {
+            resources.Add(resource);
+        }
+
+        identity.SetResources(resources);
+        identity.SetDestinations(_ => [Destinations.AccessToken]);
+        return Results.SignIn(new ClaimsPrincipal(identity), properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>
+    /// roles and permissions of the application the token is for (RFC 9068, one token one API). Recomputed on every
+    /// refresh, so a role change reaches the token within its lifetime (5 minutes).
+    /// </summary>
+    private static async Task SetAccessClaimsAsync(
+        ClaimsIdentity identity,
+        IAccessModuleApi access,
+        Guid userId,
+        Guid tenantId,
+        CancellationToken cancellationToken)
+    {
+        AccessTokenClaims? claims = await access.GetTokenClaimsAsync(userId, tenantId, [.. identity.GetResources()], cancellationToken);
+        identity.SetClaims(HerensugeClaimTypes.Roles, claims is null ? [] : [.. claims.Roles]);
+        identity.SetClaims(HerensugeClaimTypes.Permissions, claims?.Permissions is { } permissions ? [.. permissions] : []);
     }
 
     private static async Task<IResult> UserInfoAsync(

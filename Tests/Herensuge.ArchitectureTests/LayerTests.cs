@@ -6,7 +6,7 @@ namespace Herensuge.ArchitectureTests;
 /// <summary>Clean Architecture dependency rule and module isolation (RESUMEN 6.2 and 6.3).</summary>
 public sealed class LayerTests
 {
-    private static readonly string[] ModuleNames = ["Identity", "Tenancy", "Oidc", "Audit", "Notifications"];
+    private static readonly string[] ModuleNames = ["Identity", "Tenancy", "Oidc", "Access", "Audit", "Notifications"];
 
     private static readonly string[] Frameworks =
         ["Microsoft.EntityFrameworkCore", "Microsoft.AspNetCore", "Npgsql", "OpenIddict", "StackExchange.Redis", "Fido2NetLib", "OtpNet", "Konscious"];
@@ -65,6 +65,7 @@ public sealed class LayerTests
     [Theory]
     [InlineData("Identity")]
     [InlineData("Tenancy")]
+    [InlineData("Access")]
     public void Contracts_are_framework_free(string module) =>
         AssertNoDependency(Load(module, "Contracts")!, [.. Frameworks, $"Herensuge.Modules.{module}.Domain", $"Herensuge.Modules.{module}.Application"]);
 

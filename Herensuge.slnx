@@ -50,6 +50,13 @@
     <Project Path="Src/Modules/Oidc/Herensuge.Modules.Oidc.Infrastructure/Herensuge.Modules.Oidc.Infrastructure.csproj" />
     <Project Path="Src/Modules/Oidc/Herensuge.Modules.Oidc.Presentation/Herensuge.Modules.Oidc.Presentation.csproj" />
   </Folder>
+  <Folder Name="/Src/Modules/Access/">
+    <Project Path="Src/Modules/Access/Herensuge.Modules.Access.Domain/Herensuge.Modules.Access.Domain.csproj" />
+    <Project Path="Src/Modules/Access/Herensuge.Modules.Access.Application/Herensuge.Modules.Access.Application.csproj" />
+    <Project Path="Src/Modules/Access/Herensuge.Modules.Access.Infrastructure/Herensuge.Modules.Access.Infrastructure.csproj" />
+    <Project Path="Src/Modules/Access/Herensuge.Modules.Access.Presentation/Herensuge.Modules.Access.Presentation.csproj" />
+    <Project Path="Src/Modules/Access/Herensuge.Modules.Access.Contracts/Herensuge.Modules.Access.Contracts.csproj" />
+  </Folder>
   <Folder Name="/Src/Modules/Audit/">
     <Project Path="Src/Modules/Audit/Herensuge.Modules.Audit.Application/Herensuge.Modules.Audit.Application.csproj" />
     <Project Path="Src/Modules/Audit/Herensuge.Modules.Audit.Infrastructure/Herensuge.Modules.Audit.Infrastructure.csproj" />
@@ -62,6 +69,7 @@
   <Folder Name="/Tests/">
     <Project Path="Tests/Herensuge.ArchitectureTests/Herensuge.ArchitectureTests.csproj" />
     <Project Path="Tests/Herensuge.IntegrationTests/Herensuge.IntegrationTests.csproj" />
+    <Project Path="Tests/Herensuge.Modules.Access.UnitTests/Herensuge.Modules.Access.UnitTests.csproj" />
     <Project Path="Tests/Herensuge.Modules.Identity.UnitTests/Herensuge.Modules.Identity.UnitTests.csproj" />
     <Project Path="Tests/Herensuge.Modules.Tenancy.UnitTests/Herensuge.Modules.Tenancy.UnitTests.csproj" />
   </Folder>
