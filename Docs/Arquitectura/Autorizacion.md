@@ -1,6 +1,6 @@
 # Herensuge Access: plan de autorización (Nivel 2)
 
-> **Estado:** propuesta · **Fecha:** 16/11/2026
+> **Estado:** en desarrollo (fase 1: backend hecho, falta la parte web) · **Fecha:** 16/11/2026
 > Cuando se apruebe, sustituye la decisión 7 del [RESUMEN](../../RESUMEN.md#20-decisiones-de-esta-revisión) ("roles fijos").
 > Las decisiones marcadas como **ADR-A*n*** se redactan en `Docs/Decisiones/` antes de empezar cada fase.
 
@@ -339,31 +339,36 @@ Los tamaños son relativos (S < M < L), sin fechas.
 
 ### Fase 0: decisiones y spike (S)
 
-- [ ] Redactar ADR-A1 a ADR-A4 (sección 11).
-- [ ] **Spike OpenIddict 7.x:**
+- [x] Redactar ADR-A1 a ADR-A4 (sección 11): [Docs/Decisiones](../Decisiones/).
+- [x] **Spike OpenIddict 7.x** (hecho directamente en el código de la fase 1):
   - registrar un segundo scope con su resource (`facturas.api` → `facturas-api`);
   - emitir `roles` y `permissions` solo cuando la audiencia es esa;
-  - habilitar `client_credentials` solo para clientes de tipo resource server;
-  - comprobar qué soporta de serie de RFC 8707 (`resource`) y de RFC 8693 (token exchange).
+  - habilitar `client_credentials` solo para clientes confidenciales con el scope `herensuge.access`.
+- [ ] Comprobar qué soporta OpenIddict 7 de serie de RFC 8707 (`resource`) y de RFC 8693 (token exchange). No bloquea la fase 1.
 - [ ] App de ejemplo mínima, `Samples/Facturas` (API + BFF clonada + SPA con `@herensuge/react`), que valida el JWT por JWKS.
 
 ### Fase 1: RBAC por aplicación (L), el MVP
 
-- [ ] Módulo `Access` completo, con el esquema `access` y sus migraciones.
-- [ ] `ResourceServer`, manifiesto y sincronización; alta automática del scope y la audiencia en OpenIddict.
-- [ ] Roles de organización, plantillas con `grantTo` y asignaciones con caducidad.
-- [ ] `roles` y `permissions` en el access token de cada API (`Oidc` → `IAccessModuleApi`), con `embedPermissions` por app.
-- [ ] PDP: `evaluation`, `evaluations` y *discovery*; caché versionada; canal `herensuge:access-changed`.
+**Hecho (16/11/2026):** backend del módulo, permisos en el token, PDP y gestión por API. Ver "Estado" al final de la fase.
+
+- [x] Módulo `Access` completo, con el esquema `access` y su migración `Initial`.
+- [x] `ResourceServer`, manifiesto y sincronización (`PUT /api/v1/platform/resource-servers/{key}/manifest` y
+  `PUT /access/v1/manifest` para la CI de la app); alta automática del scope y la audiencia en OpenIddict.
+- [x] Roles de organización, plantillas con `grantTo` y asignaciones con caducidad.
+- [x] `roles` y `permissions` en el access token de cada API (`Oidc` → `IAccessModuleApi`), con `embedPermissions` por app.
+- [x] PDP: `evaluation`, `evaluations` y *discovery*.
+- [ ] PDP: caché versionada y canal `herensuge:access-changed` (hoy lee la base de datos en cada decisión: ya es inmediata).
 - [ ] Portal:
   - Organización → **Roles** (CRUD, permisos agrupados por app);
   - Miembros → columna y edición de roles;
   - Plataforma → **Aplicaciones** (resource servers, versión del manifiesto, permisos retirados).
 - [ ] SDK .NET (`RequirePermission`, `CheckAsync`) y `useCan` / `<Can>` en `@herensuge/react`.
 - [ ] Dogfooding: Herensuge como resource server `herensuge`; `TenantAccess` decide por permisos.
-- [ ] Eventos y auditoría:
-  - de dominio: `RoleCreated`, `RoleUpdated`, `RoleDeleted`, `RoleAssigned`, `RoleUnassigned`, `ResourceServerManifestSynced`;
+- [x] Eventos y auditoría:
+  - de dominio: `RoleCreated`, `RoleUpdated`, `RoleDeleted`, `RoleAssigned`, `RoleUnassigned`, `ResourceServerSynced`;
   - limpieza al recibir `MemberRemoved` y `UserDeleted`.
-- [ ] Métricas: `herensuge.access.decisions{resource_server,decision,reason}` y `herensuge.access.decision.duration`.
+- [x] Métrica `herensuge.access.decisions{resource_server,decision,reason}`.
+- [ ] Métrica `herensuge.access.decision.duration` (la traza de ASP.NET ya mide el endpoint).
 
 **Hecho cuando:**
 - [ ] `Samples/Facturas` se integra solo con su manifiesto, su cliente y el SDK.
@@ -374,6 +379,18 @@ Los tamaños son relativos (S < M < L), sin fechas.
   - unitarios de invariantes de `Role` y `ResourceServer`;
   - integración (sincronización del manifiesto, decisión con y sin claims, aislamiento entre organizaciones: otra organización → `404`);
   - arquitectura (`Access` solo ve los `Contracts`).
+
+**Estado de la fase 1 (16/11/2026):**
+- Unitarios del dominio (`Herensuge.Modules.Access.UnitTests`, 8) y de arquitectura (29, con `Access`) en verde.
+- Test de integración de punta a punta en `SignInFlowTests`: manifiesto → scope → token con `permissions` →
+  `client_credentials` → decisión con *step-up*. **Compila, sin ejecutar** (necesita Docker).
+- Simplificaciones respecto a la sección 6, marcadas en el código con `shortcut:`:
+  - las asignaciones son solo a usuarios (grupos y clientes en la fase 2);
+  - administran los roles los owner y admin (rol base), no aún el permiso `herensuge:roles:manage` (dogfooding pendiente);
+  - el catálogo muestra todas las apps a todas las organizaciones (planes en la fase 2);
+  - sin caché en la PDP.
+- Pendiente de la fase 1: portal (Roles, Miembros, Aplicaciones), SDK .NET, `useCan`, dogfooding, `Samples/Facturas`,
+  `permissions-changed` y regenerar `paquetes/api/src/schema.d.ts` (`pnpm -C Src/Web api:types`).
 
 ### Fase 2: planes, grupos, cuentas de servicio y condiciones (M)
 

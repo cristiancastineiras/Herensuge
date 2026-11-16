@@ -105,6 +105,7 @@ Toda petición que modifica datos a `/api/v1/auth/*` lleva `X-CSRF: 1` y JSON. T
 ```bash
 dotnet test --project Tests/Herensuge.Modules.Identity.UnitTests/Herensuge.Modules.Identity.UnitTests.csproj
 dotnet test --project Tests/Herensuge.Modules.Tenancy.UnitTests/Herensuge.Modules.Tenancy.UnitTests.csproj
+dotnet test --project Tests/Herensuge.Modules.Access.UnitTests/Herensuge.Modules.Access.UnitTests.csproj
 dotnet test --project Tests/Herensuge.ArchitectureTests/Herensuge.ArchitectureTests.csproj
 dotnet test --project Tests/Herensuge.IntegrationTests/Herensuge.IntegrationTests.csproj   # necesita Docker (Testcontainers)
 ```
@@ -123,7 +124,9 @@ dotnet dotnet-ef migrations add <Nombre> \
   --context IdentityDbContext --output-dir Database/Migrations
 ```
 
-Un `DbContext` y un esquema por módulo: `identity`, `tenancy`, `oidc`, `audit`, `notifications` y `common` (claves de Data Protection).
+Un `DbContext` y un esquema por módulo: `identity`, `tenancy`, `oidc`, `access`, `audit`, `notifications` y `common` (claves de
+Data Protection). Para generar una migración hace falta `ASPNETCORE_ENVIRONMENT=Development` (fuera de Development la API
+exige Valkey y secretos para arrancar).
 En producción las aplica el servicio `herensuge-migrator` (`dotnet Herensuge.Api.dll --migrate`).
 
 ## Despliegue

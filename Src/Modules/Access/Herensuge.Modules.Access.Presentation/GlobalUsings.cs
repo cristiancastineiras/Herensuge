@@ -1,0 +1,10 @@
+global using Herensuge.Common.Application.Messaging;
+global using Herensuge.Common.Application.Security;
+global using Herensuge.Common.Domain;
+global using Herensuge.Common.Presentation.Endpoints;
+global using Herensuge.Common.Presentation.Filters;
+global using Herensuge.Common.Presentation.Results;
+global using Herensuge.Common.Presentation.Security;
+global using Microsoft.AspNetCore.Builder;
+global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Routing;

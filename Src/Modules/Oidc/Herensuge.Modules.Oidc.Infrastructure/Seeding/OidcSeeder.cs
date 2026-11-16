@@ -24,27 +24,13 @@ internal sealed class OidcSeeder(
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         await using AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
-        await EnsureApiScopeAsync(scope.ServiceProvider.GetRequiredService<IOpenIddictScopeManager>(), cancellationToken);
+        IScopeRegistry scopes = scope.ServiceProvider.GetRequiredService<IScopeRegistry>();
+        await scopes.EnsureAsync(HerensugeScopes.Api, HerensugeScopes.ApiResource, cancellationToken);
+        await scopes.EnsureAsync(HerensugeScopes.Access, HerensugeScopes.ApiResource, cancellationToken);
         await EnsurePortalClientAsync(scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>(), cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-    private static async Task EnsureApiScopeAsync(IOpenIddictScopeManager scopes, CancellationToken cancellationToken)
-    {
-        if (await scopes.FindByNameAsync(HerensugeScopes.Api, cancellationToken) is not null)
-        {
-            return;
-        }
-
-        var descriptor = new OpenIddictScopeDescriptor
-        {
-            Name = HerensugeScopes.Api,
-            DisplayName = "Herensuge API",
-        };
-        descriptor.Resources.Add(HerensugeScopes.ApiResource);
-        await scopes.CreateAsync(descriptor, cancellationToken);
-    }
 
     private async Task EnsurePortalClientAsync(IOpenIddictApplicationManager applications, CancellationToken cancellationToken)
     {

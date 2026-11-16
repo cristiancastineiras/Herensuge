@@ -56,9 +56,12 @@ public static class OidcModule
                     .SetIntrospectionEndpointUris("connect/introspection")
                     .SetEndSessionEndpointUris("connect/logout");
 
-                server.AllowAuthorizationCodeFlow().AllowRefreshTokenFlow();
+                // client_credentials: only the backends of the SaaS applications, to ask the Access decision point.
+                server.AllowAuthorizationCodeFlow().AllowRefreshTokenFlow().AllowClientCredentialsFlow();
                 server.RequireProofKeyForCodeExchange();
-                server.RegisterScopes(Scopes.OpenId, Scopes.Profile, Scopes.Email, Scopes.OfflineAccess, HerensugeScopes.Api);
+
+                // The scopes of the applications ("facturas.api") live in the database, created from their manifests.
+                server.RegisterScopes(Scopes.OpenId, Scopes.Profile, Scopes.Email, Scopes.OfflineAccess, HerensugeScopes.Api, HerensugeScopes.Access);
                 server.RegisterClaims(
                     Claims.Subject, Claims.Name, Claims.Email, Claims.EmailVerified, Claims.Role,
                     Claims.AuthenticationMethodReference, Claims.AuthenticationTime,
@@ -107,9 +110,16 @@ public static class OidcModule
                 .RequireAssertion(context =>
                     HasApiScope(context.User)
                     && context.User.HasClaim(HerensugeClaimTypes.Role, PlatformRoles.PlatformAdmin)
-                    && HasAuthenticationMethod(context.User, AuthenticationMethods.Passkey)));
+                    && HasAuthenticationMethod(context.User, AuthenticationMethods.Passkey)))
+            .AddPolicy(HerensugePolicies.AccessClient, policy => policy
+                .AddAuthenticationSchemes(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)
+                .RequireAuthenticatedUser()
+                .RequireAssertion(context =>
+                    OpenIddict.Abstractions.OpenIddictExtensions.HasScope(context.User, HerensugeScopes.Access)
+                    && ValidateSessionHandler.IsMachineToken(context.User)));
 
         services.AddScoped<IClientRegistry, OpenIddictClientRegistry>();
+        services.AddScoped<IScopeRegistry, OpenIddictScopeRegistry>();
         services.AddScoped<ITokenRevoker, TokenRevoker>();
         services.AddHostedService<OidcSeeder>();
         services.AddHostedService<OidcPruningJob>();

@@ -1,6 +1,7 @@
 using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text.Json;
+using Herensuge.Common.Application.Security;
 using Herensuge.Common.Domain;
 using Herensuge.Modules.Oidc.Application;
 using Herensuge.Modules.Oidc.Application.Abstractions;
@@ -137,6 +138,12 @@ internal sealed class OpenIddictClientRegistry(IOpenIddictApplicationManager app
         if (settings.Scopes.Contains(Scopes.OfflineAccess))
         {
             descriptor.Permissions.Add(Permissions.GrantTypes.RefreshToken);
+        }
+
+        // The backend of an application asks the Access decision point with its own token (client_credentials).
+        if (descriptor.ClientType == ClientTypes.Confidential && settings.Scopes.Contains(HerensugeScopes.Access))
+        {
+            descriptor.Permissions.Add(Permissions.GrantTypes.ClientCredentials);
         }
 
         foreach (string scope in settings.Scopes.Where(scope => scope != Scopes.OpenId))

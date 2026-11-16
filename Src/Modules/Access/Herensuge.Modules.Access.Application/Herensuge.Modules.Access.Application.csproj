@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../Herensuge.Modules.Access.Domain/Herensuge.Modules.Access.Domain.csproj" />
+    <ProjectReference Include="../Herensuge.Modules.Access.Contracts/Herensuge.Modules.Access.Contracts.csproj" />
+    <ProjectReference Include="../../../Common/Herensuge.Common.Application/Herensuge.Common.Application.csproj" />
+    <ProjectReference Include="../../Identity/Herensuge.Modules.Identity.Contracts/Herensuge.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="../../Tenancy/Herensuge.Modules.Tenancy.Contracts/Herensuge.Modules.Tenancy.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Herensuge.Modules.Access.UnitTests" />
+  </ItemGroup>
+</Project>
