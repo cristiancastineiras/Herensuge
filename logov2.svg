@@ -1,42 +1,100 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <title>Herensuge</title>
-  <!-- Editable: fondo en #background, relleno en #silhouette, color y grosor de linea en #logo. -->
-  <rect id="background" width="1024" height="1024" fill="#ef1212"/>
-  <g id="logo" stroke="#fff" stroke-width="8" stroke-linejoin="miter" stroke-miterlimit="12">
-    <path id="silhouette" fill="#010101" d="M588.8,199.8 L552.2,322.8 L547.2,326.2 L476.8,326.2 L472.2,323.2 L435.8,199.8 L387.2,353.2 L381.8,357.8 L376.8,354.8 L320.8,249.8 L312.2,366.2 L311.2,369.2 L306.2,372.8 L294.2,374.8 L288.8,370.8 L225.2,267.2 L232.8,382.2 L232.8,401.8 L189.8,445.8 L191.2,478.2 L136.8,522.8 L132.8,528.2 L132.8,534.2 L136.2,545.8 L140.2,551.8 L158.2,590.2 L164.2,595.8 L173.8,596.8 L183.8,605.8 L215.8,613.8 L252.8,594.8 L256.8,593.8 L284.2,595.2 L286.8,592.8 L291.8,592.8 L295.2,596.8 L311.2,625.8 L295.8,681.2 L347.8,722.8 L511.8,815.8 L676.2,722.8 L728.2,681.8 L712.8,626.2 L729.8,595.2 L732.2,592.8 L737.2,592.8 L739.8,595.2 L771.2,594.8 L809.8,614.2 L841.8,605.2 L850.2,596.8 L857.2,596.8 L864.8,592.2 L883.2,555.2 L884.2,550.8 L887.8,546.2 L891.8,533.2 L890.8,526.8 L887.2,522.8 L832.8,478.2 L834.2,445.2 L791.2,401.8 L799.2,266.8 L735.2,371.2 L730.2,374.8 L715.8,372.2 L712.2,367.2 L703.8,249.2 L647.2,354.8 L644.8,357.2 L640.2,357.2 L637.2,354.2Z"/>
-    <g id="lines" fill="none" stroke-linecap="butt">
-    <g id="left-head">
-      <polyline points="140.4,519.8 182.8,519.8 183.8,521.2 183.8,539.2 167.2,558.8"/>
-      <polyline points="213.6,421.4 212.2,465.8 197.5,477.8 191.2,478.1"/>
-      <polyline points="139.1,550 167.2,558.8 178.2,578.2 214.2,585.8 263.8,558.2 270.2,557.8 279.8,562.2"/>
-      <polyline points="232.8,400 239.4,400 255.8,384.2 288.5,378.4 292.3,373.3"/>
-      <polyline points="290.7,592.8 290.7,582.5 336.8,578.2 340.2,576.2 369.8,526.2 369.8,503.8 367.2,493.8"/>
-      <polyline points="312.7,360 314.2,399.2 343.2,427.8 347.2,428.8 349.8,427.2 364.8,397.2 360.8,381.8 319.1,271.8"/>
-      <polyline points="378.5,355.8 395.2,386.8 398.2,401.8 401.2,404.8 401.2,412.8 408.8,438.2 408.8,518.2 404.2,613.8"/>
-    </g>
-    <g id="center-head">
-      <polyline points="412.5,495.1 443,532"/>
-      <polyline points="440.8,360.8 438.8,210.2"/>
-      <polyline points="479.5,326.2 447.8,358.8 440.8,360.8 436.2,370.8 401.2,404.8"/>
-      <polyline points="547.8,567.5 512.8,550.2 475.8,567.6"/>
-      <polyline points="443.2,487.8 446.8,504.2 446.2,549.2 458.2,566.2 464.2,571.8 476.8,569.8 485.8,581.2 491.2,584.2 532.8,584.2 541.8,577.8 546.8,569.8 560.8,571.8 576.2,553.8 578.2,530.2 576.8,528.2 576.8,507.2 580.2,487.2"/>
-      <polyline points="622.2,405.2 585.8,368.8 583.2,361.2 574.2,356.8 544.5,326.2"/>
-      <polyline points="583.2,361.2 584.5,214.1"/>
-      <polyline points="578.2,529.8 586.8,524.8 611.6,495.1"/>
-    </g>
-    <g id="right-head">
-      <polyline points="644.7,357.2 628.2,387.8 625.8,401.8 622.2,405.2 622.2,414.2 615.2,437.2 615.2,526.8 619.8,613.2"/>
-      <polyline points="657.2,492.8 653.8,506.2 654.2,527.2 684.8,577.2 733.9,583.1 733.9,592.8"/>
-      <polyline points="705.2,269.3 659.2,396.8 674.8,427.2 681.2,427.2 709.8,399.2 711.4,356.1"/>
-      <polyline points="732.4,373.2 736,378.4 767.2,383.8 784.5,399.7 791.3,400.1"/>
-      <polyline points="744.2,562.2 754.2,557.8 759.2,557.8 809.8,585.8 845.8,578.8 856.8,558.8 885.5,549.2"/>
-      <polyline points="812.4,423.1 811.8,465.2 826.4,477.9 832.8,478.2"/>
-      <polyline points="883.3,519.6 840.8,520.2 840.2,539.2 856.8,558.8"/>
-    </g>
-    <g id="neck">
-      <polyline points="310.8,627.3 317.5,629.2 338.2,664.8 343.2,679.2"/>
-      <polyline points="713.1,627.4 707.1,629 683.2,669.8 680.8,679.2"/>
-    </g>
-    </g>
-  </g>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+	<defs>
+		<g id="tile-relief">
+			<rect x="2" y="2" width="12" height="12" fill="#000000" fill-opacity="0.08"/>
+			<rect x="2" y="2" width="6" height="6" fill="#000000" fill-opacity="0.08"/>
+		</g>
+		<pattern id="tiles" width="128" height="128" patternUnits="userSpaceOnUse">
+			<g>
+				<use href="#tile-relief" transform="translate(0 0) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(16 0) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(32 0) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(48 0) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(64 0) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(80 0) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(96 0) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(112 0) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(0 16) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(16 16) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(32 16) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(48 16) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(64 16) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(80 16) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(96 16) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(112 16) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(0 32) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(16 32) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(32 32) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(48 32) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(64 32) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(80 32) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(96 32) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(112 32) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(0 48) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(16 48) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(32 48) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(48 48) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(64 48) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(80 48) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(96 48) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(112 48) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(0 64) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(16 64) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(32 64) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(48 64) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(64 64) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(80 64) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(96 64) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(112 64) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(0 80) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(16 80) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(32 80) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(48 80) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(64 80) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(80 80) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(96 80) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(112 80) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(0 96) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(16 96) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(32 96) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(48 96) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(64 96) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(80 96) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(96 96) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(112 96) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(0 112) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(16 112) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(32 112) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(48 112) rotate(270 8 8)"/>
+				<use href="#tile-relief" transform="translate(64 112) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(80 112) rotate(90 8 8)"/>
+				<use href="#tile-relief" transform="translate(96 112) rotate(180 8 8)"/>
+				<use href="#tile-relief" transform="translate(112 112) rotate(270 8 8)"/>
+			</g>
+		</pattern>
+		<clipPath id="badge-outline">
+			<use href="#badge-base"/>
+		</clipPath>
+		<mask id="fingerprint-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024" style="mask-type: luminance">
+			<rect width="1024" height="1024" fill="#ffffff"/>
+			<path id="fingerprint" fill="#000000" d="
+				M320 416H336V384H352V368H384V384H400V416H384V448H368V656H320Z
+				M400 320H432V304H464V288H560V304H592V320H624V336H640V352H656V368H672V384H688V416H704V544H656V464H640V416H624V400H608V384H592V368H576V352H448V368H416V352H400Z
+				M400 448H416V416H432V400H448V384H496V368H528V384H576V400H592V416H608V448H624V656H640V672H656V704H592V672H576V640H560V448H544V432H480V448H464V480H448V544H416V528H400Z
+				M400 576H448V704H400Z
+				M480 480H496V464H528V480H544V688H560V736H512V704H496V672H480Z
+				M656 576H704V624H656Z
+			"/>
+		</mask>
+	</defs>
+	<g id="membership-badge" mask="url(#fingerprint-cutout)" clip-path="url(#badge-outline)">
+		<path id="badge-base" fill="#2563EB" d="
+			M48 481.25Q48 480 49.25 480H64V449.25Q64 448 65.25 448H80V433.25Q80 432 81.25 432H96V417.25Q96 416 97.25 416H112V401.25Q112 400 113.25 400H128V385.25Q128 384 129.25 384H144V369.25Q144 368 145.25 368H160V225.25Q160 224 161.25 224H176V193.25Q176 192 177.25 192H192V177.25Q192 176 193.25 176H224V161.25Q224 160 225.25 160H368V145.25Q368 144 369.25 144H384V129.25Q384 128 385.25 128H400V113.25Q400 112 401.25 112H416V97.25Q416 96 417.25 96H432V81.25Q432 80 433.25 80H464V65.25Q464 64 465.25 64H558.75Q560 64 560 65.25V80H590.75Q592 80 592 81.25V96H606.75Q608 96 608 97.25V112H622.75Q624 112 624 113.25V128H638.75Q640 128 640 129.25V144H654.75Q656 144 656 145.25V160H798.75Q800 160 800 161.25V176H830.75Q832 176 832 177.25V192H846.75Q848 192 848 193.25V224H862.75Q864 224 864 225.25V384H878.75Q880 384 880 385.25V400H894.75Q896 400 896 401.25V416H910.75Q912 416 912 417.25V432H926.75Q928 432 928 433.25V448H942.75Q944 448 944 449.25V464H958.75Q960 464 960 465.25V496H974.75Q976 496 976 497.25V542.75Q976 544 974.75 544H960V574.75Q960 576 958.75 576H944V590.75Q944 592 942.75 592H928V606.75Q928 608 926.75 608H912V622.75Q912 624 910.75 624H896V638.75Q896 640 894.75 640H880V654.75Q880 656 878.75 656H864V814.75Q864 816 862.75 816H848V830.75Q848 832 846.75 832H832V846.75Q832 848 830.75 848H816V862.75Q816 864 814.75 864H656V878.75Q656 880 654.75 880H640V894.75Q640 896 638.75 896H624V910.75Q624 912 622.75 912H608V926.75Q608 928 606.75 928H592V942.75Q592 944 590.75 944H576V958.75Q576 960 574.75 960H544V974.75Q544 976 542.75 976H481.25Q480 976 480 974.75V960H449.25Q448 960 448 958.75V944H433.25Q432 944 432 942.75V928H417.25Q416 928 416 926.75V912H401.25Q400 912 400 910.75V896H385.25Q384 896 384 894.75V880H369.25Q368 880 368 878.75V864H209.25Q208 864 208 862.75V848H193.25Q192 848 192 846.75V832H177.25Q176 832 176 830.75V816H161.25Q160 816 160 814.75V656H145.25Q144 656 144 654.75V640H129.25Q128 640 128 638.75V624H113.25Q112 624 112 622.75V608H97.25Q96 608 96 606.75V592H81.25Q80 592 80 590.75V576H65.25Q64 576 64 574.75V544H49.25Q48 544 48 542.75Z
+		"/>
+		<path id="badge-midtone" fill="#3B82F6" d="M48 480H64V448H80V432H96V416H112V400H128V384H144V368H160V224H176V192H192V176H224V160H368V144H384V128H400V112H416V96H432V80H464V64H560V80H592V96H608V112H624V128H640V144H656V160H800V176H832V192H848V224H864V384H848V448H832V480H816V512H800V544H784V576H768V592H752V624H736V640H720V656H704V672H688V688H656V704H640V720H608V736H592V752H560V768H512V784H464V800H224V784H176V768H160V656H144V640H128V624H112V608H96V592H80V576H64V544H48Z"/>
+		<path id="badge-highlight" fill="#60A5FA" d="M48 496H64V464H80V432H96V416H112V400H128V384H144V368H160V224H176V192H192V176H224V160H368V144H384V128H400V112H416V96H432V80H464V64H560V80H576V96H592V112H608V128H624V144H640V160H704V256H688V320H672V368H656V400H640V416H624V448H608V464H592V480H576V496H560V512H544V528H512V544H496V560H464V576H432V592H368V608H192V592H128V576H96V560H64V544H48Z"/>
+		<path id="badge-glint" fill="#BFDBFE" d="M96 416H112V400H128V384H144V368H160V224H176V192H192V176H224V160H368V144H384V128H400V112H416V96H432V80H464V64H544V80H528V176H512V208H496V240H480V272H464V288H448V304H432V336H416V352H384V368H368V384H336V400H304V416H272V432H208V448H96Z"/>
+		<rect id="tiles" width="1024" height="1024" fill="url(#tiles)" clip-path="url(#badge-outline)"/>
+	</g>
 </svg>
