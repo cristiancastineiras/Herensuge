@@ -1,6 +1,4 @@
-# Herensuge Identity API
-
-![Logo](./Logo.svg)
+# <img src="logo.svg" alt="Logo" height="32" /> Herensuge
 
 Proveedor de identidad y autorización propio
 

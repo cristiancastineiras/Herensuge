@@ -2180,13 +2180,439 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/platform/resource-servers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResourceServerResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/resource-servers/{key}/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AccessManifest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManifestSyncResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenantId}/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApplicationCatalogResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenantId}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RoleResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RoleRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["RoleCreatedResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenantId}/roles/{roleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                    roleId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                    roleId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RoleRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenantId}/members/{userId}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MemberRoleResponse"][];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                    userId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetMemberRolesRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access/v1/evaluation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EvaluationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EvaluationResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access/v1/evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EvaluationsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["EvaluationsResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access/v1/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AccessManifest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ManifestSyncResponse"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccessManifest: {
+            resourceServer: string;
+            name: string;
+            clientId: string;
+            embedPermissions: null | boolean;
+            permissions: components["schemas"]["ManifestPermission"][];
+            roles: components["schemas"]["ManifestRole"][];
+        };
         AddPasskeyRequest: {
             credential: components["schemas"]["JsonElement"];
             name: null | string;
+        };
+        ApplicationCatalogResponse: {
+            key: string;
+            name: string;
+            permissions: components["schemas"]["PermissionResponse"][];
+            roles: components["schemas"]["RoleTemplateResponse"][];
         };
         AuditEntryResponse: {
             /** Format: uuid */
@@ -2208,6 +2634,15 @@ export interface components {
             items: components["schemas"]["AuditEntryResponse"][];
             /** Format: date-time */
             nextCursor: null | string;
+        };
+        AuthZenAction: {
+            name: string;
+            properties: null | Record<string, never>;
+        };
+        AuthZenEntity: {
+            type: string;
+            id: string;
+            properties: null | Record<string, never>;
         };
         ChangeEmailRequest: {
             newEmail: string;
@@ -2282,6 +2717,27 @@ export interface components {
         EmailRequest: {
             email: string;
         };
+        EvaluationContext: {
+            reason: string;
+        };
+        EvaluationRequest: {
+            subject: null | components["schemas"]["AuthZenEntity"];
+            action: null | components["schemas"]["AuthZenAction"];
+            resource: null | components["schemas"]["AuthZenEntity"];
+        };
+        EvaluationResponse: {
+            decision: boolean;
+            context: components["schemas"]["EvaluationContext"];
+        };
+        EvaluationsRequest: {
+            subject: null | components["schemas"]["AuthZenEntity"];
+            action: null | components["schemas"]["AuthZenAction"];
+            resource: null | components["schemas"]["AuthZenEntity"];
+            evaluations: null | components["schemas"]["EvaluationRequest"][];
+        };
+        EvaluationsResponse: {
+            evaluations: components["schemas"]["EvaluationResponse"][];
+        };
         ExternalLoginResponse: {
             provider: string;
             email: null | string;
@@ -2309,6 +2765,25 @@ export interface components {
             expiresAtUtc: string;
         };
         JsonElement: unknown;
+        ManifestPermission: {
+            key: string;
+            description: null | string;
+            requires: null | string;
+        };
+        ManifestRole: {
+            key: string;
+            name: string;
+            description: null | string;
+            permissions: string[];
+            grantTo: null | string[];
+        };
+        ManifestSyncResponse: {
+            resourceServer: string;
+            /** Format: int32 */
+            manifestVersion: number;
+            scope: string;
+            audience: string;
+        };
         MemberResponse: {
             /** Format: uuid */
             userId: string;
@@ -2317,6 +2792,16 @@ export interface components {
             role: string;
             /** Format: date-time */
             joinedAtUtc: string;
+        };
+        MemberRoleResponse: {
+            /** Format: uuid */
+            roleId: null | string;
+            /** Format: uuid */
+            roleTemplateId: null | string;
+            /** Format: date-time */
+            expiresAtUtc: null | string;
+            /** Format: date-time */
+            grantedAtUtc: string;
         };
         MfaChallengeResponse: {
             methods: string[];
@@ -2340,6 +2825,15 @@ export interface components {
             createdAtUtc: string;
             /** Format: date-time */
             lastUsedAtUtc: null | string;
+        };
+        PermissionResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            resourceServerId: string;
+            key: string;
+            description: null | string;
+            requires: string;
         };
         PhoneNumberRequest: {
             phoneNumber: string;
@@ -2377,6 +2871,61 @@ export interface components {
             token: string;
             newPassword: string;
         };
+        ResourceServerResponse: {
+            key: string;
+            name: string;
+            clientId: string;
+            scope: string;
+            audience: string;
+            embedPermissions: boolean;
+            /** Format: int32 */
+            manifestVersion: number;
+            /** Format: int32 */
+            activePermissions: number;
+            /** Format: int32 */
+            deprecatedPermissions: number;
+            /** Format: int32 */
+            roleTemplates: number;
+            /** Format: date-time */
+            updatedAtUtc: string;
+        };
+        RoleCreatedResponse: {
+            /** Format: uuid */
+            id: string;
+        };
+        RoleGrant: {
+            /** Format: uuid */
+            roleId: null | string;
+            /** Format: uuid */
+            roleTemplateId: null | string;
+            /** Format: date-time */
+            expiresAtUtc: null | string;
+        };
+        RoleRequest: {
+            name: string;
+            description: null | string;
+            permissionIds: string[];
+        };
+        RoleResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            permissionIds: string[];
+            /** Format: int32 */
+            members: number;
+        };
+        RoleTemplateResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            resourceServerId: string;
+            key: string;
+            name: string;
+            description: null | string;
+            permissionKeys: string[];
+            grantTo: string[];
+        };
         SelectTenantRequest: {
             /** Format: uuid */
             tenantId: string;
@@ -2407,6 +2956,9 @@ export interface components {
             authenticationMethods: string[];
             /** Format: uuid */
             tenantId: null | string;
+        };
+        SetMemberRolesRequest: {
+            roles: components["schemas"]["RoleGrant"][];
         };
         SetTenantStatusRequest: {
             isActive: boolean;
