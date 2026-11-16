@@ -113,3 +113,11 @@ internal sealed class PlanRepository(AccessDbContext context) : IPlanRepository
 
     public void Remove(TenantPlan tenantPlan) => context.TenantPlans.Remove(tenantPlan);
 }
+
+internal sealed class AccessRequestRepository(AccessDbContext context) : IAccessRequestRepository
+{
+    public Task<Domain.Requests.AccessRequest?> GetAsync(Guid tenantId, Guid requestId, CancellationToken cancellationToken) =>
+        context.AccessRequests.SingleOrDefaultAsync(request => request.TenantId == tenantId && request.Id == requestId, cancellationToken);
+
+    public void Add(Domain.Requests.AccessRequest request) => context.AccessRequests.Add(request);
+}

@@ -17,6 +17,9 @@ public interface IAccessModuleApi
     /// </summary>
     Task<ServiceAccountClaims?> GetServiceAccountClaimsAsync(string clientId, IReadOnlyCollection<string> audiences, CancellationToken cancellationToken);
 
+    /// <summary>Audience ("facturas-api") of the application whose client is <paramref name="clientId"/>; null when it is none.</summary>
+    Task<string?> GetApplicationAudienceAsync(string clientId, CancellationToken cancellationToken);
+
     /// <summary>Decides one permission of an application against the database (Herensuge's own checks; the session is already validated).</summary>
     Task<bool> HasPermissionAsync(Guid tenantId, Guid userId, string resourceServer, string permission, CancellationToken cancellationToken);
 }

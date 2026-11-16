@@ -14,12 +14,14 @@ import { Permissions } from "./user"
 const ProfilePage = lazy(() => import("./account/ProfilePage"))
 const SecurityPage = lazy(() => import("./account/SecurityPage"))
 const SessionsPage = lazy(() => import("./account/SessionsPage"))
+const MyAccessPage = lazy(() => import("./account/MyAccessPage"))
 const OrganizationPage = lazy(() => import("./organization/OrganizationPage"))
 const MembersPage = lazy(() => import("./organization/MembersPage"))
 const RolesPage = lazy(() => import("./organization/RolesPage"))
 const GroupsPage = lazy(() => import("./organization/GroupsPage"))
 const ServiceAccountsPage = lazy(() => import("./organization/ServiceAccountsPage"))
 const SimulatorPage = lazy(() => import("./organization/SimulatorPage"))
+const AccessRequestsPage = lazy(() => import("./organization/AccessRequestsPage"))
 const OrganizationAuditPage = lazy(() => import("./organization/OrganizationAuditPage"))
 const PlatformTenantsPage = lazy(() => import("./platform/PlatformTenantsPage"))
 const ClientsPage = lazy(() => import("./platform/ClientsPage"))
@@ -36,6 +38,7 @@ export const router = createBrowserRouter([
 			{ index: true, element: <ProfilePage /> },
 			{ path: "seguridad", element: <SecurityPage /> },
 			{ path: "sesiones", element: <SessionsPage /> },
+			{ path: "mis-accesos", element: <MyAccessPage /> },
 
 			// Organización: general y miembros (owner / admin); roles y auditoría, por permiso
 			{
@@ -59,6 +62,10 @@ export const router = createBrowserRouter([
 					{
 						element: <RequirePermission permission={Permissions.manageServiceAccounts} />,
 						children: [{ path: "cuentas-de-servicio", element: <ServiceAccountsPage /> }],
+					},
+					{
+						element: <RequirePermission permission={Permissions.approveAccessRequests} />,
+						children: [{ path: "accesos-temporales", element: <AccessRequestsPage /> }],
 					},
 					{
 						element: <RequirePermission permission={Permissions.readAudit} />,

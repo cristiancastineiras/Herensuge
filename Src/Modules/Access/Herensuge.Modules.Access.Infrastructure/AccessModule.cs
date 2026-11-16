@@ -33,6 +33,7 @@ public static class AccessModule
         services.AddScoped<IGroupRepository, GroupRepository>();
         services.AddScoped<IServiceAccountRepository, ServiceAccountRepository>();
         services.AddScoped<IPlanRepository, PlanRepository>();
+        services.AddScoped<IAccessRequestRepository, AccessRequestRepository>();
         services.AddScoped<AccessEvaluator>();
         services.AddScoped<TenantAdministration>();
         services.AddScoped<IAccessModuleApi, AccessModuleApi>();

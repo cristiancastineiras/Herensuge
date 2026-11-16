@@ -81,6 +81,18 @@ public static class AccessErrors
         "Access.RelationshipsUnavailable",
         "The relationship store did not answer. Try again in a moment.");
 
+    public static readonly Error InvalidAccessRequest = Error.Validation(
+        "Access.InvalidAccessRequest",
+        $"Ask for exactly one role, for {Requests.AccessRequest.MinHours} to {Requests.AccessRequest.MaxHours} hours, with a reason (max {Requests.AccessRequest.MaxReasonLength} characters).");
+
+    public static readonly Error AccessRequestNotFound = Error.NotFound("Access.AccessRequestNotFound", "The access request does not exist.");
+
+    public static readonly Error AccessRequestNotPending = Error.Conflict(
+        "Access.AccessRequestNotPending",
+        "The access request was already resolved or expired.");
+
+    public static readonly Error CannotDecideOwnRequest = Error.Forbidden("Access.CannotDecideOwnRequest", "Nobody can resolve their own access request.");
+
     public static Error InvalidRelationship(string reason) => Error.Validation("Access.InvalidRelationship", reason);
 
     public static Error InvalidPlan(string reason) => Error.Validation("Access.InvalidPlan", reason);

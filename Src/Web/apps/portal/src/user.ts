@@ -11,6 +11,7 @@ export const Permissions = {
 	manageRoles: "roles:manage",
 	readAudit: "audit:read",
 	manageServiceAccounts: "service-accounts:manage",
+	approveAccessRequests: "access-requests:approve",
 } as const
 
 /**

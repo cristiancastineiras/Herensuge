@@ -317,6 +317,77 @@ namespace Herensuge.Modules.Access.Infrastructure.Database.Migrations
                     b.ToTable("tenant_plans", "access");
                 });
 
+            modelBuilder.Entity("Herensuge.Modules.Access.Domain.Requests.AccessRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at_utc");
+
+                    b.Property<DateTime?>("DecidedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("decided_at_utc");
+
+                    b.Property<Guid?>("DecidedByUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("decided_by_user_id");
+
+                    b.Property<int>("Hours")
+                        .HasColumnType("integer")
+                        .HasColumnName("hours");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid?>("RoleId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("role_id");
+
+                    b.Property<Guid?>("RoleTemplateId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("role_template_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_access_requests");
+
+                    b.HasIndex("RoleId")
+                        .HasDatabaseName("ix_access_requests_role_id");
+
+                    b.HasIndex("RoleTemplateId")
+                        .HasDatabaseName("ix_access_requests_role_template_id");
+
+                    b.HasIndex("TenantId", "UserId")
+                        .HasDatabaseName("ix_access_requests_tenant_id_user_id");
+
+                    b.ToTable("access_requests", "access");
+                });
+
             modelBuilder.Entity("Herensuge.Modules.Access.Domain.ResourceServers.Feature", b =>
                 {
                     b.Property<Guid>("Id")
@@ -701,6 +772,21 @@ namespace Herensuge.Modules.Access.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_tenant_plans_plans_plan_id");
+                });
+
+            modelBuilder.Entity("Herensuge.Modules.Access.Domain.Requests.AccessRequest", b =>
+                {
+                    b.HasOne("Herensuge.Modules.Access.Domain.Roles.Role", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_access_requests_roles_role_id");
+
+                    b.HasOne("Herensuge.Modules.Access.Domain.ResourceServers.RoleTemplate", null)
+                        .WithMany()
+                        .HasForeignKey("RoleTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_access_requests_role_template_role_template_id");
                 });
 
             modelBuilder.Entity("Herensuge.Modules.Access.Domain.ResourceServers.Feature", b =>

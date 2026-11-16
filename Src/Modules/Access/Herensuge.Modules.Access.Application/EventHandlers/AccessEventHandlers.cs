@@ -1,6 +1,7 @@
 using Herensuge.Modules.Access.Contracts.IntegrationEvents;
 using Herensuge.Modules.Access.Domain.Groups;
 using Herensuge.Modules.Access.Domain.Plans;
+using Herensuge.Modules.Access.Domain.Requests;
 using Herensuge.Modules.Access.Domain.ResourceServers.Events;
 using Herensuge.Modules.Access.Domain.Roles.Events;
 using Herensuge.Modules.Access.Domain.ServiceAccounts;
@@ -25,7 +26,9 @@ internal sealed class AccessIntegrationEventPublisher(IEventBus eventBus) :
     IDomainEventHandler<ServiceAccountSecretRotatedDomainEvent>,
     IDomainEventHandler<ServiceAccountDeletedDomainEvent>,
     IDomainEventHandler<PlanChangedDomainEvent>,
-    IDomainEventHandler<TenantPlanChangedDomainEvent>
+    IDomainEventHandler<TenantPlanChangedDomainEvent>,
+    IDomainEventHandler<AccessRequestedDomainEvent>,
+    IDomainEventHandler<AccessRequestDecidedDomainEvent>
 {
     public Task Handle(ResourceServerSyncedDomainEvent domainEvent, CancellationToken cancellationToken) =>
         eventBus.PublishAsync(
@@ -99,6 +102,18 @@ internal sealed class AccessIntegrationEventPublisher(IEventBus eventBus) :
 
     public Task Handle(TenantPlanChangedDomainEvent domainEvent, CancellationToken cancellationToken) =>
         eventBus.PublishAsync(new TenantPlanChangedIntegrationEvent(domainEvent.TenantId, domainEvent.PlanKey), cancellationToken);
+
+    public Task Handle(AccessRequestedDomainEvent domainEvent, CancellationToken cancellationToken) =>
+        eventBus.PublishAsync(
+            new AccessRequestedIntegrationEvent(
+                domainEvent.TenantId, domainEvent.AccessRequestId, domainEvent.UserId, domainEvent.RoleId, domainEvent.RoleTemplateId, domainEvent.Hours, domainEvent.Reason),
+            cancellationToken);
+
+    public Task Handle(AccessRequestDecidedDomainEvent domainEvent, CancellationToken cancellationToken) =>
+        eventBus.PublishAsync(
+            new AccessRequestDecidedIntegrationEvent(
+                domainEvent.TenantId, domainEvent.AccessRequestId, domainEvent.UserId, domainEvent.Approved, domainEvent.DecidedByUserId, domainEvent.ExpiresAtUtc),
+            cancellationToken);
 
     private static Guid? UserOf(string subjectType, Guid subjectId) => subjectType == SubjectTypes.User ? subjectId : null;
 }

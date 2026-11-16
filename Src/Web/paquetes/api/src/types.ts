@@ -37,6 +37,9 @@ export type PlanResponse = Schemas["PlanResponse"]
 export type PlanRequest = Schemas["PlanRequest"]
 export type FeatureResponse = Schemas["FeatureResponse"]
 export type TenantPlanDetailsResponse = Schemas["TenantPlanDetailsResponse"]
+export type AccessRequestResponse = Schemas["AccessRequestResponse"]
+export type MyAccessResponse = Schemas["MyAccessResponse"]
+export type RequestableRole = Schemas["RequestableRole"]
 export type RoleGrant = Schemas["RoleGrant"]
 
 // Valores que la API envía como texto (el contrato solo dice `string`).

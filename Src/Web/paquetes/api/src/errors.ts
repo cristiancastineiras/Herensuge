@@ -116,6 +116,10 @@ const messages: Record<string, string> = {
 	"Access.InvalidPlan": "Revisa la clave (minúsculas, números y guiones) y el nombre del plan.",
 	"Access.RelationshipsDisabled": "Los permisos por objeto no están activados en esta instalación.",
 	"Access.RelationshipsUnavailable": "El almacén de relaciones no responde. Prueba de nuevo en un momento.",
+	"Access.InvalidAccessRequest": "Elige un rol, entre 1 y 72 horas, y escribe el motivo.",
+	"Access.AccessRequestNotFound": "La petición no existe.",
+	"Access.AccessRequestNotPending": "La petición ya se ha resuelto o ha caducado.",
+	"Access.CannotDecideOwnRequest": "No puedes resolver tus propias peticiones.",
 
 	"Oidc.SessionInvalid": "Tu sesión ha caducado o se ha cerrado.",
 	"Oidc.TenantInactive": "La organización está desactivada.",

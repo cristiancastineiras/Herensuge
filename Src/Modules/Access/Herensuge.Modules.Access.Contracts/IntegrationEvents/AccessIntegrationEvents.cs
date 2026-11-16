@@ -80,3 +80,21 @@ public sealed record RelationshipDeletedIntegrationEvent(
     string Relation,
     string SubjectType,
     string SubjectId) : IntegrationEvent, ITenantIntegrationEvent;
+
+/// <summary>A member asked for a role for some hours (plan D13).</summary>
+public sealed record AccessRequestedIntegrationEvent(
+    Guid TenantId,
+    Guid AccessRequestId,
+    Guid UserId,
+    Guid? RoleId,
+    Guid? RoleTemplateId,
+    int Hours,
+    string Reason) : IntegrationEvent, ITenantIntegrationEvent;
+
+public sealed record AccessRequestDecidedIntegrationEvent(
+    Guid TenantId,
+    Guid AccessRequestId,
+    Guid UserId,
+    bool Approved,
+    Guid DecidedByUserId,
+    DateTime? ExpiresAtUtc) : IntegrationEvent, ITenantIntegrationEvent;

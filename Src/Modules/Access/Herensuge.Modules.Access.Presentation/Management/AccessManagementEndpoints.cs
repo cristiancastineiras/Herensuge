@@ -4,6 +4,7 @@ using Herensuge.Modules.Access.Application.Catalog.GetAccessCatalog;
 using Herensuge.Modules.Access.Application.Decisions;
 using Herensuge.Modules.Access.Application.Groups;
 using Herensuge.Modules.Access.Application.Plans;
+using Herensuge.Modules.Access.Application.Requests;
 using Herensuge.Modules.Access.Application.ResourceServers.GetResourceServers;
 using Herensuge.Modules.Access.Application.ResourceServers.SyncManifest;
 using Herensuge.Modules.Access.Application.Roles;
@@ -31,6 +32,8 @@ public sealed record ServiceAccountRequest(string Name);
 public sealed record SimulateAccessRequest(Guid UserId, string ResourceServer, string Permission);
 
 public sealed record PlanRequest(string Key, string Name, IReadOnlyList<string> Features);
+
+public sealed record AccessRequestRequest(Guid? RoleId, Guid? RoleTemplateId, int Hours, string Reason);
 
 /// <param name="PlanKey">Null: the default plan.</param>
 public sealed record TenantPlanRequest(string? PlanKey);
@@ -103,6 +106,38 @@ internal sealed class AccessManagementEndpoints : IEndpoint
         tenant.MapGet("/plan", async (Guid tenantId, IQueryHandler<GetTenantPlanQuery, TenantPlanDetailsResponse> handler, CancellationToken cancellationToken) =>
             (await handler.Handle(new GetTenantPlanQuery(tenantId), cancellationToken)).Match(value => Results.Ok(value)))
             .Produces<TenantPlanDetailsResponse>();
+
+        MapAccessRequests(tenant);
+    }
+
+    /// <summary>My access, my temporary access requests and, for approvers, every request (plan D13).</summary>
+    private static void MapAccessRequests(RouteGroupBuilder tenant)
+    {
+        tenant.MapGet("/me/access", async (Guid tenantId, ClaimsPrincipal user, IQueryHandler<GetMyAccessQuery, MyAccessResponse> handler, CancellationToken cancellationToken) =>
+            (await handler.Handle(new GetMyAccessQuery(tenantId, user.GetUserId()), cancellationToken)).Match(value => Results.Ok(value)))
+            .Produces<MyAccessResponse>();
+
+        tenant.MapGet("/me/access-requests", async (Guid tenantId, ClaimsPrincipal user, IQueryHandler<GetAccessRequestsQuery, IReadOnlyList<AccessRequestResponse>> handler, CancellationToken cancellationToken) =>
+            (await handler.Handle(new GetAccessRequestsQuery(tenantId, user.GetUserId()), cancellationToken)).Match(value => Results.Ok(value)))
+            .Produces<IReadOnlyList<AccessRequestResponse>>();
+
+        tenant.MapPost("/me/access-requests", async (Guid tenantId, AccessRequestRequest request, ClaimsPrincipal user, ICommandHandler<RequestAccessCommand, Guid> handler, CancellationToken cancellationToken) =>
+            (await handler.Handle(new RequestAccessCommand(tenantId, user.GetUserId(), request.RoleId, request.RoleTemplateId, request.Hours, request.Reason), cancellationToken))
+                .Match(id => Results.Ok(new CreatedIdResponse(id))))
+            .Produces<CreatedIdResponse>();
+
+        tenant.MapGet("/access-requests", async (Guid tenantId, IQueryHandler<GetAccessRequestsQuery, IReadOnlyList<AccessRequestResponse>> handler, CancellationToken cancellationToken) =>
+            (await handler.Handle(new GetAccessRequestsQuery(tenantId, null), cancellationToken)).Match(value => Results.Ok(value)))
+            .RequirePermission(TenantAdministration.ApproveAccessRequests)
+            .Produces<IReadOnlyList<AccessRequestResponse>>();
+
+        tenant.MapPost("/access-requests/{requestId:guid}/approve", async (Guid tenantId, Guid requestId, ClaimsPrincipal user, ICommandHandler<ApproveAccessRequestCommand> handler, CancellationToken cancellationToken) =>
+            (await handler.Handle(new ApproveAccessRequestCommand(tenantId, user.GetUserId(), requestId), cancellationToken)).Match(Results.NoContent))
+            .Produces(StatusCodes.Status204NoContent);
+
+        tenant.MapPost("/access-requests/{requestId:guid}/deny", async (Guid tenantId, Guid requestId, ClaimsPrincipal user, ICommandHandler<DenyAccessRequestCommand> handler, CancellationToken cancellationToken) =>
+            (await handler.Handle(new DenyAccessRequestCommand(tenantId, user.GetUserId(), requestId), cancellationToken)).Match(Results.NoContent))
+            .Produces(StatusCodes.Status204NoContent);
     }
 
     /// <summary>GET and PUT of the roles of a member, a group or a service account.</summary>
