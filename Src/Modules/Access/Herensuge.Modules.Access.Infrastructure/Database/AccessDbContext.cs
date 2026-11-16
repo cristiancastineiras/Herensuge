@@ -28,6 +28,8 @@ public sealed class AccessDbContext(DbContextOptions<AccessDbContext> options) :
 
     internal DbSet<RelationshipStoreSettings> RelationshipStores => Set<RelationshipStoreSettings>();
 
+    internal DbSet<Domain.Requests.AccessRequest> AccessRequests => Set<Domain.Requests.AccessRequest>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(AccessModule.Schema);

@@ -275,3 +275,29 @@ export const audit = {
 	platform: (query: AuditQuery) =>
 		call(api.GET("/api/v1/platform/audit", { params: { query: auditQuery(query) } })),
 }
+
+// ── Accesos temporales (plan D13) ───────────────────────────────────────────
+
+const accessRequest = (tenantId: string, requestId: string) => ({ params: { path: { tenantId, requestId } } })
+
+export const accessRequests = {
+	/** Mis permisos por aplicación y los roles que puedo pedir. */
+	myAccess: (id: string) => call(api.GET("/api/v1/tenants/{tenantId}/me/access", tenant(id))),
+	mine: (id: string) => call(api.GET("/api/v1/tenants/{tenantId}/me/access-requests", tenant(id))),
+	request: (
+		id: string,
+		body: { roleId: string | null; roleTemplateId: string | null; hours: number; reason: string },
+	) => call(api.POST("/api/v1/tenants/{tenantId}/me/access-requests", { ...tenant(id), body })),
+	all: (id: string) => call(api.GET("/api/v1/tenants/{tenantId}/access-requests", tenant(id))),
+	approve: (id: string, requestId: string) =>
+		call(
+			api.POST(
+				"/api/v1/tenants/{tenantId}/access-requests/{requestId}/approve",
+				accessRequest(id, requestId),
+			),
+		),
+	deny: (id: string, requestId: string) =>
+		call(
+			api.POST("/api/v1/tenants/{tenantId}/access-requests/{requestId}/deny", accessRequest(id, requestId)),
+		),
+}

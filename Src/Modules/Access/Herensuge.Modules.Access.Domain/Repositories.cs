@@ -76,6 +76,13 @@ public interface IServiceAccountRepository
     void Remove(ServiceAccount account);
 }
 
+public interface IAccessRequestRepository
+{
+    Task<Requests.AccessRequest?> GetAsync(Guid tenantId, Guid requestId, CancellationToken cancellationToken);
+
+    void Add(Requests.AccessRequest request);
+}
+
 public interface IPlanRepository
 {
     Task<IReadOnlyList<Plan>> ListAsync(CancellationToken cancellationToken);

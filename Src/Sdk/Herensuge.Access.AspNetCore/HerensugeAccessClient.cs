@@ -40,6 +40,13 @@ public interface IHerensugeAccess
     Task WriteRelationshipAsync(Guid tenantId, Relationship relationship, CancellationToken cancellationToken = default);
 
     Task DeleteRelationshipAsync(Guid tenantId, Relationship relationship, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Token exchange (RFC 8693): the user's access token for this application → one for <paramref name="targetApplication"/>
+    /// ("nominas"), to call its API on the user's behalf. It carries act: { sub: this client }, so conditions (MFA…) are
+    /// never met with it, and it cannot be exchanged again.
+    /// </summary>
+    Task<string> ExchangeTokenAsync(string subjectToken, string targetApplication, CancellationToken cancellationToken = default);
 }
 
 /// <param name="SubjectType">user, group, client or object.</param>
@@ -108,6 +115,24 @@ internal sealed class HerensugeAccessClient(
 
     public Task DeleteRelationshipAsync(Guid tenantId, Relationship relationship, CancellationToken cancellationToken = default) =>
         SendRelationshipAsync(HttpMethod.Delete, tenantId, relationship, cancellationToken);
+
+    public async Task<string> ExchangeTokenAsync(string subjectToken, string targetApplication, CancellationToken cancellationToken = default)
+    {
+        using var content = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["grant_type"] = "urn:ietf:params:oauth:grant-type:token-exchange",
+            ["subject_token"] = subjectToken,
+            ["subject_token_type"] = "urn:ietf:params:oauth:token-type:access_token",
+            ["scope"] = $"{targetApplication}.api",
+            ["client_id"] = options.Value.ClientId,
+            ["client_secret"] = options.Value.ClientSecret,
+        });
+        using HttpResponseMessage response = await Client().PostAsync("connect/token", content, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        TokenResponse token = await response.Content.ReadFromJsonAsync<TokenResponse>(cancellationToken)
+            ?? throw new JsonException("Empty token response.");
+        return token.AccessToken;
+    }
 
     public void Dispose() => _tokenLock.Dispose();
 

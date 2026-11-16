@@ -114,6 +114,7 @@ function Navigation({ user }: { user: HerensugeUser }) {
 				{ to: "/", label: "Perfil", end: true },
 				{ to: "/seguridad", label: "Seguridad" },
 				{ to: "/sesiones", label: "Sesiones" },
+				...(user.tenantId ? [{ to: "/mis-accesos", label: "Mis accesos" }] : []),
 			],
 		},
 	]
@@ -134,6 +135,9 @@ function Navigation({ user }: { user: HerensugeUser }) {
 			: []),
 		...(canInPortal(user, Permissions.manageServiceAccounts)
 			? [{ to: "/organizacion/cuentas-de-servicio", label: "Cuentas de servicio" }]
+			: []),
+		...(canInPortal(user, Permissions.approveAccessRequests)
+			? [{ to: "/organizacion/accesos-temporales", label: "Accesos temporales" }]
 			: []),
 		...(canInPortal(user, Permissions.readAudit)
 			? [{ to: "/organizacion/auditoria", label: "Auditoría" }]

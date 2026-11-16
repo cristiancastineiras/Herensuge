@@ -177,3 +177,21 @@ internal sealed class RelationshipStoreSettingsConfiguration : IEntityTypeConfig
         builder.Property(settings => settings.ModelHash).HasMaxLength(64);
     }
 }
+
+internal sealed class AccessRequestConfiguration : IEntityTypeConfiguration<Domain.Requests.AccessRequest>
+{
+    public void Configure(EntityTypeBuilder<Domain.Requests.AccessRequest> builder)
+    {
+        builder.ToTable("access_requests");
+        builder.HasKey(request => request.Id);
+        builder.Property(request => request.Id).ValueGeneratedNever();
+        builder.Property(request => request.Reason).HasMaxLength(Domain.Requests.AccessRequest.MaxReasonLength);
+        builder.Property(request => request.Status).HasMaxLength(10);
+        builder.HasIndex(request => new { request.TenantId, request.UserId });
+        builder.Property<uint>("Version").IsRowVersion();
+
+        // Deleting the role or the application role removes the requests for it.
+        builder.HasOne<Role>().WithMany().HasForeignKey(request => request.RoleId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<RoleTemplate>().WithMany().HasForeignKey(request => request.RoleTemplateId).OnDelete(DeleteBehavior.Cascade);
+    }
+}

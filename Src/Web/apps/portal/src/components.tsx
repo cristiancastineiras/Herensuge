@@ -100,6 +100,8 @@ const actionLabels: Record<string, string> = {
 	TenantPlanChanged: "Plan de la organización cambiado",
 	RelationshipWritten: "Objeto compartido",
 	RelationshipDeleted: "Objeto dejado de compartir",
+	AccessRequested: "Acceso temporal pedido",
+	AccessRequestDecided: "Acceso temporal resuelto",
 }
 
 /**
@@ -207,4 +209,15 @@ const relationNames: Record<string, string> = { owner: "propietario", editor: "e
 export function relationLabel(relation: string, mode: string | null): string {
 	const name = relationNames[relation] ?? relation
 	return mode === "and" ? `solo en objetos donde sea ${name}` : `o como ${name} de cada objeto`
+}
+
+/** Estado de una petición de acceso temporal → texto y color. */
+export const requestStatus: Record<
+	string,
+	{ label: string; tone: "neutral" | "success" | "warning" | "error" }
+> = {
+	pending: { label: "Pendiente", tone: "warning" },
+	approved: { label: "Aprobada", tone: "success" },
+	denied: { label: "Rechazada", tone: "error" },
+	expired: { label: "Caducada", tone: "neutral" },
 }

@@ -43,6 +43,9 @@ internal sealed class AccessModuleApi(
         return new ServiceAccountClaims(account.TenantId, ToClaims(application, grants));
     }
 
+    public async Task<string?> GetApplicationAudienceAsync(string clientId, CancellationToken cancellationToken) =>
+        (await servers.GetByClientIdAsync(clientId, cancellationToken))?.Audience;
+
     public async Task<bool> HasPermissionAsync(Guid tenantId, Guid userId, string resourceServer, string permission, CancellationToken cancellationToken)
     {
         if (await servers.GetByKeyAsync(resourceServer, cancellationToken) is not { } server)

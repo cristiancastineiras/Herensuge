@@ -148,6 +148,9 @@ internal sealed class OpenIddictClientRegistry(IOpenIddictApplicationManager app
         if (descriptor.ClientType == ClientTypes.Confidential && settings.Scopes.Contains(HerensugeScopes.Access))
         {
             descriptor.Permissions.Add(Permissions.GrantTypes.ClientCredentials);
+
+            // And exchanges its users' tokens for tokens of another application (plan D14).
+            descriptor.Permissions.Add(Permissions.GrantTypes.TokenExchange);
         }
 
         foreach (string scope in settings.Scopes.Where(scope => scope != Scopes.OpenId))

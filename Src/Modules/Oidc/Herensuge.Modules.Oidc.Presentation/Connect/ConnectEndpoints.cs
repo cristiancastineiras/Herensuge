@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Herensuge.Common.Application.Messaging;
 using Herensuge.Common.Application.Security;
 using Herensuge.Common.Domain;
@@ -163,6 +164,11 @@ internal sealed class ConnectEndpoints : IEndpoint
             return await IssueMachineTokenAsync(request, scopes, access, cancellationToken);
         }
 
+        if (request.IsTokenExchangeGrantType())
+        {
+            return await ExchangeTokenAsync(httpContext, request, handler, access, scopes, cancellationToken);
+        }
+
         if (!request.IsAuthorizationCodeGrantType() && !request.IsRefreshTokenGrantType())
         {
             return Forbid(Errors.UnsupportedGrantType, "The grant type is not supported.");
@@ -245,6 +251,73 @@ internal sealed class ConnectEndpoints : IEndpoint
             SetAccessClaims(identity, account.Claims);
         }
 
+        identity.SetDestinations(_ => [Destinations.AccessToken]);
+        return Results.SignIn(new ClaimsPrincipal(identity), properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+    }
+
+    /// <summary>
+    /// Token exchange (RFC 8693, plan D14): application A's backend trades its user's access token for one of
+    /// application B (scope "b.api"), with act: { sub: A's client_id }. Only A's own tokens, no actor token, no chains
+    /// and no refresh token; the session and the membership are checked as in a refresh. With act, conditions are
+    /// never met (§5, step 6).
+    /// </summary>
+    private static async Task<IResult> ExchangeTokenAsync(
+        HttpContext httpContext,
+        OpenIddictRequest request,
+        IQueryHandler<ValidateTokenRequestQuery, AuthorizedUser> handler,
+        IAccessModuleApi access,
+        IOpenIddictScopeManager scopes,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrEmpty(request.ActorToken))
+        {
+            return Forbid(Errors.InvalidRequest, "actor_token is not supported: the calling client is the actor.");
+        }
+
+        if (request.GetScopes() is not [{ } scope] || !scope.EndsWith(".api", StringComparison.Ordinal) || scope is HerensugeScopes.Api)
+        {
+            return Forbid(Errors.InvalidScope, "Token exchange issues exactly one application scope (\"<app>.api\") and no refresh token.");
+        }
+
+        AuthenticateResult authenticated = await httpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        string? audience = request.ClientId is null ? null : await access.GetApplicationAudienceAsync(request.ClientId, cancellationToken);
+        if (authenticated.Principal is not { } subject
+            || audience is null
+            || !subject.GetAudiences().Contains(audience, StringComparer.Ordinal)
+            || subject.HasClaim(claim => claim.Type == HerensugeClaimTypes.Actor)
+            || !Guid.TryParse(subject.GetClaim(Claims.Subject), out Guid userId)
+            || !Guid.TryParse(subject.GetClaim(HerensugeClaimTypes.SessionId), out Guid sessionId)
+            || !Guid.TryParse(subject.GetClaim(HerensugeClaimTypes.TenantId), out Guid tenantId))
+        {
+            return Forbid(Errors.InvalidGrant, "Only an access token for the calling application's own API, without an actor, can be exchanged.");
+        }
+
+        Result<AuthorizedUser> result = await handler.Handle(
+            new ValidateTokenRequestQuery(userId, sessionId, tenantId, [.. subject.GetClaims(Claims.AuthenticationMethodReference)]),
+            cancellationToken);
+        if (result.IsFailure)
+        {
+            return Forbid(Errors.InvalidGrant, result.Error.Description);
+        }
+
+        var identity = new ClaimsIdentity(TokenValidationParameters.DefaultAuthenticationType, Claims.Name, Claims.Role);
+        identity.SetClaim(Claims.Subject, userId.ToString())
+            .SetClaim(HerensugeClaimTypes.SessionId, sessionId.ToString())
+            .SetClaim(HerensugeClaimTypes.TenantId, tenantId.ToString())
+            .SetClaim(HerensugeClaimTypes.TenantRole, result.Value.TenantRole)
+            .SetClaim(Claims.AuthenticationTime, subject.GetClaim(Claims.AuthenticationTime))
+            .SetClaim(HerensugeClaimTypes.Actor, new JsonObject { [Claims.Subject] = request.ClientId });
+        identity.SetClaims(Claims.AuthenticationMethodReference, [.. subject.GetClaims(Claims.AuthenticationMethodReference)]);
+        identity.SetScopes(scope);
+
+        var resources = new List<string>();
+        await foreach (string resource in scopes.ListResourcesAsync(identity.GetScopes(), cancellationToken))
+        {
+            resources.Add(resource);
+        }
+
+        identity.SetResources(resources);
+        await SetAccessClaimsAsync(identity, access, userId, tenantId, cancellationToken);
         identity.SetDestinations(_ => [Destinations.AccessToken]);
         return Results.SignIn(new ClaimsPrincipal(identity), properties: null, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }

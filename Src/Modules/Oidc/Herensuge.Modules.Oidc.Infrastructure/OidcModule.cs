@@ -58,7 +58,7 @@ public static class OidcModule
                     .SetEndSessionEndpointUris("connect/logout");
 
                 // client_credentials: only the backends of the SaaS applications, to ask the Access decision point.
-                server.AllowAuthorizationCodeFlow().AllowRefreshTokenFlow().AllowClientCredentialsFlow();
+                server.AllowAuthorizationCodeFlow().AllowRefreshTokenFlow().AllowClientCredentialsFlow().AllowTokenExchangeFlow();
                 server.RequireProofKeyForCodeExchange();
 
                 // The scopes of the applications ("facturas.api") live in the database, created from their manifests.
