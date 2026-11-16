@@ -1,0 +1,21 @@
+{
+  "resourceServer": "herensuge",
+  "name": "Herensuge",
+  "clientId": "herensuge-portal",
+  "embedPermissions": true,
+  "permissions": [
+    { "key": "roles:manage", "description": "Gestionar roles, grupos y quién tiene cada uno" },
+    { "key": "audit:read", "description": "Ver la auditoría de la organización" },
+    { "key": "service-accounts:manage", "description": "Gestionar las cuentas de servicio de la organización" },
+    { "key": "access-requests:approve", "description": "Aprobar o rechazar peticiones de acceso temporal" }
+  ],
+  "roles": [
+    {
+      "key": "organization-admin",
+      "name": "Administración de la organización",
+      "description": "Gestiona el acceso de la organización. La tienen los owners y admins.",
+      "permissions": ["*"],
+      "grantTo": ["owner", "admin"]
+    }
+  ]
+}

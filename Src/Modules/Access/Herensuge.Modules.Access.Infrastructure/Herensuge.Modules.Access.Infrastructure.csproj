@@ -8,6 +8,9 @@
     <ProjectReference Include="../../../Common/Herensuge.Common.Infrastructure/Herensuge.Common.Infrastructure.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Seeding/herensuge.access.json" />
+  </ItemGroup>
+  <ItemGroup>
     <InternalsVisibleTo Include="Herensuge.Modules.Access.UnitTests" />
   </ItemGroup>
 </Project>

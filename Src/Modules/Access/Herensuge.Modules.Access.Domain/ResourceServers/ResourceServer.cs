@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Herensuge.Common.Domain;
 using Herensuge.Modules.Access.Domain.ResourceServers.Events;
@@ -12,6 +14,9 @@ public sealed partial class ResourceServer : AggregateRoot
 {
     public const int MaxPermissions = 500;
     public const int MaxRoleTemplates = 50;
+
+    /// <summary>Herensuge itself (the portal): only its seeder may sync this key.</summary>
+    public const string HerensugeKey = "herensuge";
 
     private readonly List<Permission> _permissions = [];
     private readonly List<RoleTemplate> _roleTemplates = [];
@@ -34,6 +39,9 @@ public sealed partial class ResourceServer : AggregateRoot
     public bool EmbedPermissions { get; private set; }
 
     public int ManifestVersion { get; private set; }
+
+    /// <summary>SHA-256 of the canonical manifest (sorted lists): a sync with the same content is a no-op.</summary>
+    public string ManifestHash { get; private set; } = string.Empty;
 
     public DateTime CreatedAtUtc { get; private set; }
 
@@ -85,6 +93,14 @@ public sealed partial class ResourceServer : AggregateRoot
             return AccessErrors.InvalidManifest("The resource server key cannot change.");
         }
 
+        // The same manifest again (every CI run, every Herensuge start) changes nothing: no version, no event.
+        string hash = CanonicalHash(manifest);
+        if (hash == ManifestHash)
+        {
+            return Result.Success();
+        }
+
+        ManifestHash = hash;
         Name = manifest.Name.Trim();
         ClientId = manifest.ClientId;
         EmbedPermissions = manifest.EmbedPermissions ?? true;
@@ -129,6 +145,33 @@ public sealed partial class ResourceServer : AggregateRoot
         UpdatedAtUtc = utcNow;
         Raise(new ResourceServerSyncedDomainEvent(Id, Key, Scope, Audience, ClientId, ManifestVersion));
         return Result.Success();
+    }
+
+    /// <summary>Hash of the manifest with every list sorted, so reordering a JSON file is not a change.</summary>
+    private static string CanonicalHash(AccessManifest manifest)
+    {
+        var canonical = new
+        {
+            manifest.ResourceServer,
+            Name = manifest.Name.Trim(),
+            manifest.ClientId,
+            EmbedPermissions = manifest.EmbedPermissions ?? true,
+            Permissions = manifest.Permissions
+                .OrderBy(permission => permission.Key, StringComparer.Ordinal)
+                .Select(permission => new { permission.Key, permission.Description, Requires = permission.Requires ?? PermissionRequirements.None }),
+            Roles = manifest.Roles
+                .OrderBy(role => role.Key, StringComparer.Ordinal)
+                .Select(role => new
+                {
+                    role.Key,
+                    role.Name,
+                    role.Description,
+                    Permissions = role.Permissions.Order(StringComparer.Ordinal),
+                    GrantTo = (role.GrantTo ?? []).Order(StringComparer.Ordinal),
+                }),
+        };
+
+        return Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(canonical)));
     }
 
     /// <summary>"invoice:*" → every active invoice permission; "*" → all of them. Unknown keys were rejected by Validate.</summary>

@@ -20,7 +20,7 @@ internal sealed class SetMemberRolesCommandHandler(
 {
     public async Task<Result> Handle(SetMemberRolesCommand command, CancellationToken cancellationToken)
     {
-        Result allowed = await administration.RequireAdministratorAsync(command.TenantId, command.ActorUserId, cancellationToken);
+        Result allowed = await administration.RequirePermissionAsync(command.TenantId, command.ActorUserId, TenantAdministration.ManageRoles, cancellationToken);
         if (allowed.IsFailure)
         {
             return allowed;
@@ -39,6 +39,21 @@ internal sealed class SetMemberRolesCommandHandler(
 
         DateTime now = timeProvider.GetUtcNow().UtcDateTime;
         IReadOnlyList<RoleAssignment> current = await assignments.ListAsync(command.TenantId, command.UserId, cancellationToken);
+
+        // Plan D12: what is newly granted must be held by the actor.
+        RoleGrant[] added = [.. command.Roles.Where(grant => !current.Any(held => held.RoleId == grant.RoleId && held.RoleTemplateId == grant.RoleTemplateId))];
+        Guid[] addedRoleIds = [.. added.Where(grant => grant.RoleId is not null).Select(grant => grant.RoleId!.Value)];
+        IReadOnlyList<Role> addedRoles = addedRoleIds.Length == 0 ? [] : await roles.GetManyAsync(command.TenantId, addedRoleIds, cancellationToken);
+        Result canGrant = await administration.EnsureCanGrantAsync(
+            command.TenantId,
+            command.ActorUserId,
+            addedRoles.SelectMany(role => role.PermissionIds),
+            added.Where(grant => grant.RoleTemplateId is not null).Select(grant => grant.RoleTemplateId!.Value),
+            cancellationToken);
+        if (canGrant.IsFailure)
+        {
+            return canGrant;
+        }
 
         foreach (RoleAssignment assignment in current.Where(held =>
                      !command.Roles.Any(grant => held.IsSameGrant(grant.RoleId, grant.RoleTemplateId, grant.ExpiresAtUtc))))

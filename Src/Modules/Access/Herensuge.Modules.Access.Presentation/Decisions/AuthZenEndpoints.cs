@@ -116,9 +116,16 @@ internal sealed class AuthZenEndpoints : IEndpoint
 
         return new EvaluateAccessQuery(
             CallerClientId(caller),
-            new AccessSubject(userId, tenantId, sessionId, amr, authTime),
+            new PdpSubject(userId, tenantId, sessionId, amr, authTime, ActorOf(subject.Properties)),
             [.. items.Select(item => new AccessCheck(Text(item.Resource!.Properties, "resource_server"), $"{item.Resource.Type}:{item.Action!.Name}"))]);
     }
+
+    /// <summary>"act": { "sub": … } of the user's token (support session or token exchange), when the PEP passes it.</summary>
+    private static string? ActorOf(Dictionary<string, JsonElement>? properties) =>
+        properties?.TryGetValue("act", out JsonElement act) == true && act.ValueKind == JsonValueKind.Object
+            && act.TryGetProperty("sub", out JsonElement sub) && sub.ValueKind == JsonValueKind.String
+            ? sub.GetString()
+            : null;
 
     private static string? Text(Dictionary<string, JsonElement>? properties, string name) =>
         properties?.TryGetValue(name, out JsonElement value) == true

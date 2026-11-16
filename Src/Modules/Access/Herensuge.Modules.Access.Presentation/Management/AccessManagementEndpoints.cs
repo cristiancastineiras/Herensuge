@@ -4,6 +4,7 @@ using Herensuge.Modules.Access.Application.Catalog.GetAccessCatalog;
 using Herensuge.Modules.Access.Application.ResourceServers.GetResourceServers;
 using Herensuge.Modules.Access.Application.ResourceServers.SyncManifest;
 using Herensuge.Modules.Access.Application.Roles;
+using Herensuge.Modules.Access.Application.Services;
 using Herensuge.Modules.Access.Domain.ResourceServers;
 
 namespace Herensuge.Modules.Access.Presentation.Management;
@@ -43,12 +44,12 @@ internal sealed class AccessManagementEndpoints : IEndpoint
 
         tenant.MapGet("/permissions", async (IQueryHandler<GetAccessCatalogQuery, IReadOnlyList<ApplicationCatalogResponse>> handler, CancellationToken cancellationToken) =>
             (await handler.Handle(new GetAccessCatalogQuery(), cancellationToken)).Match(value => Results.Ok(value)))
-            .RequireTenantAdministrator()
+            .RequirePermission(TenantAdministration.ManageRoles)
             .Produces<IReadOnlyList<ApplicationCatalogResponse>>();
 
         tenant.MapGet("/roles", async (Guid tenantId, IQueryHandler<GetRolesQuery, IReadOnlyList<RoleResponse>> handler, CancellationToken cancellationToken) =>
             (await handler.Handle(new GetRolesQuery(tenantId), cancellationToken)).Match(value => Results.Ok(value)))
-            .RequireTenantAdministrator()
+            .RequirePermission(TenantAdministration.ManageRoles)
             .Produces<IReadOnlyList<RoleResponse>>();
 
         tenant.MapPost("/roles", async (Guid tenantId, RoleRequest request, ClaimsPrincipal user, ICommandHandler<CreateRoleCommand, Guid> handler, CancellationToken cancellationToken) =>
@@ -67,7 +68,7 @@ internal sealed class AccessManagementEndpoints : IEndpoint
 
         tenant.MapGet("/members/{userId:guid}/roles", async (Guid tenantId, Guid userId, IQueryHandler<GetMemberRolesQuery, IReadOnlyList<MemberRoleResponse>> handler, CancellationToken cancellationToken) =>
             (await handler.Handle(new GetMemberRolesQuery(tenantId, userId), cancellationToken)).Match(value => Results.Ok(value)))
-            .RequireTenantAdministrator()
+            .RequirePermission(TenantAdministration.ManageRoles)
             .Produces<IReadOnlyList<MemberRoleResponse>>();
 
         tenant.MapPut("/members/{userId:guid}/roles", async (Guid tenantId, Guid userId, SetMemberRolesRequest request, ClaimsPrincipal user, ICommandHandler<SetMemberRolesCommand> handler, CancellationToken cancellationToken) =>

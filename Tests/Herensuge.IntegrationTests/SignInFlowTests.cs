@@ -210,7 +210,9 @@ public sealed partial class SignInFlowTests(HerensugeApiFactory factory) : IClas
         JsonElement claims = JwtPayload(tokens.GetProperty("access_token").GetString()!);
         Assert.Contains("facturas-api", Values(claims, "aud"));
         Assert.Equal(["finance"], Values(claims, "roles"));
-        Assert.Equal(["invoice:approve", "invoice:read"], Values(claims, "permissions").Order());
+        // invoice:approve requires MFA: it is listed apart so the application asks the decision point (D7).
+        Assert.Equal(["invoice:read"], Values(claims, "permissions"));
+        Assert.Equal(["invoice:approve"], Values(claims, "conditional_permissions"));
 
         // The application's backend asks the decision point with its own token (client_credentials).
         JsonElement machine = await PostTokenAsync(new()

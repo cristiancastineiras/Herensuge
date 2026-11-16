@@ -35,7 +35,7 @@ internal sealed class AuditEndpoints : IEndpoint
             .WithTags("Organization")
             .RequireAuthorization(HerensugePolicies.Api)
             .RequireActiveTenant()
-            .RequireTenantAdministrator()
+            .RequirePermission("audit:read")
             .Produces<AuditPage>();
 
         app.MapGet("/api/v1/platform/audit", async (

@@ -1,17 +1,61 @@
-using Herensuge.Modules.Tenancy.Contracts;
+using Herensuge.Modules.Access.Application.Decisions;
 
 namespace Herensuge.Modules.Access.Application.Services;
 
 /// <summary>
-/// Roles and assignments are managed by owners and admins, checked against the database (the tenant_role
-/// claim may be five minutes old).
+/// Who may manage access in an organization, decided by Herensuge's own permissions (dogfooding, plan D1) against the
+/// database, and what they may grant (plan D12: only what they hold; owners hold everything).
 /// </summary>
-// shortcut: base roles decide who administers access; becomes the herensuge:roles:manage permission when Herensuge registers itself as an application (plan, section 6.4).
-public sealed class TenantAdministration(ITenancyModuleApi tenancy)
+public sealed class TenantAdministration(IResourceServerRepository servers, AccessEvaluator evaluator)
 {
-    public async Task<Result> RequireAdministratorAsync(Guid tenantId, Guid actorUserId, CancellationToken cancellationToken)
+    public const string ManageRoles = "roles:manage";
+    public const string ManageServiceAccounts = "service-accounts:manage";
+    public const string ApproveAccessRequests = "access-requests:approve";
+
+    public async Task<Result> RequirePermissionAsync(Guid tenantId, Guid actorUserId, string permission, CancellationToken cancellationToken)
     {
-        MembershipSnapshot? actor = await tenancy.GetMembershipAsync(tenantId, actorUserId, cancellationToken);
-        return actor is { TenantIsActive: true, Role: BaseRoles.Owner or BaseRoles.Admin } ? Result.Success() : AccessErrors.NotAllowed;
+        ResourceServer? herensuge = await servers.GetByKeyAsync(ResourceServer.HerensugeKey, cancellationToken);
+        if (herensuge is null)
+        {
+            return AccessErrors.NotAllowed;
+        }
+
+        AccessGrants? grants = await evaluator.ResolveGrantsAsync(herensuge, new AccessSubject(tenantId, actorUserId), cancellationToken);
+        return evaluator.Evaluate(herensuge, grants, SubjectFacts.ValidatedSession, permission).Decision ? Result.Success() : AccessErrors.NotAllowed;
+    }
+
+    /// <summary>Fails with the permissions (app/key) of <paramref name="permissionIds"/> and templates the actor does not hold.</summary>
+    public async Task<Result> EnsureCanGrantAsync(
+        Guid tenantId,
+        Guid actorUserId,
+        IEnumerable<Guid> permissionIds,
+        IEnumerable<Guid> roleTemplateIds,
+        CancellationToken cancellationToken)
+    {
+        HashSet<Guid> wantedPermissions = [.. permissionIds];
+        HashSet<Guid> wantedTemplates = [.. roleTemplateIds];
+        if (wantedPermissions.Count == 0 && wantedTemplates.Count == 0)
+        {
+            return Result.Success();
+        }
+
+        var missing = new List<string>();
+        foreach (ResourceServer server in await servers.ListAsync(cancellationToken))
+        {
+            string[] requested =
+            [
+                .. server.ActivePermissions.Where(permission => wantedPermissions.Contains(permission.Id)).Select(permission => permission.Key),
+                .. server.RoleTemplates.Where(template => wantedTemplates.Contains(template.Id)).SelectMany(template => template.PermissionKeys),
+            ];
+            if (requested.Length == 0)
+            {
+                continue;
+            }
+
+            AccessGrants? actor = await evaluator.ResolveGrantsAsync(server, new AccessSubject(tenantId, actorUserId), cancellationToken);
+            missing.AddRange(AccessEvaluator.MissingToGrant(actor, requested).Select(key => $"{server.Key}/{key}"));
+        }
+
+        return missing.Count == 0 ? Result.Success() : AccessErrors.CannotGrant(missing);
     }
 }

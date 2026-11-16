@@ -11,7 +11,7 @@ internal sealed class CreateRoleCommandHandler(
 {
     public async Task<Result<Guid>> Handle(CreateRoleCommand command, CancellationToken cancellationToken)
     {
-        Result allowed = await administration.RequireAdministratorAsync(command.TenantId, command.ActorUserId, cancellationToken);
+        Result allowed = await administration.RequirePermissionAsync(command.TenantId, command.ActorUserId, TenantAdministration.ManageRoles, cancellationToken);
         if (allowed.IsFailure)
         {
             return allowed.Error;
@@ -27,6 +27,12 @@ internal sealed class CreateRoleCommandHandler(
         if (checks.IsFailure)
         {
             return checks.Error;
+        }
+
+        Result canGrant = await administration.EnsureCanGrantAsync(command.TenantId, command.ActorUserId, command.PermissionIds, [], cancellationToken);
+        if (canGrant.IsFailure)
+        {
+            return canGrant.Error;
         }
 
         Result<Role> role = Role.Create(command.TenantId, command.Name, command.Description, command.PermissionIds, timeProvider.GetUtcNow().UtcDateTime);
@@ -49,7 +55,7 @@ internal sealed class UpdateRoleCommandHandler(
 {
     public async Task<Result> Handle(UpdateRoleCommand command, CancellationToken cancellationToken)
     {
-        Result allowed = await administration.RequireAdministratorAsync(command.TenantId, command.ActorUserId, cancellationToken);
+        Result allowed = await administration.RequirePermissionAsync(command.TenantId, command.ActorUserId, TenantAdministration.ManageRoles, cancellationToken);
         if (allowed.IsFailure)
         {
             return allowed;
@@ -66,6 +72,14 @@ internal sealed class UpdateRoleCommandHandler(
         if (checks.IsFailure)
         {
             return checks;
+        }
+
+        // Only what is added must be held by the actor; removing permissions needs nothing (plan D12).
+        Result canGrant = await administration.EnsureCanGrantAsync(
+            command.TenantId, command.ActorUserId, command.PermissionIds.Except(role.PermissionIds), [], cancellationToken);
+        if (canGrant.IsFailure)
+        {
+            return canGrant;
         }
 
         Result updated = role.Update(command.Name, command.Description, command.PermissionIds);
@@ -86,7 +100,7 @@ internal sealed class DeleteRoleCommandHandler(
 {
     public async Task<Result> Handle(DeleteRoleCommand command, CancellationToken cancellationToken)
     {
-        Result allowed = await administration.RequireAdministratorAsync(command.TenantId, command.ActorUserId, cancellationToken);
+        Result allowed = await administration.RequirePermissionAsync(command.TenantId, command.ActorUserId, TenantAdministration.ManageRoles, cancellationToken);
         if (allowed.IsFailure)
         {
             return allowed;

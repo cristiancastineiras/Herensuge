@@ -264,6 +264,11 @@ namespace Herensuge.Modules.Access.Infrastructure.Database.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("key");
 
+                    b.Property<string>("ManifestHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("manifest_hash");
+
                     b.Property<int>("ManifestVersion")
                         .HasColumnType("integer")
                         .HasColumnName("manifest_version");
