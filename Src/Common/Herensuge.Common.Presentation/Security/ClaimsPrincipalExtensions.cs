@@ -23,10 +23,17 @@ public static class ClaimsPrincipalExtensions
             : null;
 
     /// <summary>Reads amr whether it arrives as several claims or as one JSON array claim.</summary>
-    public static IReadOnlyList<string> GetAuthenticationMethods(this ClaimsPrincipal principal)
+    public static IReadOnlyList<string> GetAuthenticationMethods(this ClaimsPrincipal principal) =>
+        ReadArray(principal, HerensugeClaimTypes.AuthenticationMethod);
+
+    /// <summary>Unconditional permissions of the token's application (Access).</summary>
+    public static IReadOnlyList<string> GetPermissions(this ClaimsPrincipal principal) =>
+        ReadArray(principal, HerensugeClaimTypes.Permissions);
+
+    private static IReadOnlyList<string> ReadArray(ClaimsPrincipal principal, string type)
     {
         var methods = new List<string>();
-        foreach (Claim claim in principal.FindAll(HerensugeClaimTypes.AuthenticationMethod))
+        foreach (Claim claim in principal.FindAll(type))
         {
             if (claim.Value.StartsWith('['))
             {

@@ -97,6 +97,7 @@ internal static class BffServiceCollectionExtensions
         }
 
         services.AddScoped<AccessTokenProvider>();
+        services.AddSingleton<AccessVersions>();
         return services;
     }
 

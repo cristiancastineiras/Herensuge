@@ -8,6 +8,11 @@ internal sealed class SyncManifestCommandHandler(
     public async Task<Result<ManifestSyncResponse>> Handle(SyncManifestCommand command, CancellationToken cancellationToken)
     {
         AccessManifest manifest = command.Manifest;
+        if (manifest.ResourceServer == ResourceServer.HerensugeKey && !command.IsSystem)
+        {
+            return AccessErrors.ReservedResourceServer;
+        }
+
         ResourceServer? server = await servers.GetByKeyAsync(manifest.ResourceServer ?? string.Empty, cancellationToken);
 
         if (command.CallerClientId is { } caller && (server is null || server.ClientId != caller || manifest.ClientId != caller))

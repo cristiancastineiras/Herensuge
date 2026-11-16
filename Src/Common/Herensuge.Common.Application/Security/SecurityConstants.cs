@@ -16,8 +16,14 @@ public static class HerensugeClaimTypes
     /// <summary>Roles of the app (Access role templates) in a token issued for that app's API (RFC 9068).</summary>
     public const string Roles = "roles";
 
-    /// <summary>Permissions ("invoices:approve") in a token issued for that app's API.</summary>
+    /// <summary>Permissions ("invoices:approve") granted without condition, for the token's application.</summary>
     public const string Permissions = "permissions";
+
+    /// <summary>Permissions granted only with a condition (MFA, recent sign-in…): the API asks the PDP.</summary>
+    public const string ConditionalPermissions = "conditional_permissions";
+
+    /// <summary>RFC 8693 actor: who acts on behalf of the subject (support session, token exchange).</summary>
+    public const string Actor = "act";
 
     public const string ClientId = "client_id";
 }

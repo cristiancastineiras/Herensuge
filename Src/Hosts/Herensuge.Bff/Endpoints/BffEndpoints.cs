@@ -23,17 +23,16 @@ public sealed record BffUser(
     IReadOnlyList<string> AuthenticationMethods,
     long? AuthenticationTime,
     bool IsPlatformAdmin,
-    string LogoutUrl);
+    string LogoutUrl,
+    IReadOnlyList<string> Roles,
+    IReadOnlyList<string> Permissions,
+    IReadOnlyList<string> ConditionalPermissions,
+    IReadOnlyList<string> Entitlements,
+    string? Actor);
 
 /// <summary>/bff/*: sign-in, callback, current user and sign-out of the portal.</summary>
 internal static class BffEndpoints
 {
-    private static readonly string[] CopiedClaims =
-    [
-        Claims.Subject, "sid", Claims.Name, Claims.Email, Claims.EmailVerified, "tenant_id", "tenant_role",
-        Claims.AuthenticationMethodReference, Claims.AuthenticationTime, Claims.Role,
-    ];
-
     private static readonly string[] InteractiveErrors =
         [Errors.LoginRequired, Errors.InteractionRequired, Errors.ConsentRequired, Errors.AccountSelectionRequired];
 
@@ -84,20 +83,32 @@ internal static class BffEndpoints
                 user.FindFirstValue(Claims.Email),
                 user.FindFirstValue("tenant_id"),
                 user.FindFirstValue("tenant_role"),
-                ReadArray(user, Claims.AuthenticationMethodReference),
+                BffClaims.ReadArray(user, Claims.AuthenticationMethodReference),
                 long.TryParse(user.FindFirstValue(Claims.AuthenticationTime), out long authTime) ? authTime : null,
                 user.HasClaim(Claims.Role, "platform_admin"),
-                $"/bff/logout?sid={Uri.EscapeDataString(sessionId ?? string.Empty)}"));
+                $"/bff/logout?sid={Uri.EscapeDataString(sessionId ?? string.Empty)}",
+                BffClaims.ReadArray(user, BffClaims.Roles),
+                BffClaims.ReadArray(user, BffClaims.Permissions),
+                BffClaims.ReadArray(user, BffClaims.ConditionalPermissions),
+                BffClaims.ReadArray(user, BffClaims.Entitlements),
+                BffClaims.ReadActor(user)));
         });
 
-        // Server-sent events (EventSource): tells every open tab the moment its session ends, whoever closed it.
-        group.MapGet("/events", async (HttpContext httpContext, SessionEndedSignal signal, ITicketStore tickets, CancellationToken cancellationToken) =>
+        // Server-sent events (EventSource): tells every open tab the moment its session ends, whoever closed it, and
+        // when its permissions change (plan D4).
+        group.MapGet("/events", async (
+            HttpContext httpContext,
+            SessionEndedSignal signal,
+            ITicketStore tickets,
+            AccessTokenProvider tokens,
+            AccessVersions versions,
+            CancellationToken cancellationToken) =>
         {
             AuthenticateResult authenticated = await httpContext.AuthenticateAsync(BffDefaults.CookieScheme);
             return authenticated.Principal?.FindFirstValue("sid") is { } sid
                 && authenticated.Properties?.Items.TryGetValue(DistributedTicketStore.SessionKeyItem, out string? sessionKey) == true
                 && sessionKey is not null
-                    ? Results.ServerSentEvents(WatchSessionAsync(sid, sessionKey, signal, tickets, cancellationToken))
+                    ? Results.ServerSentEvents(WatchSessionAsync(new SessionWatch(sid, sessionKey, signal, tickets, tokens, versions), cancellationToken))
                     : Results.Unauthorized();
         });
 
@@ -128,11 +139,8 @@ internal static class BffEndpoints
                 : Results.Redirect($"/?error={Uri.EscapeDataString(error ?? "sign_in_failed")}");
         }
 
-        var identity = new ClaimsIdentity(BffDefaults.CookieScheme, Claims.Name, Claims.Role);
-        foreach (Claim claim in principal.Claims.Where(claim => CopiedClaims.Contains(claim.Type)))
-        {
-            identity.AddClaim(new Claim(claim.Type, claim.Value, claim.ValueType));
-        }
+        // Identity (ID token) and access claims (userinfo, ADR-A13).
+        ClaimsPrincipal user = BffClaims.From(principal);
 
         AuthenticationProperties source = result.Properties!;
         var properties = new AuthenticationProperties { RedirectUri = returnUrl, IsPersistent = true };
@@ -144,7 +152,10 @@ internal static class BffEndpoints
             new AuthenticationToken { Name = BffDefaults.IdentityToken, Value = source.GetTokenValue(OpenIddictClientAspNetCoreConstants.Tokens.BackchannelIdentityToken) ?? string.Empty },
         ]);
 
-        await httpContext.SignInAsync(BffDefaults.CookieScheme, new ClaimsPrincipal(identity), properties);
+        properties.Items[AccessVersions.SessionItem] = await httpContext.RequestServices.GetRequiredService<AccessVersions>()
+            .ReadAsync(user.FindFirstValue(BffClaims.TenantId), user.FindFirstValue(Claims.Subject));
+
+        await httpContext.SignInAsync(BffDefaults.CookieScheme, user, properties);
         return Results.Redirect(returnUrl);
     }
 
@@ -198,33 +209,50 @@ internal static class BffEndpoints
         return Results.SignOut(signOut, [OpenIddictClientAspNetCoreDefaults.AuthenticationScheme]);
     }
 
+    /// <summary>What the /bff/events stream of one session needs.</summary>
+    private sealed record SessionWatch(
+        string Sid,
+        string SessionKey,
+        SessionEndedSignal Signal,
+        ITicketStore Tickets,
+        AccessTokenProvider Tokens,
+        AccessVersions Versions);
+
     /// <summary>
-    /// "ping" while the session is alive, then one "signed-out" and the stream ends. The signal makes it
-    /// immediate; the heartbeat keeps proxies from closing the stream and re-checks the session, which
-    /// covers what the signal cannot see (expiry, a lost message, development without Valkey).
+    /// "ping" while the session is alive, "permissions-changed" when the access versions of its organization or user
+    /// change (plan D4: one refresh brings the new claims), then one "signed-out" and the stream ends. The signal makes
+    /// the sign-out immediate; the heartbeat keeps proxies from closing the stream and re-checks the session.
     /// </summary>
     private static async IAsyncEnumerable<SseItem<string>> WatchSessionAsync(
-        string sid,
-        string sessionKey,
-        SessionEndedSignal signal,
-        ITicketStore tickets,
+        SessionWatch watch,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var ended = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         void OnEnded(string endedSid)
         {
-            if (endedSid == sid)
+            if (endedSid == watch.Sid)
             {
                 ended.TrySetResult();
             }
         }
 
-        signal.Ended += OnEnded;
+        watch.Signal.Ended += OnEnded;
         try
         {
-            while (!ended.Task.IsCompleted && await tickets.RetrieveAsync(sessionKey) is not null)
+            while (!ended.Task.IsCompleted && await watch.Tickets.RetrieveAsync(watch.SessionKey) is { } ticket)
             {
-                yield return new SseItem<string>("ping", "ping");
+                string? versions = await watch.Versions.ReadAsync(
+                    ticket.Principal.FindFirstValue(BffClaims.TenantId),
+                    ticket.Principal.FindFirstValue(Claims.Subject));
+                bool changed = versions is not null
+                    && (!ticket.Properties.Items.TryGetValue(AccessVersions.SessionItem, out string? saved) || saved != versions);
+
+                if (changed && await watch.Tokens.RefreshAsync(watch.SessionKey, versions, cancellationToken) is null)
+                {
+                    break;
+                }
+
+                yield return changed ? new SseItem<string>("permissions-changed", "permissions-changed") : new SseItem<string>("ping", "ping");
                 await Task.WhenAny(ended.Task, Task.Delay(EventsHeartbeat, cancellationToken));
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -236,7 +264,7 @@ internal static class BffEndpoints
         }
         finally
         {
-            signal.Ended -= OnEnded;
+            watch.Signal.Ended -= OnEnded;
         }
     }
 
@@ -244,22 +272,4 @@ internal static class BffEndpoints
         !string.IsNullOrEmpty(url) && url.StartsWith('/') && !url.StartsWith("//", StringComparison.Ordinal) && !url.StartsWith("/\\", StringComparison.Ordinal)
             ? url
             : "/";
-
-    private static List<string> ReadArray(ClaimsPrincipal user, string type)
-    {
-        var values = new List<string>();
-        foreach (Claim claim in user.FindAll(type))
-        {
-            if (claim.Value.StartsWith('['))
-            {
-                values.AddRange(JsonSerializer.Deserialize<string[]>(claim.Value) ?? []);
-            }
-            else
-            {
-                values.Add(claim.Value);
-            }
-        }
-
-        return values;
-    }
 }

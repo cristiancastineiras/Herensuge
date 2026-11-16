@@ -1,15 +1,15 @@
-using Herensuge.Modules.Access.Application.Services;
+using Herensuge.Modules.Access.Application.Decisions;
 using Herensuge.Modules.Access.Contracts;
 using Herensuge.Modules.Access.Domain;
 using Herensuge.Modules.Access.Domain.ResourceServers;
 
 namespace Herensuge.Modules.Access.Infrastructure.PublicApi;
 
-internal sealed class AccessModuleApi(IResourceServerRepository servers, AccessResolver resolver) : IAccessModuleApi
+internal sealed class AccessModuleApi(IResourceServerRepository servers, AccessEvaluator evaluator) : IAccessModuleApi
 {
     private const string AudienceSuffix = "-api";
 
-    public async Task<AccessTokenClaims?> GetTokenClaimsAsync(
+    public async Task<AccessClaims?> GetAccessClaimsAsync(
         Guid userId,
         Guid tenantId,
         IReadOnlyCollection<string> audiences,
@@ -32,12 +32,23 @@ internal sealed class AccessModuleApi(IResourceServerRepository servers, AccessR
             application = server;
         }
 
-        if (application is null)
+        if (application is null || await evaluator.ResolveGrantsAsync(application, new AccessSubject(tenantId, userId), cancellationToken) is not { } grants)
         {
             return null;
         }
 
-        EffectiveAccess? access = await resolver.ResolveAsync(application, tenantId, userId, cancellationToken);
-        return access is null ? null : new AccessTokenClaims(access.Roles, application.EmbedPermissions ? access.Permissions : null);
+        AccessClaimSet claims = AccessEvaluator.ToClaims(application, grants);
+        return new AccessClaims(claims.Roles, claims.Permissions, claims.ConditionalPermissions, application.EmbedPermissions);
+    }
+
+    public async Task<bool> HasPermissionAsync(Guid tenantId, Guid userId, string resourceServer, string permission, CancellationToken cancellationToken)
+    {
+        if (await servers.GetByKeyAsync(resourceServer, cancellationToken) is not { } server)
+        {
+            return false;
+        }
+
+        AccessGrants? grants = await evaluator.ResolveGrantsAsync(server, new AccessSubject(tenantId, userId), cancellationToken);
+        return evaluator.Evaluate(server, grants, SubjectFacts.ValidatedSession, permission).Decision;
     }
 }

@@ -8,7 +8,7 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../Src/Modules/Access/Herensuge.Modules.Access.Domain/Herensuge.Modules.Access.Domain.csproj" />
+    <ProjectReference Include="../../Src/Modules/Access/Herensuge.Modules.Access.Application/Herensuge.Modules.Access.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="xunit.v3" />

@@ -236,14 +236,17 @@ internal sealed class ConnectEndpoints : IEndpoint
         Guid tenantId,
         CancellationToken cancellationToken)
     {
-        AccessTokenClaims? claims = await access.GetTokenClaimsAsync(userId, tenantId, [.. identity.GetResources()], cancellationToken);
+        AccessClaims? claims = await access.GetAccessClaimsAsync(userId, tenantId, [.. identity.GetResources()], cancellationToken);
+        bool embed = claims?.EmbedPermissions == true;
         identity.SetClaims(HerensugeClaimTypes.Roles, claims is null ? [] : [.. claims.Roles]);
-        identity.SetClaims(HerensugeClaimTypes.Permissions, claims?.Permissions is { } permissions ? [.. permissions] : []);
+        identity.SetClaims(HerensugeClaimTypes.Permissions, embed ? [.. claims!.Permissions] : []);
+        identity.SetClaims(HerensugeClaimTypes.ConditionalPermissions, embed ? [.. claims!.ConditionalPermissions] : []);
     }
 
     private static async Task<IResult> UserInfoAsync(
         HttpContext httpContext,
         IQueryHandler<GetUserInfoQuery, UserInfoResponse> handler,
+        IAccessModuleApi access,
         CancellationToken cancellationToken)
     {
         AuthenticateResult authenticated = await httpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
@@ -268,6 +271,16 @@ internal sealed class ConnectEndpoints : IEndpoint
         {
             claims[Claims.Email] = user.Value.Email;
             claims[Claims.EmailVerified] = user.Value.EmailVerified;
+        }
+
+        // Access claims of the token's application, always fresh and whatever embedPermissions says: this is how the
+        // BFF learns them (ADR-A13), not from the access token nor from the ID token.
+        if (Guid.TryParse(principal.GetClaim(HerensugeClaimTypes.TenantId), out Guid tenantId)
+            && await access.GetAccessClaimsAsync(userId, tenantId, [.. principal.GetResources()], cancellationToken) is { } accessClaims)
+        {
+            claims[HerensugeClaimTypes.Roles] = accessClaims.Roles;
+            claims[HerensugeClaimTypes.Permissions] = accessClaims.Permissions;
+            claims[HerensugeClaimTypes.ConditionalPermissions] = accessClaims.ConditionalPermissions;
         }
 
         return Results.Ok(claims);

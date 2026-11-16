@@ -37,5 +37,14 @@ public static class AccessErrors
         "Access.InvalidAssignment",
         "Each assignment needs exactly one role or application role, and a future expiry date if any.");
 
+    public static readonly Error ReservedResourceServer = Error.Forbidden(
+        "Access.ReservedResourceServer",
+        "That application belongs to Herensuge and is synced only by Herensuge itself.");
+
     public static Error InvalidManifest(string reason) => Error.Failure("Access.InvalidManifest", reason);
+
+    /// <summary>The actor tried to grant permissions it does not hold itself.</summary>
+    public static Error CannotGrant(IEnumerable<string> missing) => Error.Forbidden(
+        "Access.CannotGrant",
+        $"You can only grant permissions you hold. Missing: {string.Join(", ", missing)}.");
 }

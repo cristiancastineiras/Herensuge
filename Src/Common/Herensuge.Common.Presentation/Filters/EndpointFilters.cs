@@ -70,6 +70,34 @@ public static class EndpointFilters
             return await next(context);
         });
 
+    /// <summary>
+    /// The access token must carry <paramref name="permission"/> (Herensuge's own permissions, plan D1). A quick check
+    /// for screens and reads: commands decide again against the database through Access.
+    /// </summary>
+    public static TBuilder RequirePermission<TBuilder>(this TBuilder builder, string permission)
+        where TBuilder : IEndpointConventionBuilder =>
+        builder.AddEndpointFilter(async (context, next) =>
+        {
+            System.Security.Claims.ClaimsPrincipal user = context.HttpContext.User;
+            IReadOnlyList<string> values = user.GetPermissions();
+            bool granted = values.Contains(permission, StringComparer.Ordinal);
+
+            // shortcut: tokens issued before Herensuge's permissions existed carry none; trust the owner/admin role until they
+            // expire (5 min). Remove after the first deployment of plan WP1 (plan WP7.2).
+            if (!granted && values.Count == 0)
+            {
+                string? role = user.FindFirst(Application.Security.HerensugeClaimTypes.TenantRole)?.Value;
+                granted = role is "owner" or "admin";
+            }
+
+            if (!granted)
+            {
+                return ApiResults.Problem(Error.Forbidden("Memberships.NotAllowed", "Your role does not allow this operation."));
+            }
+
+            return await next(context);
+        });
+
     /// <summary>The {tenantId} route value must be the organization the access token was issued for.</summary>
     public static TBuilder RequireActiveTenant<TBuilder>(this TBuilder builder)
         where TBuilder : IEndpointConventionBuilder =>
