@@ -6,7 +6,7 @@ import { Suspense, type ReactNode } from "react"
 import { Link, NavLink, Outlet, useSearchParams } from "react-router"
 import { me, reauthenticate, signIn, switchTenant } from "./api"
 import { PageHeader } from "./components"
-import { isTenantAdmin, usedPasskey, useUser } from "./user"
+import { Permissions, canInPortal, isTenantAdmin, usedPasskey, useUser } from "./user"
 
 /** Con sesión pinta la cabecera, la navegación y la página; sin ella (o si se cierra), lleva al login. */
 export function AppLayout() {
@@ -118,15 +118,20 @@ function Navigation({ user }: { user: HerensugeUser }) {
 		},
 	]
 
-	if (isTenantAdmin(user)) {
-		sections.push({
-			title: "Organización",
-			items: [
-				{ to: "/organizacion", label: "General", end: true },
-				{ to: "/organizacion/miembros", label: "Miembros" },
-				{ to: "/organizacion/auditoria", label: "Auditoría" },
-			],
-		})
+	const organization: NavItem[] = [
+		...(isTenantAdmin(user)
+			? [
+					{ to: "/organizacion", label: "General", end: true },
+					{ to: "/organizacion/miembros", label: "Miembros" },
+				]
+			: []),
+		...(canInPortal(user, Permissions.manageRoles) ? [{ to: "/organizacion/roles", label: "Roles" }] : []),
+		...(canInPortal(user, Permissions.readAudit)
+			? [{ to: "/organizacion/auditoria", label: "Auditoría" }]
+			: []),
+	]
+	if (user.tenantId && organization.length > 0) {
+		sections.push({ title: "Organización", items: organization })
 	}
 
 	if (user.isPlatformAdmin) {
@@ -135,6 +140,7 @@ function Navigation({ user }: { user: HerensugeUser }) {
 			items: [
 				{ to: "/plataforma/organizaciones", label: "Organizaciones" },
 				{ to: "/plataforma/clientes", label: "Clientes OIDC" },
+				{ to: "/plataforma/aplicaciones", label: "Aplicaciones" },
 				{ to: "/plataforma/auditoria", label: "Auditoría" },
 			],
 		})
@@ -174,6 +180,12 @@ function Navigation({ user }: { user: HerensugeUser }) {
 /** Las rutas por rol son solo comodidad: la autorización real la aplica siempre la API. */
 export function RequireTenantAdmin() {
 	return isTenantAdmin(useUser()) ? <Outlet /> : <NoAccess />
+}
+
+/** Rutas de la organización que dependen de un permiso de Herensuge (roles:manage, audit:read…). */
+export function RequirePermission({ permission }: { permission: string }) {
+	const user = useUser()
+	return user.tenantId && canInPortal(user, permission) ? <Outlet /> : <NoAccess />
 }
 
 export function RequirePlatformAdmin() {

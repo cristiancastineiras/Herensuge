@@ -42,7 +42,8 @@ internal sealed class AccessManagementEndpoints : IEndpoint
             .RequireAuthorization(HerensugePolicies.Api)
             .RequireActiveTenant();
 
-        tenant.MapGet("/permissions", async (IQueryHandler<GetAccessCatalogQuery, IReadOnlyList<ApplicationCatalogResponse>> handler, CancellationToken cancellationToken) =>
+        // tenantId is declared so the OpenAPI contract has the path parameter; the catalog is the same for every tenant.
+        tenant.MapGet("/permissions", async (Guid tenantId, IQueryHandler<GetAccessCatalogQuery, IReadOnlyList<ApplicationCatalogResponse>> handler, CancellationToken cancellationToken) =>
             (await handler.Handle(new GetAccessCatalogQuery(), cancellationToken)).Match(value => Results.Ok(value)))
             .RequirePermission(TenantAdministration.ManageRoles)
             .Produces<IReadOnlyList<ApplicationCatalogResponse>>();

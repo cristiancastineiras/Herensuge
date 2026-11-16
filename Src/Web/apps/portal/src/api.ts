@@ -1,5 +1,11 @@
 import { reauthenticate, signIn } from "@herensuge/react"
-import { createApiClient, type CreateClientRequest } from "@paquetes/api"
+import {
+	createApiClient,
+	type AccessManifest,
+	type CreateClientRequest,
+	type RoleGrant,
+	type RoleRequest,
+} from "@paquetes/api"
 import { startRegistration, type PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/browser"
 
 // El portal solo habla con su BFF (mismo origen): la sesión (/bff/*) la lleva @herensuge/react y aquí
@@ -88,6 +94,31 @@ export const tenants = {
 		),
 }
 
+// ── Accesos de la organización: roles y permisos de las aplicaciones ────────
+
+const role = (tenantId: string, roleId: string) => ({ params: { path: { tenantId, roleId } } })
+
+export const access = {
+	/** Aplicaciones con sus permisos y plantillas de rol. */
+	catalog: (id: string) => call(api.GET("/api/v1/tenants/{tenantId}/permissions", tenant(id))),
+	roles: (id: string) => call(api.GET("/api/v1/tenants/{tenantId}/roles", tenant(id))),
+	createRole: (id: string, body: RoleRequest) =>
+		call(api.POST("/api/v1/tenants/{tenantId}/roles", { ...tenant(id), body })),
+	updateRole: (id: string, roleId: string, body: RoleRequest) =>
+		call(api.PATCH("/api/v1/tenants/{tenantId}/roles/{roleId}", { ...role(id, roleId), body })),
+	deleteRole: (id: string, roleId: string) =>
+		call(api.DELETE("/api/v1/tenants/{tenantId}/roles/{roleId}", role(id, roleId))),
+	memberRoles: (id: string, userId: string) =>
+		call(api.GET("/api/v1/tenants/{tenantId}/members/{userId}/roles", member(id, userId))),
+	setMemberRoles: (id: string, userId: string, roles: RoleGrant[]) =>
+		call(
+			api.PUT("/api/v1/tenants/{tenantId}/members/{userId}/roles", {
+				...member(id, userId),
+				body: { roles },
+			}),
+		),
+}
+
 // ── Plataforma: /api/v1/platform ────────────────────────────────────────────
 
 const client = (clientId: string) => ({ params: { path: { clientId } } })
@@ -115,6 +146,15 @@ export const platform = {
 		call(api.POST("/api/v1/platform/clients/{clientId}/secret", client(clientId))),
 	deleteClient: (clientId: string) =>
 		call(api.DELETE("/api/v1/platform/clients/{clientId}", client(clientId))),
+
+	resourceServers: () => call(api.GET("/api/v1/platform/resource-servers")),
+	syncManifest: (manifest: AccessManifest) =>
+		call(
+			api.PUT("/api/v1/platform/resource-servers/{key}/manifest", {
+				params: { path: { key: manifest.resourceServer } },
+				body: manifest,
+			}),
+		),
 }
 
 // ── Auditoría (organización activa o plataforma) ────────────────────────────

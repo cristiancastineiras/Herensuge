@@ -2267,7 +2267,9 @@ export interface paths {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    tenantId: string;
+                };
                 cookie?: never;
             };
             requestBody?: never;
