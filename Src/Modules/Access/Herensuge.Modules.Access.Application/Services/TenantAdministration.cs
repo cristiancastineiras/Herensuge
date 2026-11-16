@@ -1,3 +1,4 @@
+using Herensuge.Modules.Access.Application.Assignments;
 using Herensuge.Modules.Access.Application.Decisions;
 
 namespace Herensuge.Modules.Access.Application.Services;
@@ -6,7 +7,12 @@ namespace Herensuge.Modules.Access.Application.Services;
 /// Who may manage access in an organization, decided by Herensuge's own permissions (dogfooding, plan D1) against the
 /// database, and what they may grant (plan D12: only what they hold; owners hold everything).
 /// </summary>
-public sealed class TenantAdministration(IResourceServerRepository servers, AccessEvaluator evaluator)
+public sealed class TenantAdministration(
+    IResourceServerRepository servers,
+    IRoleRepository roles,
+    IRoleAssignmentRepository assignments,
+    AccessEvaluator evaluator,
+    TimeProvider timeProvider)
 {
     public const string ManageRoles = "roles:manage";
     public const string ManageServiceAccounts = "service-accounts:manage";
@@ -22,6 +28,32 @@ public sealed class TenantAdministration(IResourceServerRepository servers, Acce
 
         AccessGrants? grants = await evaluator.ResolveGrantsAsync(herensuge, new AccessSubject(tenantId, actorUserId), cancellationToken);
         return evaluator.Evaluate(herensuge, grants, SubjectFacts.ValidatedSession, permission).Decision ? Result.Success() : AccessErrors.NotAllowed;
+    }
+
+    /// <summary>Plan D12 for role grants (organization roles and application roles).</summary>
+    public async Task<Result> EnsureCanGrantAsync(Guid tenantId, Guid actorUserId, IReadOnlyCollection<RoleGrant> grants, CancellationToken cancellationToken)
+    {
+        Guid[] roleIds = [.. grants.Where(grant => grant.RoleId is not null).Select(grant => grant.RoleId!.Value).Distinct()];
+        IReadOnlyList<Role> granted = roleIds.Length == 0 ? [] : await roles.GetManyAsync(tenantId, roleIds, cancellationToken);
+        return await EnsureCanGrantAsync(
+            tenantId,
+            actorUserId,
+            granted.SelectMany(role => role.PermissionIds),
+            grants.Where(grant => grant.RoleTemplateId is not null).Select(grant => grant.RoleTemplateId!.Value),
+            cancellationToken);
+    }
+
+    /// <summary>Plan D12 for joining a group: the actor must hold every permission the group's roles grant.</summary>
+    public async Task<Result> EnsureCanGrantGroupAsync(Guid tenantId, Guid actorUserId, Guid groupId, CancellationToken cancellationToken)
+    {
+        DateTime now = timeProvider.GetUtcNow().UtcDateTime;
+        RoleGrant[] grants =
+        [
+            .. (await assignments.ListAsync(tenantId, [groupId], cancellationToken))
+                .Where(assignment => assignment.IsActive(now))
+                .Select(assignment => new RoleGrant(assignment.RoleId, assignment.RoleTemplateId, assignment.ExpiresAtUtc)),
+        ];
+        return await EnsureCanGrantAsync(tenantId, actorUserId, grants, cancellationToken);
     }
 
     /// <summary>Fails with the permissions (app/key) of <paramref name="permissionIds"/> and templates the actor does not hold.</summary>

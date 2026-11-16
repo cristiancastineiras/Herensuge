@@ -20,6 +20,7 @@ public sealed partial class ResourceServer : AggregateRoot
 
     private readonly List<Permission> _permissions = [];
     private readonly List<RoleTemplate> _roleTemplates = [];
+    private readonly List<Feature> _features = [];
 
     private ResourceServer()
     {
@@ -51,6 +52,8 @@ public sealed partial class ResourceServer : AggregateRoot
 
     public IReadOnlyCollection<RoleTemplate> RoleTemplates => _roleTemplates;
 
+    public IReadOnlyCollection<Feature> Features => _features;
+
     public string Scope => ScopeFor(Key);
 
     public string Audience => AudienceFor(Key);
@@ -80,6 +83,7 @@ public sealed partial class ResourceServer : AggregateRoot
         {
             Permissions = manifest.Permissions ?? [],
             Roles = [.. (manifest.Roles ?? []).Select(role => role with { Permissions = role.Permissions ?? [] })],
+            Features = manifest.Features ?? [],
         };
 
         Result valid = Validate(manifest);
@@ -110,7 +114,7 @@ public sealed partial class ResourceServer : AggregateRoot
         {
             if (declared.Remove(existing.Key, out ManifestPermission? permission))
             {
-                existing.Update(permission.Description, permission.Requires ?? PermissionRequirements.None);
+                existing.Update(permission.Description, permission.Requires ?? PermissionRequirements.None, permission.Feature);
             }
             else
             {
@@ -120,7 +124,22 @@ public sealed partial class ResourceServer : AggregateRoot
 
         foreach (ManifestPermission permission in manifest.Permissions.Where(permission => declared.ContainsKey(permission.Key)))
         {
-            _permissions.Add(Permission.Create(Id, permission.Key, permission.Description, permission.Requires ?? PermissionRequirements.None));
+            _permissions.Add(Permission.Create(Id, permission.Key, permission.Description, permission.Requires ?? PermissionRequirements.None, permission.Feature));
+        }
+
+        // Features are only labels for plans (they hold "app/feature" keys): removing one needs no deprecation.
+        var features = manifest.Features!.ToDictionary(feature => feature.Key, StringComparer.Ordinal);
+        _features.RemoveAll(feature => !features.ContainsKey(feature.Key));
+        foreach (ManifestFeature feature in manifest.Features!)
+        {
+            if (_features.FirstOrDefault(candidate => candidate.Key == feature.Key) is { } existing)
+            {
+                existing.Rename(feature.Name);
+            }
+            else
+            {
+                _features.Add(Feature.Create(Id, feature.Key, feature.Name));
+            }
         }
 
         string[] active = [.. ActivePermissions.Select(permission => permission.Key)];
@@ -158,7 +177,8 @@ public sealed partial class ResourceServer : AggregateRoot
             EmbedPermissions = manifest.EmbedPermissions ?? true,
             Permissions = manifest.Permissions
                 .OrderBy(permission => permission.Key, StringComparer.Ordinal)
-                .Select(permission => new { permission.Key, permission.Description, Requires = permission.Requires ?? PermissionRequirements.None }),
+                .Select(permission => new { permission.Key, permission.Description, Requires = permission.Requires ?? PermissionRequirements.None, permission.Feature }),
+            Features = (manifest.Features ?? []).OrderBy(feature => feature.Key, StringComparer.Ordinal).Select(feature => new { feature.Key, feature.Name }),
             Roles = manifest.Roles
                 .OrderBy(role => role.Key, StringComparer.Ordinal)
                 .Select(role => new
@@ -209,6 +229,15 @@ public sealed partial class ResourceServer : AggregateRoot
             return AccessErrors.InvalidManifest($"At most {MaxPermissions} permissions and {MaxRoleTemplates} roles.");
         }
 
+        var features = new HashSet<string>(StringComparer.Ordinal);
+        foreach (ManifestFeature feature in manifest.Features ?? [])
+        {
+            if (!KeyPattern().IsMatch(feature.Key ?? string.Empty) || !features.Add(feature.Key!) || string.IsNullOrWhiteSpace(feature.Name))
+            {
+                return AccessErrors.InvalidManifest($"Invalid or repeated feature '{feature.Key}'.");
+            }
+        }
+
         var keys = new HashSet<string>(StringComparer.Ordinal);
         foreach (ManifestPermission permission in manifest.Permissions)
         {
@@ -217,9 +246,15 @@ public sealed partial class ResourceServer : AggregateRoot
                 return AccessErrors.InvalidManifest($"Invalid or repeated permission '{permission.Key}': use 'resource:action'.");
             }
 
-            if (permission.Requires is not (null or PermissionRequirements.None or PermissionRequirements.Mfa or PermissionRequirements.RecentAuthentication))
+            if (permission.Requires is not (null or PermissionRequirements.None or PermissionRequirements.Mfa
+                or PermissionRequirements.RecentAuthentication or PermissionRequirements.TrustedNetwork))
             {
-                return AccessErrors.InvalidManifest($"Permission '{permission.Key}': requires must be none, mfa or recent_auth.");
+                return AccessErrors.InvalidManifest($"Permission '{permission.Key}': requires must be none, mfa, recent_auth or trusted_network.");
+            }
+
+            if (permission.Feature is not null && !features.Contains(permission.Feature))
+            {
+                return AccessErrors.InvalidManifest($"Permission '{permission.Key}' uses an undeclared feature '{permission.Feature}'.");
             }
         }
 
@@ -269,26 +304,31 @@ public sealed class Permission
 
     public string? Description { get; private set; }
 
-    /// <summary>Condition on the sign-in: none, mfa or recent_auth (step-up when it is not met).</summary>
+    /// <summary>Condition of the subject: none, mfa, recent_auth (step-up when not met) or trusted_network.</summary>
     public string Requires { get; private set; } = PermissionRequirements.None;
+
+    /// <summary>Feature of the app the organization's plan must include (plan D5); null: always included.</summary>
+    public string? FeatureKey { get; private set; }
 
     public DateTime? DeprecatedAtUtc { get; private set; }
 
     public bool IsActive => DeprecatedAtUtc is null;
 
-    internal static Permission Create(Guid resourceServerId, string key, string? description, string requires) => new()
+    internal static Permission Create(Guid resourceServerId, string key, string? description, string requires, string? featureKey) => new()
     {
         Id = Guid.CreateVersion7(),
         ResourceServerId = resourceServerId,
         Key = key,
         Description = description,
         Requires = requires,
+        FeatureKey = featureKey,
     };
 
-    internal void Update(string? description, string requires)
+    internal void Update(string? description, string requires, string? featureKey)
     {
         Description = description;
         Requires = requires;
+        FeatureKey = featureKey;
         DeprecatedAtUtc = null;
     }
 
@@ -338,11 +378,35 @@ public sealed class RoleTemplate
     }
 }
 
+/// <summary>A feature of an app that plans can include: "facturas/approvals".</summary>
+public sealed class Feature
+{
+    private Feature()
+    {
+    }
+
+    public Guid Id { get; private set; }
+
+    public Guid ResourceServerId { get; private set; }
+
+    public string Key { get; private set; } = string.Empty;
+
+    public string Name { get; private set; } = string.Empty;
+
+    internal static Feature Create(Guid resourceServerId, string key, string name) =>
+        new() { Id = Guid.CreateVersion7(), ResourceServerId = resourceServerId, Key = key, Name = name.Trim() };
+
+    internal void Rename(string name) => Name = name.Trim();
+}
+
 public static class PermissionRequirements
 {
     public const string None = "none";
     public const string Mfa = "mfa";
     public const string RecentAuthentication = "recent_auth";
+
+    /// <summary>The client IP must be in the organization's trusted networks (plan D9).</summary>
+    public const string TrustedNetwork = "trusted_network";
 }
 
 /// <summary>Organization roles of the Tenancy module (tenant_role claim).</summary>

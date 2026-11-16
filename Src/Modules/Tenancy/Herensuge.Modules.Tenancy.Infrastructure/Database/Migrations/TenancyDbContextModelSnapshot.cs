@@ -40,7 +40,7 @@ namespace Herensuge.Modules.Tenancy.Infrastructure.Database.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("jsonb")
+                        .HasColumnType("text")
                         .HasColumnName("content");
 
                     b.Property<string>("CorrelationId")
@@ -53,8 +53,7 @@ namespace Herensuge.Modules.Tenancy.Infrastructure.Database.Migrations
                         .HasColumnName("error");
 
                     b.Property<string>("IpAddress")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
+                        .HasColumnType("text")
                         .HasColumnName("ip_address");
 
                     b.Property<DateTime?>("NextAttemptOnUtc")
@@ -81,8 +80,7 @@ namespace Herensuge.Modules.Tenancy.Infrastructure.Database.Migrations
                         .HasColumnName("type");
 
                     b.Property<string>("UserAgent")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
+                        .HasColumnType("text")
                         .HasColumnName("user_agent");
 
                     b.HasKey("Id")
@@ -129,7 +127,7 @@ namespace Herensuge.Modules.Tenancy.Infrastructure.Database.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("jsonb")
+                        .HasColumnType("text")
                         .HasColumnName("content");
 
                     b.Property<string>("CorrelationId")
@@ -142,8 +140,7 @@ namespace Herensuge.Modules.Tenancy.Infrastructure.Database.Migrations
                         .HasColumnName("error");
 
                     b.Property<string>("IpAddress")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
+                        .HasColumnType("text")
                         .HasColumnName("ip_address");
 
                     b.Property<DateTime?>("NextAttemptOnUtc")
@@ -170,8 +167,7 @@ namespace Herensuge.Modules.Tenancy.Infrastructure.Database.Migrations
                         .HasColumnName("type");
 
                     b.Property<string>("UserAgent")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
+                        .HasColumnType("text")
                         .HasColumnName("user_agent");
 
                     b.HasKey("Id")
@@ -221,9 +217,9 @@ namespace Herensuge.Modules.Tenancy.Infrastructure.Database.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasMaxLength(254)
-                        .HasColumnType("character varying(254)")
-                        .HasColumnName("email");
+                        .HasColumnType("text")
+                        .HasColumnName("email")
+                        .HasAnnotation("Herensuge:EncryptionPurpose", "tenancy.invitations.email");
 
                     b.Property<DateTime>("ExpiresAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -268,8 +264,8 @@ namespace Herensuge.Modules.Tenancy.Infrastructure.Database.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_invitations_token_hash");
 
-                    b.HasIndex("TenantId", "Email")
-                        .HasDatabaseName("ix_invitations_tenant_id_email");
+                    b.HasIndex("TenantId", "Status")
+                        .HasDatabaseName("ix_invitations_tenant_id_status");
 
                     b.ToTable("invitations", "tenancy");
                 });
@@ -346,6 +342,11 @@ namespace Herensuge.Modules.Tenancy.Infrastructure.Database.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)")
                         .HasColumnName("slug");
+
+                    b.PrimitiveCollection<string[]>("TrustedNetworks")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("trusted_networks");
 
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()

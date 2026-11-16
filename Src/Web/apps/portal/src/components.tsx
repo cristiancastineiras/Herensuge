@@ -37,6 +37,7 @@ export const roleLabels: Record<string, string> = {
 export const requirementLabels: Record<string, string> = {
 	mfa: "requiere MFA",
 	recent_auth: "requiere inicio de sesión reciente",
+	trusted_network: "solo desde redes de confianza",
 }
 
 /** Pantalla de carga o de error de una consulta; si hay datos, no pinta nada. */
@@ -88,6 +89,15 @@ const actionLabels: Record<string, string> = {
 	RoleDeleted: "Rol eliminado",
 	RoleAssigned: "Rol asignado",
 	RoleUnassigned: "Rol retirado",
+	GroupCreated: "Grupo creado",
+	GroupUpdated: "Grupo editado",
+	GroupDeleted: "Grupo eliminado",
+	GroupMembersChanged: "Miembros de un grupo cambiados",
+	ServiceAccountCreated: "Cuenta de servicio creada",
+	ServiceAccountSecretRotated: "Secreto de cuenta de servicio rotado",
+	ServiceAccountDeleted: "Cuenta de servicio eliminada",
+	PlanChanged: "Plan creado, editado o eliminado",
+	TenantPlanChanged: "Plan de la organización cambiado",
 }
 
 /**

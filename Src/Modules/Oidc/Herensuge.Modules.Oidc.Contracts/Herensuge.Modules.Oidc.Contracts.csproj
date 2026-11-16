@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../../Common/Herensuge.Common.Application/Herensuge.Common.Application.csproj" />
+  </ItemGroup>
+</Project>

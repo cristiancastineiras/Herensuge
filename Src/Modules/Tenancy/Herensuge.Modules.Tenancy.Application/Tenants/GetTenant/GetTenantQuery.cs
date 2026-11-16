@@ -14,6 +14,8 @@ public sealed record TenantResponse
 
     public bool RequireMfa { get; init; }
 
+    public string[] TrustedNetworks { get; init; } = [];
+
     public int MemberCount { get; init; }
 
     public DateTime CreatedAtUtc { get; init; }

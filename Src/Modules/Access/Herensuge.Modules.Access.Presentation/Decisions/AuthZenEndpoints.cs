@@ -1,3 +1,4 @@
+using System.Net;
 using System.Security.Claims;
 using System.Text.Json;
 using Herensuge.Modules.Access.Application.Decisions;
@@ -11,10 +12,18 @@ public sealed record AuthZenEntity(string Type, string Id, Dictionary<string, Js
 
 public sealed record AuthZenAction(string Name, Dictionary<string, JsonElement>? Properties);
 
-public sealed record EvaluationRequest(AuthZenEntity? Subject, AuthZenAction? Action, AuthZenEntity? Resource);
+/// <summary>context.ip: the client IP the application saw (plan D9).</summary>
+public sealed record AuthZenContext(string? Ip);
+
+public sealed record EvaluationRequest(AuthZenEntity? Subject, AuthZenAction? Action, AuthZenEntity? Resource, AuthZenContext? Context = null);
 
 /// <summary>Batch: the top-level subject is the same for every item; items give their action and resource (or use the top-level ones).</summary>
-public sealed record EvaluationsRequest(AuthZenEntity? Subject, AuthZenAction? Action, AuthZenEntity? Resource, IReadOnlyList<EvaluationRequest>? Evaluations);
+public sealed record EvaluationsRequest(
+    AuthZenEntity? Subject,
+    AuthZenAction? Action,
+    AuthZenEntity? Resource,
+    IReadOnlyList<EvaluationRequest>? Evaluations,
+    AuthZenContext? Context = null);
 
 public sealed record EvaluationResponse(bool Decision, EvaluationContext Context);
 
@@ -49,7 +58,7 @@ internal sealed class AuthZenEndpoints : IEndpoint
 
         group.MapPost("/evaluation", async (EvaluationRequest request, ClaimsPrincipal caller, IQueryHandler<EvaluateAccessQuery, IReadOnlyList<AccessDecision>> handler, CancellationToken cancellationToken) =>
         {
-            Result<EvaluateAccessQuery> query = ToQuery(caller, request.Subject, [request]);
+            Result<EvaluateAccessQuery> query = ToQuery(caller, request.Subject, [request], request.Context);
             if (query.IsFailure)
             {
                 return ApiResults.Problem(query);
@@ -69,7 +78,7 @@ internal sealed class AuthZenEndpoints : IEndpoint
                 return ApiResults.Problem(InvalidRequest("At most 100 evaluations per call, all for the top-level subject (no subject per item)."));
             }
 
-            Result<EvaluateAccessQuery> query = ToQuery(caller, request.Subject, items);
+            Result<EvaluateAccessQuery> query = ToQuery(caller, request.Subject, items, request.Context);
             if (query.IsFailure)
             {
                 return ApiResults.Problem(query);
@@ -90,20 +99,30 @@ internal sealed class AuthZenEndpoints : IEndpoint
         caller.FindFirstValue(HerensugeClaimTypes.ClientId) ?? caller.FindFirstValue(HerensugeClaimTypes.Subject) ?? string.Empty;
 
     /// <summary>
-    /// subject: { type: "user", id: sub, properties: { tenant_id, sid, amr, auth_time } } (the claims of the user's access token).
+    /// subject: { type: "user", id: sub, properties: { tenant_id, sid, amr, auth_time, act? } } (the claims of the user's
+    /// access token) or { type: "client", id: client_id, properties: { tenant_id } } (a service account, plan D7).
     /// resource: { type, id, properties: { resource_server? } } and action: { name } → permission "type:name".
+    /// context: { ip } → the client IP for trusted_network (plan D9).
     /// </summary>
-    private static Result<EvaluateAccessQuery> ToQuery(ClaimsPrincipal caller, AuthZenEntity? subject, IReadOnlyList<EvaluationRequest> items)
+    private static Result<EvaluateAccessQuery> ToQuery(ClaimsPrincipal caller, AuthZenEntity? subject, IReadOnlyList<EvaluationRequest> items, AuthZenContext? context)
     {
-        if (subject is not { Type: "user" } || !Guid.TryParse(subject.Id, out Guid userId)
-            || !Guid.TryParse(Text(subject.Properties, "tenant_id"), out Guid tenantId))
+        if (subject is null || !Guid.TryParse(Text(subject.Properties, "tenant_id"), out Guid tenantId)
+            || !(subject.Type is "user" && Guid.TryParse(subject.Id, out _) || subject.Type is "client" && !string.IsNullOrWhiteSpace(subject.Id)))
         {
-            return InvalidRequest("subject must be { type: \"user\", id: <sub>, properties: { tenant_id, sid, amr, auth_time } }.");
+            return InvalidRequest(
+                "subject must be { type: \"user\", id: <sub>, properties: { tenant_id, sid, amr, auth_time } } or { type: \"client\", id: <client_id>, properties: { tenant_id } }.");
         }
 
         if (items.Any(item => string.IsNullOrWhiteSpace(item.Resource?.Type) || string.IsNullOrWhiteSpace(item.Action?.Name)))
         {
             return InvalidRequest("Every evaluation needs resource.type and action.name.");
+        }
+
+        AccessCheck[] checks = [.. items.Select(item => new AccessCheck(Text(item.Resource!.Properties, "resource_server"), $"{item.Resource.Type}:{item.Action!.Name}"))];
+        IPAddress? ip = IPAddress.TryParse(context?.Ip, out IPAddress? parsed) ? parsed : null;
+        if (subject.Type == "client")
+        {
+            return new EvaluateAccessQuery(CallerClientId(caller), new PdpSubject(tenantId, null, subject.Id, null, [], null, null, ip), checks);
         }
 
         Guid? sessionId = Guid.TryParse(Text(subject.Properties, "sid"), out Guid sid) ? sid : null;
@@ -116,8 +135,8 @@ internal sealed class AuthZenEndpoints : IEndpoint
 
         return new EvaluateAccessQuery(
             CallerClientId(caller),
-            new PdpSubject(userId, tenantId, sessionId, amr, authTime, ActorOf(subject.Properties)),
-            [.. items.Select(item => new AccessCheck(Text(item.Resource!.Properties, "resource_server"), $"{item.Resource.Type}:{item.Action!.Name}"))]);
+            new PdpSubject(tenantId, Guid.Parse(subject.Id), null, sessionId, amr, authTime, ActorOf(subject.Properties), ip),
+            checks);
     }
 
     /// <summary>"act": { "sub": … } of the user's token (support session or token exchange), when the PEP passes it.</summary>

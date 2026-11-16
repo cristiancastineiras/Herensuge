@@ -51,7 +51,7 @@ public sealed class UserTests
     public void Password_sign_in_asks_for_mfa_when_a_second_factor_exists()
     {
         User user = VerifiedUser();
-        user.SetVerifiedPhoneNumber(PhoneNumber.Create("+34600000000").Value, Now);
+        user.SetVerifiedPhoneNumber(PhoneNumber.Create("+34600000000").Value, TestKeys.Hasher, Now);
 
         Assert.Equal(SignInStep.MfaRequired, user.SignInWithPassword(passwordMatches: true, Now).Value);
     }
@@ -72,11 +72,11 @@ public sealed class UserTests
         User user = VerifiedUser();
         user.BeginTotpSetup("protected-secret");
 
-        Result<IReadOnlyList<string>> codes = user.ConfirmTotpSetup(isValid: true, timeStep: 1, Now);
+        Result<IReadOnlyList<string>> codes = user.ConfirmTotpSetup(isValid: true, timeStep: 1, TestKeys.Hasher, Now);
 
         Assert.Equal(User.RecoveryCodeCount, codes.Value.Count);
-        Assert.True(user.RedeemRecoveryCode(codes.Value[0].ToUpperInvariant(), Now).IsSuccess);
-        Assert.Equal(UserErrors.InvalidMfaCode, user.RedeemRecoveryCode(codes.Value[0], Now).Error);
+        Assert.True(user.RedeemRecoveryCode(codes.Value[0].ToUpperInvariant(), TestKeys.Hasher, Now).IsSuccess);
+        Assert.Equal(UserErrors.InvalidMfaCode, user.RedeemRecoveryCode(codes.Value[0], TestKeys.Hasher, Now).Error);
     }
 
     [Fact]
@@ -152,7 +152,7 @@ public sealed class UserTests
     {
         User user = VerifiedUser();
         user.BeginTotpSetup("protected-secret");
-        user.ConfirmTotpSetup(isValid: true, timeStep, Now);
+        user.ConfirmTotpSetup(isValid: true, timeStep, TestKeys.Hasher, Now);
         return user;
     }
 }

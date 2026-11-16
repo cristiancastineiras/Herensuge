@@ -41,6 +41,40 @@ public static class AccessErrors
         "Access.ReservedResourceServer",
         "That application belongs to Herensuge and is synced only by Herensuge itself.");
 
+    public static readonly Error GroupNotFound = Error.NotFound("Access.GroupNotFound", "The group does not exist.");
+
+    public static readonly Error InvalidGroupName = Error.Validation("Access.InvalidGroupName", "The group name is required (max 100 characters).");
+
+    public static readonly Error GroupNameInUse = Error.Conflict("Access.GroupNameInUse", "The organization already has a group with that name.");
+
+    public static readonly Error TooManyGroups = Error.Failure("Access.TooManyGroups", $"An organization can have at most {Groups.Group.MaxPerTenant} groups.");
+
+    public static readonly Error TooManyGroupMembers = Error.Validation(
+        "Access.TooManyGroupMembers",
+        $"A group can have at most {Groups.Group.MaxMembers} members.");
+
+    public static readonly Error ServiceAccountNotFound = Error.NotFound("Access.ServiceAccountNotFound", "The service account does not exist.");
+
+    public static readonly Error InvalidServiceAccountName = Error.Validation(
+        "Access.InvalidServiceAccountName",
+        "The service account name is required (max 100 characters).");
+
+    public static readonly Error TooManyServiceAccounts = Error.Failure(
+        "Access.TooManyServiceAccounts",
+        $"An organization can have at most {ServiceAccounts.ServiceAccount.MaxPerTenant} service accounts.");
+
+    public static readonly Error PlanNotFound = Error.NotFound("Access.PlanNotFound", "The plan does not exist.");
+
+    public static readonly Error PlanKeyInUse = Error.Conflict("Access.PlanKeyInUse", "There is already a plan with that key.");
+
+    public static readonly Error DefaultPlanRequired = Error.Conflict(
+        "Access.DefaultPlanRequired",
+        "Mark another plan as the default before deleting this one.");
+
+    public static readonly Error UnknownFeature = Error.Validation("Access.UnknownFeature", "One of the features does not exist in its application.");
+
+    public static Error InvalidPlan(string reason) => Error.Validation("Access.InvalidPlan", reason);
+
     public static Error InvalidManifest(string reason) => Error.Failure("Access.InvalidManifest", reason);
 
     /// <summary>The actor tried to grant permissions it does not hold itself.</summary>

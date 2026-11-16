@@ -22,6 +22,9 @@ public static class HerensugeClaimTypes
     /// <summary>Permissions granted only with a condition (MFA, recent sign-in…): the API asks the PDP.</summary>
     public const string ConditionalPermissions = "conditional_permissions";
 
+    /// <summary>Features of the application in the organization's plan (plan D5).</summary>
+    public const string Entitlements = "entitlements";
+
     /// <summary>RFC 8693 actor: who acts on behalf of the subject (support session, token exchange).</summary>
     public const string Actor = "act";
 

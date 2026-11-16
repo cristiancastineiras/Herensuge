@@ -2415,7 +2415,7 @@ export interface paths {
         };
         trace?: never;
     };
-    "/api/v1/tenants/{tenantId}/members/{userId}/roles": {
+    "/api/v1/tenants/{tenantId}/members/{subjectId}/roles": {
         parameters: {
             query?: never;
             header?: never;
@@ -2428,7 +2428,7 @@ export interface paths {
                 header?: never;
                 path: {
                     tenantId: string;
-                    userId: string;
+                    subjectId: string;
                 };
                 cookie?: never;
             };
@@ -2440,7 +2440,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["MemberRoleResponse"][];
+                        "application/json": components["schemas"]["AssignedRoleResponse"][];
                     };
                 };
             };
@@ -2451,13 +2451,771 @@ export interface paths {
                 header?: never;
                 path: {
                     tenantId: string;
-                    userId: string;
+                    subjectId: string;
                 };
                 cookie?: never;
             };
             requestBody: {
                 content: {
-                    "application/json": components["schemas"]["SetMemberRolesRequest"];
+                    "application/json": components["schemas"]["SetRolesRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenantId}/groups/{subjectId}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                    subjectId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssignedRoleResponse"][];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                    subjectId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetRolesRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenantId}/service-accounts/{subjectId}/roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                    subjectId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AssignedRoleResponse"][];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                    subjectId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SetRolesRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenantId}/groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GroupResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GroupRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CreatedIdResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenantId}/groups/{groupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                    groupId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                    groupId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GroupRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenantId}/groups/{groupId}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                    groupId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GroupMembersRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenantId}/service-accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ServiceAccountResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ServiceAccountRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ServiceAccountCreatedResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenantId}/service-accounts/{serviceAccountId}/secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                    serviceAccountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ServiceAccountSecretResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenantId}/service-accounts/{serviceAccountId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                    serviceAccountId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenantId}/access/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SimulateAccessRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SimulationResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenants/{tenantId}/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TenantPlanDetailsResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/features": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["FeatureResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlanResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PlanRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/plans/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PlanRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/v1/platform/plans/{key}/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    key: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/tenant-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TenantPlanResponse"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/tenants/{tenantId}/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    tenantId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["TenantPlanRequest"];
                 };
             };
             responses: {
@@ -2605,6 +3363,7 @@ export interface components {
             embedPermissions: null | boolean;
             permissions: components["schemas"]["ManifestPermission"][];
             roles: components["schemas"]["ManifestRole"][];
+            features?: null | components["schemas"]["ManifestFeature"][];
         };
         AddPasskeyRequest: {
             credential: components["schemas"]["JsonElement"];
@@ -2615,6 +3374,16 @@ export interface components {
             name: string;
             permissions: components["schemas"]["PermissionResponse"][];
             roles: components["schemas"]["RoleTemplateResponse"][];
+        };
+        AssignedRoleResponse: {
+            /** Format: uuid */
+            roleId: null | string;
+            /** Format: uuid */
+            roleTemplateId: null | string;
+            /** Format: date-time */
+            expiresAtUtc: null | string;
+            /** Format: date-time */
+            grantedAtUtc: string;
         };
         AuditEntryResponse: {
             /** Format: uuid */
@@ -2640,6 +3409,9 @@ export interface components {
         AuthZenAction: {
             name: string;
             properties: null | Record<string, never>;
+        };
+        AuthZenContext: {
+            ip: null | string;
         };
         AuthZenEntity: {
             type: string;
@@ -2682,6 +3454,10 @@ export interface components {
             redirectUris: string[];
             postLogoutRedirectUris: null | string[];
             scopes: string[];
+        };
+        CreatedIdResponse: {
+            /** Format: uuid */
+            id: string;
         };
         CreatedResponse: {
             /** Format: uuid */
@@ -2726,6 +3502,7 @@ export interface components {
             subject: null | components["schemas"]["AuthZenEntity"];
             action: null | components["schemas"]["AuthZenAction"];
             resource: null | components["schemas"]["AuthZenEntity"];
+            context?: null | components["schemas"]["AuthZenContext"];
         };
         EvaluationResponse: {
             decision: boolean;
@@ -2736,15 +3513,43 @@ export interface components {
             action: null | components["schemas"]["AuthZenAction"];
             resource: null | components["schemas"]["AuthZenEntity"];
             evaluations: null | components["schemas"]["EvaluationRequest"][];
+            context?: null | components["schemas"]["AuthZenContext"];
         };
         EvaluationsResponse: {
             evaluations: components["schemas"]["EvaluationResponse"][];
+        };
+        EvaluationStep: {
+            name: string;
+            passed: boolean;
+            detail: string;
         };
         ExternalLoginResponse: {
             provider: string;
             email: null | string;
             /** Format: date-time */
             linkedAtUtc: string;
+        };
+        FeatureResponse: {
+            resourceServer: string;
+            resourceServerName: string;
+            key: string;
+            name: string;
+        };
+        GroupMembersRequest: {
+            userIds: string[];
+        };
+        GroupRequest: {
+            name: string;
+            description: null | string;
+        };
+        GroupResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            description: null | string;
+            memberUserIds: string[];
+            /** Format: int32 */
+            roles: number;
         };
         InvitationPreviewResponse: {
             tenantName: string;
@@ -2767,10 +3572,15 @@ export interface components {
             expiresAtUtc: string;
         };
         JsonElement: unknown;
+        ManifestFeature: {
+            key: string;
+            name: string;
+        };
         ManifestPermission: {
             key: string;
             description: null | string;
             requires: null | string;
+            feature?: null | string;
         };
         ManifestRole: {
             key: string;
@@ -2794,16 +3604,6 @@ export interface components {
             role: string;
             /** Format: date-time */
             joinedAtUtc: string;
-        };
-        MemberRoleResponse: {
-            /** Format: uuid */
-            roleId: null | string;
-            /** Format: uuid */
-            roleTemplateId: null | string;
-            /** Format: date-time */
-            expiresAtUtc: null | string;
-            /** Format: date-time */
-            grantedAtUtc: string;
         };
         MfaChallengeResponse: {
             methods: string[];
@@ -2836,9 +3636,33 @@ export interface components {
             key: string;
             description: null | string;
             requires: string;
+            featureKey: null | string;
         };
         PhoneNumberRequest: {
             phoneNumber: string;
+        };
+        PlanApplicationResponse: {
+            key: string;
+            name: string;
+            features: components["schemas"]["PlanFeatureResponse"][];
+        };
+        PlanFeatureResponse: {
+            key: string;
+            name: string;
+            included: boolean;
+        };
+        PlanRequest: {
+            key: string;
+            name: string;
+            features: string[];
+        };
+        PlanResponse: {
+            key: string;
+            name: string;
+            isDefault: boolean;
+            features: string[];
+            /** Format: int32 */
+            tenants: number;
         };
         PlatformTenantResponse: {
             /** Format: uuid */
@@ -2932,6 +3756,28 @@ export interface components {
             /** Format: uuid */
             tenantId: string;
         };
+        ServiceAccountCreatedResponse: {
+            /** Format: uuid */
+            id: string;
+            clientId: string;
+            clientSecret: string;
+        };
+        ServiceAccountRequest: {
+            name: string;
+        };
+        ServiceAccountResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            clientId: string;
+            /** Format: date-time */
+            createdAtUtc: string;
+            /** Format: int32 */
+            roles: number;
+        };
+        ServiceAccountSecretResponse: {
+            clientSecret: string;
+        };
         SessionResponse: {
             /** Format: uuid */
             id: string;
@@ -2959,7 +3805,7 @@ export interface components {
             /** Format: uuid */
             tenantId: null | string;
         };
-        SetMemberRolesRequest: {
+        SetRolesRequest: {
             roles: components["schemas"]["RoleGrant"][];
         };
         SetTenantStatusRequest: {
@@ -2973,6 +3819,31 @@ export interface components {
             status: string;
             mfaMethods: string[];
         };
+        SimulateAccessRequest: {
+            /** Format: uuid */
+            userId: string;
+            resourceServer: string;
+            permission: string;
+        };
+        SimulationResponse: {
+            decision: boolean;
+            reason: string;
+            steps: components["schemas"]["EvaluationStep"][];
+        };
+        TenantPlanDetailsResponse: {
+            planKey: null | string;
+            plan: null | string;
+            isDefault: boolean;
+            applications: components["schemas"]["PlanApplicationResponse"][];
+        };
+        TenantPlanRequest: {
+            planKey: null | string;
+        };
+        TenantPlanResponse: {
+            /** Format: uuid */
+            tenantId: string;
+            planKey: string;
+        };
         TenantResponse: {
             /** Format: uuid */
             id: string;
@@ -2980,6 +3851,7 @@ export interface components {
             slug: string;
             isActive: boolean;
             requireMfa: boolean;
+            trustedNetworks: string[];
             /** Format: int32 */
             memberCount: number;
             /** Format: date-time */
@@ -3008,6 +3880,7 @@ export interface components {
         UpdateTenantRequest: {
             name: string;
             requireMfa: boolean;
+            trustedNetworks: null | string[];
         };
         UserTenantResponse: {
             /** Format: uuid */

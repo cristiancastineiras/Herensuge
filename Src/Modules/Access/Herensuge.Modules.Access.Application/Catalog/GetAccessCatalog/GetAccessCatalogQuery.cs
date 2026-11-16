@@ -1,7 +1,7 @@
 namespace Herensuge.Modules.Access.Application.Catalog.GetAccessCatalog;
 
 /// <summary>What an organization can grant: every application with its active permissions and its roles.</summary>
-// shortcut: every application is listed for every organization; filter by contracted features with plans (plan, phase 2).
+// shortcut: lists every permission, also those outside the organization's plan (they grant nothing, plan D5); filter by plan if organizations ask for it.
 public sealed record GetAccessCatalogQuery : IQuery<IReadOnlyList<ApplicationCatalogResponse>>;
 
 public sealed record ApplicationCatalogResponse(
@@ -20,8 +20,11 @@ public sealed record PermissionResponse
 
     public string? Description { get; init; }
 
-    /// <summary>none, mfa or recent_auth.</summary>
+    /// <summary>none, mfa, recent_auth or trusted_network.</summary>
     public string Requires { get; init; } = string.Empty;
+
+    /// <summary>Feature of the application the organization's plan must include; null: always.</summary>
+    public string? FeatureKey { get; init; }
 }
 
 public sealed record RoleTemplateResponse

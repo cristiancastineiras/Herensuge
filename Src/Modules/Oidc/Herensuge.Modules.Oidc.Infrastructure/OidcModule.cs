@@ -7,6 +7,7 @@ using Herensuge.Common.Infrastructure.Database;
 using Herensuge.Common.Infrastructure.Messaging;
 using Herensuge.Modules.Oidc.Application;
 using Herensuge.Modules.Oidc.Application.Abstractions;
+using Herensuge.Modules.Oidc.Contracts;
 using Herensuge.Modules.Oidc.Infrastructure.Clients;
 using Herensuge.Modules.Oidc.Infrastructure.Database;
 using Herensuge.Modules.Oidc.Infrastructure.Jobs;
@@ -120,6 +121,7 @@ public static class OidcModule
 
         services.AddScoped<IClientRegistry, OpenIddictClientRegistry>();
         services.AddScoped<IScopeRegistry, OpenIddictScopeRegistry>();
+        services.AddScoped<IOidcModuleApi, OidcModuleApi>();
         services.AddScoped<ITokenRevoker, TokenRevoker>();
         services.AddHostedService<OidcSeeder>();
         services.AddHostedService<OidcPruningJob>();

@@ -73,11 +73,11 @@ public sealed class AccessTests
         Guid user = Guid.NewGuid();
         Guid admin = Guid.NewGuid();
 
-        Assert.Equal(AccessErrors.InvalidAssignment, RoleAssignment.Grant(tenant, user, null, null, null, admin, Now).Error);
-        Assert.Equal(AccessErrors.InvalidAssignment, RoleAssignment.Grant(tenant, user, Guid.NewGuid(), Guid.NewGuid(), null, admin, Now).Error);
-        Assert.Equal(AccessErrors.InvalidAssignment, RoleAssignment.Grant(tenant, user, Guid.NewGuid(), null, Now, admin, Now).Error);
+        Assert.Equal(AccessErrors.InvalidAssignment, RoleAssignment.Grant(tenant, SubjectTypes.User, user, null, null, null, admin, Now).Error);
+        Assert.Equal(AccessErrors.InvalidAssignment, RoleAssignment.Grant(tenant, SubjectTypes.User, user, Guid.NewGuid(), Guid.NewGuid(), null, admin, Now).Error);
+        Assert.Equal(AccessErrors.InvalidAssignment, RoleAssignment.Grant(tenant, SubjectTypes.User, user, Guid.NewGuid(), null, Now, admin, Now).Error);
 
-        RoleAssignment temporary = RoleAssignment.Grant(tenant, user, Guid.NewGuid(), null, Now.AddHours(1), admin, Now).Value;
+        RoleAssignment temporary = RoleAssignment.Grant(tenant, SubjectTypes.User, user, Guid.NewGuid(), null, Now.AddHours(1), admin, Now).Value;
         Assert.True(temporary.IsActive(Now));
         Assert.False(temporary.IsActive(Now.AddHours(1)));
     }

@@ -11,7 +11,8 @@ using Herensuge.Modules.Tenancy.Application.Tenants.UpdateTenant;
 
 namespace Herensuge.Modules.Tenancy.Presentation.Tenants;
 
-public sealed record UpdateTenantRequest(string Name, bool RequireMfa);
+/// <param name="TrustedNetworks">Public CIDR ranges (plan D9); null keeps the current ones.</param>
+public sealed record UpdateTenantRequest(string Name, bool RequireMfa, IReadOnlyList<string>? TrustedNetworks);
 
 public sealed record ChangeRoleRequest(string Role);
 
@@ -43,7 +44,7 @@ internal sealed class TenantEndpoints : IEndpoint
             .Produces<TenantResponse>();
 
         group.MapPatch("/", async (Guid tenantId, UpdateTenantRequest request, ClaimsPrincipal user, ICommandHandler<UpdateTenantCommand> handler, CancellationToken cancellationToken) =>
-            (await handler.Handle(new UpdateTenantCommand(tenantId, user.GetUserId(), request.Name, request.RequireMfa), cancellationToken))
+            (await handler.Handle(new UpdateTenantCommand(tenantId, user.GetUserId(), request.Name, request.RequireMfa, request.TrustedNetworks), cancellationToken))
                 .Match(Results.NoContent))
             .Produces(StatusCodes.Status204NoContent);
 

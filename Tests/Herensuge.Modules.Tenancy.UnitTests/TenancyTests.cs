@@ -8,6 +8,8 @@ public sealed class TenancyTests
 {
     private static readonly DateTime Now = new(2026, 11, 12, 10, 0, 0, DateTimeKind.Utc);
 
+    private static readonly TestHasher Hasher = new();
+
     [Theory]
     [InlineData("Acme Corporación S.L.", "acme-corporacion-s-l")]
     [InlineData("  Ñandú & Cía  ", "nandu-cia")]
@@ -47,9 +49,9 @@ public sealed class TenancyTests
     [Fact]
     public void Invitations_are_accepted_once_by_the_invited_verified_email()
     {
-        (Invitation invitation, string token) = Invitation.Create(Guid.NewGuid(), "Acme", "ana@example.com", TenantRole.Member, Guid.NewGuid(), Now);
+        (Invitation invitation, string token) = Invitation.Create(Guid.NewGuid(), "Acme", "ana@example.com", TenantRole.Member, Guid.NewGuid(), Hasher, Now);
 
-        Assert.Equal(Invitation.HashToken(token), invitation.TokenHash);
+        Assert.Equal(Invitation.HashToken(token, Hasher), invitation.TokenHash);
         Assert.Equal(InvitationErrors.EmailNotVerified, invitation.Accept(Guid.NewGuid(), "ana@example.com", emailVerified: false, Now).Error);
         Assert.Equal(InvitationErrors.EmailMismatch, invitation.Accept(Guid.NewGuid(), "eve@example.com", emailVerified: true, Now).Error);
         Assert.True(invitation.Accept(Guid.NewGuid(), "ANA@example.com", emailVerified: true, Now).IsSuccess);
@@ -59,7 +61,7 @@ public sealed class TenancyTests
     [Fact]
     public void Invitations_expire_after_seven_days()
     {
-        (Invitation invitation, _) = Invitation.Create(Guid.NewGuid(), "Acme", "ana@example.com", TenantRole.Member, Guid.NewGuid(), Now);
+        (Invitation invitation, _) = Invitation.Create(Guid.NewGuid(), "Acme", "ana@example.com", TenantRole.Member, Guid.NewGuid(), Hasher, Now);
 
         Assert.Equal(
             InvitationErrors.NotPending,
