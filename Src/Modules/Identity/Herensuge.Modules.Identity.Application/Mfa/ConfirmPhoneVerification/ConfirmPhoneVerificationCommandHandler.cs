@@ -1,9 +1,11 @@
 using Herensuge.Modules.Identity.Application.Mfa.RegenerateRecoveryCodes;
+using Herensuge.Modules.Identity.Application.Services;
 
 namespace Herensuge.Modules.Identity.Application.Mfa.ConfirmPhoneVerification;
 
 internal sealed class ConfirmPhoneVerificationCommandHandler(
     IUserRepository users,
+    IUserSessionRepository sessions,
     IOneTimeTokenRepository tokens,
     IUnitOfWork unitOfWork,
     ISecretHasher hasher,
@@ -32,7 +34,15 @@ internal sealed class ConfirmPhoneVerificationCommandHandler(
             return OneTimeTokenErrors.InvalidOrExpired;
         }
 
+        bool hadMfa = user.HasMfa;
         Result<IReadOnlyList<string>> codes = user.SetVerifiedPhoneNumber(phoneNumber.Value, hasher, now);
+
+        // Turning MFA on closes the sessions opened without it (other browsers and devices): they sign in again with it.
+        if (!hadMfa)
+        {
+            await sessions.RevokeOthersAsync(user.Id, command.CurrentSessionId, SessionRevocationReasons.MfaEnabled, now, cancellationToken);
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return new RecoveryCodesResponse(codes.Value);
     }

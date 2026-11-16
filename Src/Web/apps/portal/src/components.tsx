@@ -59,6 +59,7 @@ const actionLabels: Record<string, string> = {
 	MfaEnabled: "MFA activado",
 	MfaDisabled: "MFA desactivado",
 	SmsMfaCodeRequested: "Código por SMS solicitado",
+	EmailMfaCodeRequested: "Código por email solicitado",
 	PhoneVerificationRequested: "Verificación de teléfono solicitada",
 	PasskeyAdded: "Passkey añadida",
 	PasskeyRemoved: "Passkey eliminada",

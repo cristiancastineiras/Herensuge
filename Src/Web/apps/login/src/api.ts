@@ -24,7 +24,11 @@ export const auth = {
 
 	mfaChallenge: () => call(api.GET("/api/v1/auth/sign-in/mfa")),
 	verifyMfa: (body: { method: string; code: string }) => call(api.POST("/api/v1/auth/sign-in/mfa", { body })),
-	sendSmsCode: () => call(api.POST("/api/v1/auth/sign-in/mfa/sms")),
+	/** Código de 6 dígitos por SMS o al email verificado. */
+	sendCode: (method: "sms" | "email") =>
+		call(
+			method === "sms" ? api.POST("/api/v1/auth/sign-in/mfa/sms") : api.POST("/api/v1/auth/sign-in/mfa/email"),
+		),
 	beginTotp: () => call(api.POST("/api/v1/auth/mfa/totp")),
 	confirmTotp: (code: string) => call(api.POST("/api/v1/auth/mfa/totp/confirm", { body: { code } })),
 

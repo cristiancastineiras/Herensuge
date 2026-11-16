@@ -103,12 +103,18 @@ public sealed partial class SignInFlowTests(HerensugeApiFactory factory) : IClas
         string email = UniqueEmail();
         await RegisterAndVerifyAsync(browser, email);
         Assert.Equal(HttpStatusCode.OK, (await browser.PostAsJsonAsync("/api/v1/auth/sign-in", new { email, password = Password })).StatusCode);
+        HttpClient earlierBrowser = factory.CreateBrowser();
+        Assert.Equal(HttpStatusCode.OK, (await earlierBrowser.PostAsJsonAsync("/api/v1/auth/sign-in", new { email, password = Password })).StatusCode);
 
         JsonElement setup = await (await browser.PostAsync("/api/v1/auth/mfa/totp", null)).Content.ReadFromJsonAsync<JsonElement>();
         var totp = new Totp(Base32Encoding.ToBytes(setup.GetProperty("sharedKey").GetString()));
         HttpResponseMessage confirmed = await browser.PostAsJsonAsync("/api/v1/auth/mfa/totp/confirm", new { code = totp.ComputeTotp() });
         Assert.Equal(HttpStatusCode.OK, confirmed.StatusCode);
         Assert.Equal(10, (await confirmed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("recoveryCodes").GetArrayLength());
+
+        // Turning MFA on closes the sessions opened without it, and keeps the one that turned it on.
+        Assert.False((await earlierBrowser.GetFromJsonAsync<JsonElement>("/api/v1/auth/session")).GetProperty("signedIn").GetBoolean());
+        Assert.True((await browser.GetFromJsonAsync<JsonElement>("/api/v1/auth/session")).GetProperty("signedIn").GetBoolean());
 
         HttpClient otherBrowser = factory.CreateBrowser();
         JsonElement firstFactor = await (await otherBrowser.PostAsJsonAsync("/api/v1/auth/sign-in", new { email, password = Password }))
@@ -120,6 +126,18 @@ public sealed partial class SignInFlowTests(HerensugeApiFactory factory) : IClas
         HttpResponseMessage secondFactor = await otherBrowser.PostAsJsonAsync("/api/v1/auth/sign-in/mfa", new { method = "totp", code = nextCode });
         Assert.Equal(HttpStatusCode.OK, secondFactor.StatusCode);
         Assert.Equal("signed-in", (await secondFactor.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("status").GetString());
+
+        // Without the app at hand: a code sent to the verified email also answers the challenge.
+        HttpClient emailBrowser = factory.CreateBrowser();
+        JsonElement challenge = await (await emailBrowser.PostAsJsonAsync("/api/v1/auth/sign-in", new { email, password = Password }))
+            .Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Contains("email", challenge.GetProperty("mfaMethods").EnumerateArray().Select(method => method.GetString()));
+        Assert.Equal(HttpStatusCode.Accepted, (await emailBrowser.PostAsync("/api/v1/auth/sign-in/mfa/email", null)).StatusCode);
+
+        EmailMessage codeEmail = await factory.Messages.WaitForEmailAsync(email, "Tu código de acceso");
+        string emailCode = SixDigitCodePattern().Match(codeEmail.TextBody).Value;
+        HttpResponseMessage byEmail = await emailBrowser.PostAsJsonAsync("/api/v1/auth/sign-in/mfa", new { method = "email", code = emailCode });
+        Assert.Equal(HttpStatusCode.OK, byEmail.StatusCode);
     }
 
     private async Task RegisterAndVerifyAsync(HttpClient browser, string email)
@@ -189,4 +207,7 @@ public sealed partial class SignInFlowTests(HerensugeApiFactory factory) : IClas
 
     [GeneratedRegex(@"token=([A-Za-z0-9_\-%]+)")]
     private static partial Regex TokenPattern();
+
+    [GeneratedRegex(@"\b\d{6}\b")]
+    private static partial Regex SixDigitCodePattern();
 }

@@ -130,7 +130,7 @@ function TotpCard({ profile }: { profile: CurrentUserResponse }) {
 	return (
 		<Card
 			title="App autenticadora"
-			description="Códigos de 6 dígitos de Google Authenticator, Microsoft Authenticator, 1Password…"
+			description="Códigos de 6 dígitos de Google Authenticator, Microsoft Authenticator, 1Password… Al activar la verificación en dos pasos se cierran tus otras sesiones; si no tienes la app a mano, podrás pedir el código por email o usar un código de recuperación."
 			actions={profile.totpEnabled ? <Badge tone="success">Activada</Badge> : <Badge>Desactivada</Badge>}
 		>
 			{settingUp ? (

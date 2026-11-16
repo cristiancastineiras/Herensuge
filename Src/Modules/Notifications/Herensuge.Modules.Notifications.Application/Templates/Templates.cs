@@ -149,6 +149,23 @@ internal static class PhoneVerificationSms
         new(to, $"Tu código para verificar el teléfono en {product} es {code}. Caduca en 10 minutos.");
 }
 
+internal static class MfaCodeEmail
+{
+    public static EmailMessage Create(string to, string name, string code, DateTime expiresAtUtc, string product) => new(
+        to,
+        "Tu código de acceso",
+        $"""
+        Hola {name},
+
+        Tu código para iniciar sesión en {product} es:
+
+        {code}
+
+        Caduca el {TemplateFormat.Utc(expiresAtUtc)} y solo se puede usar una vez. No lo compartas con nadie.
+        Si no estás iniciando sesión, alguien conoce tu contraseña: cámbiala cuanto antes.
+        """);
+}
+
 internal static class MfaCodeSms
 {
     public static SmsMessage Create(string to, string code, string product) =>

@@ -30,6 +30,7 @@ internal sealed class SendNotificationsHandler(
     IIntegrationEventHandler<UserLockedOutIntegrationEvent>,
     IIntegrationEventHandler<PhoneVerificationRequestedIntegrationEvent>,
     IIntegrationEventHandler<SmsMfaCodeRequestedIntegrationEvent>,
+    IIntegrationEventHandler<EmailMfaCodeRequestedIntegrationEvent>,
     IIntegrationEventHandler<InvitationCreatedIntegrationEvent>
 {
     private NotificationOptions Settings => options.Value;
@@ -119,6 +120,11 @@ internal sealed class SendNotificationsHandler(
 
     public Task Handle(SmsMfaCodeRequestedIntegrationEvent integrationEvent, CancellationToken cancellationToken) =>
         smsSender.SendAsync(MfaCodeSms.Create(integrationEvent.PhoneNumber, integrationEvent.Code, Settings.ProductName), cancellationToken);
+
+    public Task Handle(EmailMfaCodeRequestedIntegrationEvent integrationEvent, CancellationToken cancellationToken) =>
+        emailSender.SendAsync(
+            MfaCodeEmail.Create(integrationEvent.Email, integrationEvent.DisplayName, integrationEvent.Code, integrationEvent.ExpiresAtUtc, Settings.ProductName),
+            cancellationToken);
 
     public async Task Handle(InvitationCreatedIntegrationEvent integrationEvent, CancellationToken cancellationToken)
     {

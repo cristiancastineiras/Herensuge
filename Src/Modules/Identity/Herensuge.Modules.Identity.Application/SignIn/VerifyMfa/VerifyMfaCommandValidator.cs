@@ -6,7 +6,7 @@ internal sealed class VerifyMfaCommandValidator : AbstractValidator<VerifyMfaCom
 {
     public VerifyMfaCommandValidator()
     {
-        RuleFor(command => command.Method).Must(method => method is MfaMethods.Totp or MfaMethods.Sms or MfaMethods.RecoveryCode);
+        RuleFor(command => command.Method).Must(method => method is MfaMethods.Totp or MfaMethods.Sms or MfaMethods.Email or MfaMethods.RecoveryCode);
         RuleFor(command => command.Code).NotEmpty().MaximumLength(20);
     }
 }

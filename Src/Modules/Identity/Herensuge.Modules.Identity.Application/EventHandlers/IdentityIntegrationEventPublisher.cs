@@ -109,6 +109,8 @@ internal sealed class IdentityIntegrationEventPublisher(IEventBus eventBus, IUse
                 user.Id, domainEvent.Target, domainEvent.Value, domainEvent.ExpiresAtUtc),
             OneTimeTokenPurpose.SmsMfa when domainEvent.Target is not null => new SmsMfaCodeRequestedIntegrationEvent(
                 user.Id, domainEvent.Target, domainEvent.Value, domainEvent.ExpiresAtUtc),
+            OneTimeTokenPurpose.EmailMfa => new EmailMfaCodeRequestedIntegrationEvent(
+                user.Id, user.Email, user.DisplayName, domainEvent.Value, domainEvent.ExpiresAtUtc),
             _ => null,
         };
 
