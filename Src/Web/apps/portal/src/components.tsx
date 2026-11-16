@@ -33,6 +33,12 @@ export const roleLabels: Record<string, string> = {
 	member: "Miembro",
 }
 
+/** Condición de un permiso del manifiesto (`requires`) → texto; "none" no se muestra. */
+export const requirementLabels: Record<string, string> = {
+	mfa: "requiere MFA",
+	recent_auth: "requiere inicio de sesión reciente",
+}
+
 /** Pantalla de carga o de error de una consulta; si hay datos, no pinta nada. */
 export function QueryState({ query }: { query: { isPending: boolean; error: unknown } }) {
 	if (query.isPending) {
@@ -76,6 +82,12 @@ const actionLabels: Record<string, string> = {
 	InvitationCreated: "Invitación enviada",
 	InvitationAccepted: "Invitación aceptada",
 	InvitationRevoked: "Invitación revocada",
+	ResourceServerSynced: "Manifiesto de aplicación sincronizado",
+	RoleCreated: "Rol creado",
+	RoleUpdated: "Rol editado",
+	RoleDeleted: "Rol eliminado",
+	RoleAssigned: "Rol asignado",
+	RoleUnassigned: "Rol retirado",
 }
 
 /**

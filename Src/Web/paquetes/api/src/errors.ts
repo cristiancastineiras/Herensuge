@@ -51,7 +51,8 @@ const messages: Record<string, string> = {
 	"Users.InvalidMfaCode": "El código no es correcto.",
 	"Users.MfaMethodNotAvailable": "Ese método de verificación no está activado.",
 	"Users.MfaNotEnabled": "No tienes la verificación en dos pasos activada.",
-	"Users.CodeRequestedTooRecently": "Ya te hemos enviado un código. Espera unos segundos antes de pedir otro.",
+	"Users.CodeRequestedTooRecently":
+		"Ya te hemos enviado un código. Espera unos segundos antes de pedir otro.",
 	"Users.LastAccessMethod": "No puedes quitar tu último método de acceso.",
 	"Users.TotpAlreadyEnabled": "La app autenticadora ya está activada.",
 	"Users.TotpNotEnabled": "La app autenticadora no está activada.",
@@ -84,6 +85,22 @@ const messages: Record<string, string> = {
 	"Clients.NotFound": "El cliente no existe.",
 	"Clients.SystemClient": "Este cliente se gestiona desde la configuración.",
 	"Clients.PublicClientHasNoSecret": "Los clientes públicos no tienen secreto.",
+
+	"Access.ResourceServerNotFound": "La aplicación no existe.",
+	"Access.NotYourResourceServer": "Esa aplicación pertenece a otro cliente.",
+	"Access.ClientInUse": "Ese cliente ya publica otra aplicación.",
+	"Access.ReservedResourceServer": "Los permisos de Herensuge se gestionan desde el propio Herensuge.",
+	// Access.InvalidManifest no está: su title dice qué falla del manifiesto.
+	"Access.RoleNotFound": "El rol no existe.",
+	"Access.RoleNameInUse": "Ya hay un rol con ese nombre.",
+	"Access.InvalidRoleName": "Escribe un nombre de rol de como máximo 100 caracteres.",
+	"Access.TooManyPermissions": "El rol tiene demasiados permisos.",
+	"Access.UnknownPermission": "Uno de los permisos ya no existe. Recarga la página.",
+	"Access.TooManyRoles": "La organización ha alcanzado el máximo de roles.",
+	"Access.NotAMember": "Esa persona no es miembro de la organización.",
+	"Access.InvalidAssignment":
+		"Revisa los roles: cada uno debe ser un rol o una plantilla, y la caducidad, futura.",
+	"Access.CannotGrant": "Solo puedes conceder permisos que tú tienes.",
 
 	"Oidc.SessionInvalid": "Tu sesión ha caducado o se ha cerrado.",
 	"Oidc.TenantInactive": "La organización está desactivada.",

@@ -62,7 +62,37 @@ if (response.status === 401) signIn()
 - `reauthenticate()`: login reciente para operaciones sensibles (`max_age=0`).
 - `switchTenant(tenantId)`: cambia de organización.
 - `herensugeFetch(url, init)`: `fetch` con `X-CSRF: 1`.
-- `fetchUser()` y `watchSession(callback)`: lo mismo que hace el provider, sin React.
+- `useCan(permission)`, `<Can permission fallback>` y `can(user, permission)`: ¿puede el usuario hacer esa acción
+  en esta aplicación?
+- `useEntitled(feature)`: ¿incluye el plan de la organización esa funcionalidad?
+- `fetchUser()` y `watchSession(onSignedOut, onPermissionsChanged)`: lo mismo que hace el provider, sin React.
+
+## Permisos
+
+`user.permissions` son los permisos de tu aplicación (los de su manifiesto) que el usuario tiene sin condición;
+`user.conditionalPermissions`, los que solo valen con una condición (por ejemplo, haber entrado con MFA). `useCan`
+responde `true` en los dos casos: sirve para **mostrar u ocultar**, nunca para decidir. Decide siempre tu API (con
+el SDK .NET `Herensuge.Access.AspNetCore` o preguntando al punto de decisión), que pedirá el _step-up_ si falta la
+condición.
+
+```tsx
+import { Can, useCan } from "@herensuge/react"
+
+function InvoiceActions({ approve }: { approve: () => void }) {
+	const canEdit = useCan("invoice:edit")
+	return (
+		<>
+			<Can permission="invoice:approve" fallback={<span>Sin permiso para aprobar</span>}>
+				<button onClick={approve}>Aprobar</button>
+			</Can>
+			<button disabled={!canEdit}>Editar</button>
+		</>
+	)
+}
+```
+
+Cuando alguien cambia los roles del usuario, la BFF refresca la sesión y emite `permissions-changed` por
+`/bff/events`; el provider vuelve a pedir `/bff/user` y `useCan` responde con los permisos nuevos sin recargar.
 
 ## Cierre de sesión en tiempo real
 

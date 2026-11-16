@@ -20,6 +20,24 @@ export type HerensugeUser = {
 	isPlatformAdmin: boolean
 	/** Navegar aquí cierra la sesión en la BFF y en el IdP. */
 	logoutUrl: string
+	/** Roles del usuario en esta aplicación (claves de las plantillas de su manifiesto). */
+	roles: string[]
+	/** Permisos de esta aplicación concedidos sin condición. */
+	permissions: string[]
+	/** Permisos concedidos que solo valen con una condición (MFA, inicio de sesión reciente): decide la API. */
+	conditionalPermissions: string[]
+	/** Funcionalidades del plan de la organización. */
+	entitlements: string[]
+	/** Quién actúa en nombre del usuario (sesión de soporte o token delegado), o `null`. */
+	actor: string | null
+}
+
+/**
+ * ¿Puede el usuario hacer `permission` en esta aplicación? Responde por la acción en general (con o sin
+ * condición): sirve para mostrar u ocultar. Para un objeto concreto, y siempre para decidir, pregunta la API.
+ */
+export function can(user: HerensugeUser, permission: string): boolean {
+	return user.permissions.includes(permission) || user.conditionalPermissions.includes(permission)
 }
 
 const currentPath = () => window.location.pathname + window.location.search
@@ -63,7 +81,9 @@ export async function fetchUser(): Promise<HerensugeUser | null> {
 		throw new Error(`GET /bff/user: HTTP ${response.status}`)
 	}
 
-	return (await response.json()) as HerensugeUser
+	// Una BFF anterior no envía los campos de acceso: listas vacías.
+	const access = { roles: [], permissions: [], conditionalPermissions: [], entitlements: [], actor: null }
+	return { ...access, ...((await response.json()) as Partial<HerensugeUser>) } as HerensugeUser
 }
 
 const RECONNECT_MS = 5000
@@ -71,9 +91,10 @@ const RECONNECT_MS = 5000
 /**
  * Avisa en cuanto la sesión termina, la cierre quien la cierre: esta pestaña u otra, otro dispositivo
  * ("cerrar sesión" en la lista de sesiones), un cambio de contraseña... Escucha GET /bff/events
- * (server-sent events). Devuelve la función que deja de escuchar.
+ * (server-sent events). `onPermissionsChanged`: la BFF ya ha refrescado la sesión con los roles y permisos
+ * nuevos (alguien los ha cambiado); basta con volver a pedir /bff/user. Devuelve la función que deja de escuchar.
  */
-export function watchSession(onSignedOut: () => void): () => void {
+export function watchSession(onSignedOut: () => void, onPermissionsChanged?: () => void): () => void {
 	let source: EventSource | undefined
 	let retry: ReturnType<typeof setTimeout> | undefined
 	let stopped = false
@@ -93,6 +114,9 @@ export function watchSession(onSignedOut: () => void): () => void {
 		const events = new EventSource("/bff/events")
 		source = events
 		events.addEventListener("signed-out", end)
+		if (onPermissionsChanged) {
+			events.addEventListener("permissions-changed", onPermissionsChanged)
+		}
 		events.addEventListener("error", async () => {
 			// CONNECTING: el navegador reconecta solo. CLOSED: la BFF ha rechazado la conexión. Si es porque
 			// ya no hay sesión (401), se avisa; si no (despliegue, red), se vuelve a intentar.
@@ -131,7 +155,8 @@ const signedOut: HerensugeSession = { status: "signedOut", user: null }
 
 /**
  * Carga la sesión (/bff/user) y la vigila en tiempo real (/bff/events): cuando se cierra, el estado pasa a
- * `signedOut` al momento, sin esperar a la siguiente llamada a la API.
+ * `signedOut` al momento, sin esperar a la siguiente llamada a la API; cuando cambian sus roles o permisos,
+ * `useCan` responde con los nuevos.
  */
 export function HerensugeProvider({ children }: { children: ReactNode }) {
 	const [session, setSession] = useState<HerensugeSession>({ status: "loading", user: null })
@@ -148,7 +173,19 @@ export function HerensugeProvider({ children }: { children: ReactNode }) {
 	}, [])
 
 	const isSignedIn = session.status === "signedIn"
-	useEffect(() => (isSignedIn ? watchSession(() => setSession(signedOut)) : undefined), [isSignedIn])
+	useEffect(() => {
+		if (!isSignedIn) {
+			return undefined
+		}
+
+		const reload = () =>
+			fetchUser().then(
+				(user) => setSession(user ? { status: "signedIn", user } : signedOut),
+				// Sin respuesta: se mantienen los permisos que había; la API sigue decidiendo.
+				() => undefined,
+			)
+		return watchSession(() => setSession(signedOut), reload)
+	}, [isSignedIn])
 
 	return <SessionContext value={session}>{children}</SessionContext>
 }
@@ -171,6 +208,31 @@ export function useUser(): HerensugeUser {
 	}
 
 	return session.user
+}
+
+/** `can(user, permission)` del usuario de la sesión; `false` sin sesión. Se actualiza en tiempo real. */
+export function useCan(permission: string): boolean {
+	const session = useHerensuge()
+	return session.status === "signedIn" && can(session.user, permission)
+}
+
+/** Pinta `children` si el usuario puede hacer `permission` (ver `can`); si no, `fallback`. */
+export function Can({
+	permission,
+	fallback = null,
+	children,
+}: {
+	permission: string
+	fallback?: ReactNode
+	children: ReactNode
+}) {
+	return useCan(permission) ? children : fallback
+}
+
+/** ¿Incluye el plan de la organización la funcionalidad `feature`? */
+export function useEntitled(feature: string): boolean {
+	const session = useHerensuge()
+	return session.status === "signedIn" && session.user.entitlements.includes(feature)
 }
 
 /** Lleva al login al montarse y vuelve después a `returnUrl` (por defecto, la página actual). */
