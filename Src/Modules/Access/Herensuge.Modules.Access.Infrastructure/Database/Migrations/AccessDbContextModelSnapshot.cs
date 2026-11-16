@@ -375,6 +375,14 @@ namespace Herensuge.Modules.Access.Infrastructure.Database.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("key");
 
+                    b.Property<string>("Relation")
+                        .HasColumnType("text")
+                        .HasColumnName("relation");
+
+                    b.Property<string>("RelationMode")
+                        .HasColumnType("text")
+                        .HasColumnName("relation_mode");
+
                     b.Property<string>("Requires")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -653,6 +661,36 @@ namespace Herensuge.Modules.Access.Infrastructure.Database.Migrations
                         .HasDatabaseName("ix_service_accounts_tenant_id");
 
                     b.ToTable("service_accounts", "access");
+                });
+
+            modelBuilder.Entity("Herensuge.Modules.Access.Infrastructure.Relationships.RelationshipStoreSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ModelHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("model_hash");
+
+                    b.Property<string>("ModelId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("model_id");
+
+                    b.Property<string>("StoreId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("store_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_relationship_store");
+
+                    b.ToTable("relationship_store", "access");
                 });
 
             modelBuilder.Entity("Herensuge.Modules.Access.Domain.Plans.TenantPlan", b =>

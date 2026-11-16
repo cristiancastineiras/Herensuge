@@ -164,3 +164,16 @@ internal sealed class RoleAssignmentConfiguration : IEntityTypeConfiguration<Rol
         builder.HasOne<RoleTemplate>().WithMany().HasForeignKey(assignment => assignment.RoleTemplateId).OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+internal sealed class RelationshipStoreSettingsConfiguration : IEntityTypeConfiguration<Relationships.RelationshipStoreSettings>
+{
+    public void Configure(EntityTypeBuilder<Relationships.RelationshipStoreSettings> builder)
+    {
+        builder.ToTable("relationship_store");
+        builder.HasKey(settings => settings.Id);
+        builder.Property(settings => settings.Id).ValueGeneratedNever();
+        builder.Property(settings => settings.StoreId).HasMaxLength(64);
+        builder.Property(settings => settings.ModelId).HasMaxLength(64);
+        builder.Property(settings => settings.ModelHash).HasMaxLength(64);
+    }
+}

@@ -2818,6 +2818,77 @@
           }
         }
       }
+    },
+    "/access/v1/relationships": {
+      "put": {
+        "tags": [
+          "Access (applications)"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelationshipRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Access (applications)"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RelationshipRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/access/v1/search/resource": {
+      "post": {
+        "tags": [
+          "Access (applications)"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResourceSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceSearchResponse"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3743,6 +3814,18 @@
               "null",
               "string"
             ]
+          },
+          "relation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "relationMode": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -3946,6 +4029,18 @@
               "null",
               "string"
             ]
+          },
+          "relation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "relationMode": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -4137,6 +4232,62 @@
           }
         }
       },
+      "RelationshipEntity": {
+        "required": [
+          "type",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "RelationshipRequest": {
+        "required": [
+          "tenantId",
+          "object",
+          "relation",
+          "subject"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "object": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RelationshipEntity"
+              }
+            ]
+          },
+          "relation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "subject": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RelationshipEntity"
+              }
+            ]
+          }
+        }
+      },
       "RenamePasskeyRequest": {
         "required": [
           "name"
@@ -4160,6 +4311,107 @@
           },
           "newPassword": {
             "type": "string"
+          }
+        }
+      },
+      "ResourceSearchContext": {
+        "required": [
+          "allObjects",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "allObjects": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ResourceSearchItem": {
+        "required": [
+          "type",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "ResourceSearchRequest": {
+        "required": [
+          "subject",
+          "action",
+          "resource"
+        ],
+        "type": "object",
+        "properties": {
+          "subject": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AuthZenEntity"
+              }
+            ]
+          },
+          "action": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AuthZenAction"
+              }
+            ]
+          },
+          "resource": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AuthZenEntity"
+              }
+            ]
+          },
+          "context": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AuthZenContext"
+              }
+            ]
+          }
+        }
+      },
+      "ResourceSearchResponse": {
+        "required": [
+          "results",
+          "context"
+        ],
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResourceSearchItem"
+            }
+          },
+          "context": {
+            "$ref": "#/components/schemas/ResourceSearchContext"
           }
         }
       },

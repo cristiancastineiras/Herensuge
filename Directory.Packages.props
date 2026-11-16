@@ -36,6 +36,7 @@
     <PackageVersion Include="OpenIddict.EntityFrameworkCore" Version="7.8.0" />
     <PackageVersion Include="OpenIddict.Validation.AspNetCore" Version="7.8.0" />
     <PackageVersion Include="OpenIddict.Validation.SystemNetHttp" Version="7.8.0" />
+    <PackageVersion Include="OpenFga.Sdk" Version="0.10.5" />
     <PackageVersion Include="Otp.NET" Version="1.4.1" />
     <!-- Transitive from Fido2: pinned to a patched version (GHSA-vmv3-wvjp-wqpj). -->
     <PackageVersion Include="System.Formats.Cbor" Version="10.0.15" />

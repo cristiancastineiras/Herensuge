@@ -33,6 +33,8 @@ x-api-environment: &api-environment
   Identity__ExternalProviders__Microsoft__Tenant: ${MICROSOFT_TENANT:-common}
   Notifications__PublicBaseUrl: https://${HERENSUGE_ID_HOST}
   Notifications__Email__From: ${EMAIL_FROM:-Herensuge <no-reply@herensuge.local>}
+  # Per-object permissions (plan D10): with --profile relationships, OPENFGA_API_URL=http://herensuge-openfga:8080.
+  Access__OpenFga__ApiUrl: ${OPENFGA_API_URL:-}
   OTEL_EXPORTER_OTLP_ENDPOINT: http://herensuge-otel:4317
 
 services:
@@ -144,6 +146,32 @@ services:
     depends_on:
       - herensuge-api
       - herensuge-bff
+    restart: unless-stopped
+
+  # Per-object permissions (plan D10), optional: docker compose --profile relationships up. OpenFGA keeps its tables in
+  # the public schema of the same database (the modules use their own schemas).
+  herensuge-openfga-migrate:
+    image: openfga/openfga:v1.8.4
+    profiles: ["relationships"]
+    command: migrate
+    environment:
+      OPENFGA_DATASTORE_ENGINE: postgres
+      OPENFGA_DATASTORE_URI: postgres://herensuge:${POSTGRES_PASSWORD}@herensuge-postgres:5432/herensuge?sslmode=disable
+    depends_on:
+      herensuge-postgres:
+        condition: service_healthy
+
+  herensuge-openfga:
+    image: openfga/openfga:v1.8.4
+    profiles: ["relationships"]
+    command: run
+    environment:
+      OPENFGA_DATASTORE_ENGINE: postgres
+      OPENFGA_DATASTORE_URI: postgres://herensuge:${POSTGRES_PASSWORD}@herensuge-postgres:5432/herensuge?sslmode=disable
+      OPENFGA_PLAYGROUND_ENABLED: "false"
+    depends_on:
+      herensuge-openfga-migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   # Development observability: OTel collector + Loki + Tempo + Prometheus + Grafana in one container.

@@ -16,7 +16,7 @@ import { formValues } from "@paquetes/utiles"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { access } from "../api"
-import { PageHeader, QueryState, requirementLabels, roleLabels } from "../components"
+import { PageHeader, QueryState, relationLabel, requirementLabels, roleLabels } from "../components"
 import { useUser } from "../user"
 
 export default function RolesPage() {
@@ -164,7 +164,11 @@ function RoleEditor({
 								value={permission.id}
 								defaultChecked={granted.has(permission.id)}
 								label={permission.key}
-								hint={[permission.description, requirementLabels[permission.requires]]
+								hint={[
+									permission.description,
+									requirementLabels[permission.requires],
+									permission.relation && relationLabel(permission.relation, permission.relationMode),
+								]
 									.filter(Boolean)
 									.join(" · ")}
 							/>

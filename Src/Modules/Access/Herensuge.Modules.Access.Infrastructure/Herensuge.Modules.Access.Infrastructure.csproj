@@ -9,6 +9,10 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Seeding/herensuge.access.json" />
+    <EmbeddedResource Include="Relationships/model.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="OpenFga.Sdk" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Herensuge.Modules.Access.UnitTests" />

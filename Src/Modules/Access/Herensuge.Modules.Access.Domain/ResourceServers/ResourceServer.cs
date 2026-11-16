@@ -114,7 +114,7 @@ public sealed partial class ResourceServer : AggregateRoot
         {
             if (declared.Remove(existing.Key, out ManifestPermission? permission))
             {
-                existing.Update(permission.Description, permission.Requires ?? PermissionRequirements.None, permission.Feature);
+                existing.Update(permission);
             }
             else
             {
@@ -124,7 +124,7 @@ public sealed partial class ResourceServer : AggregateRoot
 
         foreach (ManifestPermission permission in manifest.Permissions.Where(permission => declared.ContainsKey(permission.Key)))
         {
-            _permissions.Add(Permission.Create(Id, permission.Key, permission.Description, permission.Requires ?? PermissionRequirements.None, permission.Feature));
+            _permissions.Add(Permission.Create(Id, permission));
         }
 
         // Features are only labels for plans (they hold "app/feature" keys): removing one needs no deprecation.
@@ -177,7 +177,15 @@ public sealed partial class ResourceServer : AggregateRoot
             EmbedPermissions = manifest.EmbedPermissions ?? true,
             Permissions = manifest.Permissions
                 .OrderBy(permission => permission.Key, StringComparer.Ordinal)
-                .Select(permission => new { permission.Key, permission.Description, Requires = permission.Requires ?? PermissionRequirements.None, permission.Feature }),
+                .Select(permission => new
+                {
+                    permission.Key,
+                    permission.Description,
+                    Requires = permission.Requires ?? PermissionRequirements.None,
+                    permission.Feature,
+                    permission.Relation,
+                    RelationMode = permission.Relation is null ? null : permission.RelationMode ?? RelationModes.Or,
+                }),
             Features = (manifest.Features ?? []).OrderBy(feature => feature.Key, StringComparer.Ordinal).Select(feature => new { feature.Key, feature.Name }),
             Roles = manifest.Roles
                 .OrderBy(role => role.Key, StringComparer.Ordinal)
@@ -256,6 +264,14 @@ public sealed partial class ResourceServer : AggregateRoot
             {
                 return AccessErrors.InvalidManifest($"Permission '{permission.Key}' uses an undeclared feature '{permission.Feature}'.");
             }
+
+            if (permission.Relation is not (null or Relations.Owner or Relations.Editor or Relations.Viewer)
+                || permission.RelationMode is not (null or RelationModes.Or or RelationModes.And)
+                || (permission.Relation is null && permission.RelationMode is not null))
+            {
+                return AccessErrors.InvalidManifest(
+                    $"Permission '{permission.Key}': relation must be owner, editor or viewer, and relationMode (or, and) needs a relation.");
+            }
         }
 
         var roles = new HashSet<string>(StringComparer.Ordinal);
@@ -310,25 +326,33 @@ public sealed class Permission
     /// <summary>Feature of the app the organization's plan must include (plan D5); null: always included.</summary>
     public string? FeatureKey { get; private set; }
 
+    /// <summary>Relation on the object (owner, editor, viewer) that grants it per object (plan D10); null: roles only.</summary>
+    public string? Relation { get; private set; }
+
+    /// <summary>With a relation: "or" (role or relation) or "and" (role and relation).</summary>
+    public string? RelationMode { get; private set; }
+
     public DateTime? DeprecatedAtUtc { get; private set; }
 
     public bool IsActive => DeprecatedAtUtc is null;
 
-    internal static Permission Create(Guid resourceServerId, string key, string? description, string requires, string? featureKey) => new()
-    {
-        Id = Guid.CreateVersion7(),
-        ResourceServerId = resourceServerId,
-        Key = key,
-        Description = description,
-        Requires = requires,
-        FeatureKey = featureKey,
-    };
+    /// <summary>Granted by its roles only together with a relation: the token lists it as conditional (plan D3).</summary>
+    public bool NeedsRelationWithRole => Relation is not null && RelationMode == RelationModes.And;
 
-    internal void Update(string? description, string requires, string? featureKey)
+    internal static Permission Create(Guid resourceServerId, ManifestPermission declared)
     {
-        Description = description;
-        Requires = requires;
-        FeatureKey = featureKey;
+        var permission = new Permission { Id = Guid.CreateVersion7(), ResourceServerId = resourceServerId, Key = declared.Key };
+        permission.Update(declared);
+        return permission;
+    }
+
+    internal void Update(ManifestPermission declared)
+    {
+        Description = declared.Description;
+        Requires = declared.Requires ?? PermissionRequirements.None;
+        FeatureKey = declared.Feature;
+        Relation = declared.Relation;
+        RelationMode = declared.Relation is null ? null : declared.RelationMode ?? RelationModes.Or;
         DeprecatedAtUtc = null;
     }
 
@@ -407,6 +431,26 @@ public static class PermissionRequirements
 
     /// <summary>The client IP must be in the organization's trusted networks (plan D9).</summary>
     public const string TrustedNetwork = "trusted_network";
+}
+
+/// <summary>Relations of the fixed relationship model (plan D10): owner ⊂ editor ⊂ viewer, inherited from the parent.</summary>
+public static class Relations
+{
+    public const string Owner = "owner";
+    public const string Editor = "editor";
+    public const string Viewer = "viewer";
+
+    /// <summary>Object → its parent object (folder → document): relations are inherited from it.</summary>
+    public const string Parent = "parent";
+}
+
+public static class RelationModes
+{
+    /// <summary>The role or the relation grants it.</summary>
+    public const string Or = "or";
+
+    /// <summary>The role grants it only on objects the subject has the relation with.</summary>
+    public const string And = "and";
 }
 
 /// <summary>Organization roles of the Tenancy module (tenant_role claim).</summary>

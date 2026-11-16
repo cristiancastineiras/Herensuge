@@ -31,7 +31,8 @@ public sealed record PdpSubject(
 
 /// <param name="ResourceServer">Null: the caller's own application.</param>
 /// <param name="Permission">"invoice:approve" (AuthZEN resource.type + ":" + action.name).</param>
-public sealed record AccessCheck(string? ResourceServer, string Permission);
+/// <param name="ObjectId">AuthZEN resource.id: the object, for permissions granted per object (plan D10).</param>
+public sealed record AccessCheck(string? ResourceServer, string Permission, string? ObjectId = null);
 
 /// <param name="Reason">One of <see cref="AccessReasons"/>.</param>
 public sealed record AccessDecision(bool Decision, string Reason);
@@ -47,6 +48,9 @@ public static class AccessReasons
     public const string NotEntitled = "not_entitled";
 
     public const string NoRole = "no_role";
+
+    /// <summary>The permission needs a relation with the object (owner, editor, viewer) the subject does not have.</summary>
+    public const string NoRelation = "no_relation";
 
     /// <summary>The permission requires MFA or a recent sign-in: the app sends the user to sign in again (max_age=0).</summary>
     public const string StepUpRequired = "step_up_required";
@@ -64,6 +68,8 @@ public static class AccessReasons
 internal sealed class EvaluateAccessQueryHandler(
     IResourceServerRepository servers,
     IServiceAccountRepository serviceAccounts,
+    IGroupRepository groups,
+    IRelationshipStore relationships,
     AccessEvaluator evaluator,
     IIdentityModuleApi identity) : IQueryHandler<EvaluateAccessQuery, IReadOnlyList<AccessDecision>>
 {
@@ -114,10 +120,42 @@ internal sealed class EvaluateAccessQueryHandler(
                 grants[server.Id] = await ResolveAsync(server, subject, account, cancellationToken);
             }
 
-            decisions.Add(evaluator.Evaluate(server, grants.GetValueOrDefault(server.Id), facts, check.Permission));
+            AccessGrants? held = grants.GetValueOrDefault(server.Id);
+            RelationCheck? relation = AccessEvaluator.RelationNeeded(server, held, check.Permission) is { } needed
+                ? await CheckRelationAsync(server, subject, needed, check, cancellationToken)
+                : null;
+            decisions.Add(evaluator.Evaluate(server, held, facts, check.Permission, relation: relation));
         }
 
         return decisions;
+    }
+
+    /// <summary>
+    /// The subject's relation with the object of the check (resource.type + resource.id). Without an object id there is
+    /// nothing to check: no_relation. A user's groups travel as contextual tuples (plan D10).
+    /// </summary>
+    private async Task<RelationCheck> CheckRelationAsync(ResourceServer server, PdpSubject subject, string relation, AccessCheck check, CancellationToken cancellationToken)
+    {
+        if (!relationships.IsEnabled)
+        {
+            return RelationCheck.Disabled;
+        }
+
+        string type = check.Permission[..check.Permission.IndexOf(':', StringComparison.Ordinal)];
+        if (!RelationshipIds.IsValidPart(check.ObjectId))
+        {
+            return RelationCheck.Missing;
+        }
+
+        var target = new RelationshipObject(server.Key, subject.TenantId, type, check.ObjectId!);
+        if (subject.ClientId is { } clientId)
+        {
+            return await relationships.CheckAsync(target, relation, new RelationshipSubject(RelationshipSubject.Client, clientId), [], cancellationToken);
+        }
+
+        Guid userId = subject.UserId!.Value;
+        Guid[] memberOf = [.. (await groups.ListByMemberAsync(subject.TenantId, userId, cancellationToken)).Select(group => group.Id)];
+        return await relationships.CheckAsync(target, relation, new RelationshipSubject(RelationshipSubject.User, userId.ToString()), memberOf, cancellationToken);
     }
 
     private async Task<AccessGrants?> ResolveAsync(ResourceServer server, PdpSubject subject, ServiceAccount? account, CancellationToken cancellationToken)
