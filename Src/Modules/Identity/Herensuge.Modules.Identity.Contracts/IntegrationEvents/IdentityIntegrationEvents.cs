@@ -76,3 +76,10 @@ public sealed record ExternalLoginUnlinkedIntegrationEvent(Guid UserId, string P
 public sealed record PlatformAdminGrantedIntegrationEvent(Guid UserId) : IntegrationEvent;
 
 public sealed record UserDeletedIntegrationEvent(Guid UserId) : IntegrationEvent;
+
+/// <summary>A platform administrator asked for a read-only support session on the user's account (plan D11).</summary>
+public sealed record SupportSessionRequestedIntegrationEvent(Guid UserId, Guid AdminUserId, string Reason) : IntegrationEvent;
+
+public sealed record SupportSessionStartedIntegrationEvent(Guid UserId, Guid SessionId, Guid AdminUserId) : IntegrationEvent;
+
+public sealed record SupportSessionEndedIntegrationEvent(Guid UserId, Guid SessionId, Guid AdminUserId, string Reason) : IntegrationEvent;

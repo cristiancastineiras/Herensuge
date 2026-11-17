@@ -12,6 +12,9 @@ public sealed class UserSession : AggregateRoot
     public static readonly TimeSpan IdleTimeout = TimeSpan.FromDays(14);
     public static readonly TimeSpan AbsoluteLifetime = TimeSpan.FromDays(30);
 
+    /// <summary>A read-only support session (plan D11) lasts at most 30 minutes, whatever the activity.</summary>
+    public static readonly TimeSpan SupportLifetime = TimeSpan.FromMinutes(30);
+
     private static readonly TimeSpan TouchThreshold = TimeSpan.FromMinutes(1);
 
     private UserSession()
@@ -42,6 +45,11 @@ public sealed class UserSession : AggregateRoot
 
     public string? RevocationReason { get; private set; }
 
+    /// <summary>Platform administrator acting in a read-only support session; null in the user's own sessions.</summary>
+    public Guid? ImpersonatorUserId { get; private set; }
+
+    public bool IsSupport => ImpersonatorUserId is not null;
+
     public static UserSession Start(
         Guid userId,
         IEnumerable<string> authenticationMethods,
@@ -68,6 +76,30 @@ public sealed class UserSession : AggregateRoot
         return session;
     }
 
+    /// <summary>
+    /// Support session (plan D11): the user's session opened by <paramref name="impersonatorUserId"/>, amr ["imp"], read only
+    /// and 30 minutes of absolute life.
+    /// </summary>
+    public static UserSession StartSupport(Guid userId, Guid impersonatorUserId, string? ipAddress, string? userAgent, DateTime utcNow)
+    {
+        var session = new UserSession
+        {
+            Id = Guid.CreateVersion7(),
+            UserId = userId,
+            AuthenticationMethods = [SessionAuthenticationMethods.Impersonation],
+            AuthenticatedAtUtc = utcNow,
+            CreatedAtUtc = utcNow,
+            LastSeenAtUtc = utcNow,
+            ExpiresAtUtc = utcNow + SupportLifetime,
+            IpAddress = ipAddress,
+            UserAgent = userAgent,
+            ImpersonatorUserId = impersonatorUserId,
+        };
+
+        session.Raise(new SupportSessionStartedDomainEvent(session.Id, userId, impersonatorUserId));
+        return session;
+    }
+
     public bool IsActive(DateTime utcNow) => RevokedAtUtc is null && utcNow < ExpiresAtUtc;
 
     /// <summary>Slides the expiration (at most once a minute) without passing the absolute lifetime.</summary>
@@ -82,7 +114,7 @@ public sealed class UserSession : AggregateRoot
         {
             LastSeenAtUtc = utcNow;
             DateTime sliding = utcNow + IdleTimeout;
-            DateTime absolute = CreatedAtUtc + AbsoluteLifetime;
+            DateTime absolute = CreatedAtUtc + (IsSupport ? SupportLifetime : AbsoluteLifetime);
             ExpiresAtUtc = sliding < absolute ? sliding : absolute;
         }
 
@@ -106,6 +138,10 @@ public sealed class UserSession : AggregateRoot
         RevokedAtUtc = utcNow;
         RevocationReason = reason;
         Raise(new SessionRevokedDomainEvent(Id, UserId, reason));
+        if (ImpersonatorUserId is { } impersonator)
+        {
+            Raise(new SupportSessionEndedDomainEvent(Id, UserId, impersonator, reason));
+        }
     }
 }
 
@@ -115,6 +151,9 @@ public static class SessionRevocationReasons
     public const string RevokedByUser = "revoked_by_user";
     public const string PasswordChanged = "password_changed";
     public const string MfaEnabled = "mfa_enabled";
+
+    /// <summary>A support session reached its 30 minutes.</summary>
+    public const string SupportExpired = "support_expired";
 }
 
 public static class SessionErrors
@@ -122,4 +161,26 @@ public static class SessionErrors
     public static readonly Error NotFound = Error.NotFound("Sessions.NotFound", "The session does not exist.");
 
     public static readonly Error Inactive = Error.Unauthorized("Sessions.Inactive", "The session has expired or was revoked.");
+}
+
+/// <summary>Values of amr owned by the session (the others live in Common's AuthenticationMethods).</summary>
+public static class SessionAuthenticationMethods
+{
+    /// <summary>Impersonation: a support session opened by a platform administrator with their passkey.</summary>
+    public const string Impersonation = "imp";
+}
+
+public static class SupportErrors
+{
+    public static readonly Error InvalidReason = Error.Validation("Support.InvalidReason", "Write the reason for the support session (max 500 characters).");
+
+    public static readonly Error NotAllowedTarget = Error.Forbidden(
+        "Support.NotAllowedTarget",
+        "Support sessions cannot be opened on a platform administrator or on yourself.");
+
+    public static readonly Error AlreadySignedIn = Error.Conflict(
+        "Support.AlreadySignedIn",
+        "This browser already has a Herensuge session: open the link in a private window.");
+
+    public static readonly Error ReadOnly = Error.Forbidden("Support.ReadOnly", "A support session is read only.");
 }

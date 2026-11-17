@@ -9,6 +9,7 @@ import { MfaSetupPage } from "./pages/MfaSetupPage"
 import { OnboardingPage, SelectTenantPage } from "./pages/TenantPages"
 import { SignInPage } from "./pages/SignInPage"
 import { SignUpPage } from "./pages/SignUpPage"
+import { SupportPage } from "./pages/SupportPage"
 import { VerifyEmailPage } from "./pages/VerifyEmailPage"
 
 // Rutas a las que redirige o enlaza Herensuge.Api (ver README: "Rutas que debe implementar la SPA de login").
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
 			{ path: "/reset-password", element: <ResetPasswordPage /> },
 			{ path: "/confirm-email", element: <ConfirmEmailPage /> },
 			{ path: "/invitations/:token", element: <InvitationPage /> },
+			{ path: "/support", element: <SupportPage /> },
 			{ path: "/error", element: <ErrorPage /> },
 			{ path: "*", element: <NotFoundPage /> },
 		],

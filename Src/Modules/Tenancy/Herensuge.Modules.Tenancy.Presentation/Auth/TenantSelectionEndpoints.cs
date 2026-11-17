@@ -62,6 +62,7 @@ internal sealed class TenantSelectionEndpoints : IEndpoint
                 return Results.Ok(new TenantSelectedResponse(created.Value));
             })
             .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .RejectDuringSupport()
             .Produces<TenantSelectedResponse>();
 
         group.MapPost("/tenants/select", async (
@@ -122,6 +123,7 @@ internal sealed class TenantSelectionEndpoints : IEndpoint
                 return Results.Ok(new TenantSelectedResponse(accepted.Value));
             })
             .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .RejectDuringSupport()
             .Produces<TenantSelectedResponse>();
     }
 

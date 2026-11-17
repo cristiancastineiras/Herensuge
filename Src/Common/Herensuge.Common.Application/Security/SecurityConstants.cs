@@ -40,6 +40,9 @@ public static class AuthenticationMethods
     public const string Passkey = "pop";
     public const string MultiFactor = "mfa";
     public const string Federated = "fed";
+
+    /// <summary>Read-only support session opened by a platform administrator with their passkey (plan D11).</summary>
+    public const string Impersonation = "imp";
 }
 
 public static class PlatformRoles

@@ -68,6 +68,7 @@ public static class IdentityModule
 
         services.AddIdentityAuthentication(configuration);
         services.AddHostedService<IdentityCleanupJob>();
+        services.AddHostedService<SupportSessionJob>();
 
         services.AddModuleMessaging(new MessagingModule("identity", Schema, hasOutbox: true, AssemblyReference.Assembly));
         return services;

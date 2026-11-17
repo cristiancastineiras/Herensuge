@@ -102,6 +102,9 @@ const actionLabels: Record<string, string> = {
 	RelationshipDeleted: "Objeto dejado de compartir",
 	AccessRequested: "Acceso temporal pedido",
 	AccessRequestDecided: "Acceso temporal resuelto",
+	SupportSessionRequested: "Sesión de soporte pedida",
+	SupportSessionStarted: "Sesión de soporte iniciada",
+	SupportSessionEnded: "Sesión de soporte terminada",
 }
 
 /**

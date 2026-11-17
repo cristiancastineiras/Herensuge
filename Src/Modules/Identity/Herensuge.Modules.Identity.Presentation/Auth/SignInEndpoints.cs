@@ -73,6 +73,7 @@ internal sealed class SignInEndpoints : IEndpoint
                 return result.IsFailure ? ApiResults.Problem(result) : await SignInCookies.CompleteAsync(httpContext, result.Value, mfa.TenantId);
             })
             .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .RejectDuringSupport()
             .Produces<SignInResponse>();
 
         // 6-digit code by SMS or to the verified email (an alternative for users who already have MFA).
@@ -128,6 +129,7 @@ internal sealed class SignInEndpoints : IEndpoint
 
             return (await handler.Handle(new BeginTotpSetupCommand(principal.GetUserId()), cancellationToken)).Match(value => Results.Ok(value));
         })
+            .RejectDuringSupport()
             .Produces<TotpSetupResponse>();
 
         group.MapPost("/mfa/totp/confirm", async (
@@ -164,6 +166,7 @@ internal sealed class SignInEndpoints : IEndpoint
                 return Results.Ok(new RecoveryCodesResult(result.Value.RecoveryCodes));
             })
             .RequireRateLimiting(RateLimitPolicies.AuthStrict)
+            .RejectDuringSupport()
             .Produces<RecoveryCodesResult>();
     }
 }

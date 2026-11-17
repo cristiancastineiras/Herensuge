@@ -31,7 +31,9 @@ internal sealed class SendNotificationsHandler(
     IIntegrationEventHandler<PhoneVerificationRequestedIntegrationEvent>,
     IIntegrationEventHandler<SmsMfaCodeRequestedIntegrationEvent>,
     IIntegrationEventHandler<EmailMfaCodeRequestedIntegrationEvent>,
-    IIntegrationEventHandler<InvitationCreatedIntegrationEvent>
+    IIntegrationEventHandler<InvitationCreatedIntegrationEvent>,
+    IIntegrationEventHandler<SupportSessionRequestedIntegrationEvent>,
+    IIntegrationEventHandler<SupportSessionStartedIntegrationEvent>
 {
     private NotificationOptions Settings => options.Value;
 
@@ -70,6 +72,18 @@ internal sealed class SendNotificationsHandler(
             EmailChangeRequestedNoticeEmail.Create(integrationEvent.CurrentEmail, integrationEvent.DisplayName, integrationEvent.NewEmail, Settings.ProductName),
             cancellationToken);
     }
+
+    public Task Handle(SupportSessionRequestedIntegrationEvent integrationEvent, CancellationToken cancellationToken) =>
+        SendSecurityNoticeAsync(
+            integrationEvent.UserId,
+            $"El equipo de soporte ha pedido acceder a tu cuenta en modo solo lectura. Motivo: {integrationEvent.Reason}",
+            cancellationToken);
+
+    public Task Handle(SupportSessionStartedIntegrationEvent integrationEvent, CancellationToken cancellationToken) =>
+        SendSecurityNoticeAsync(
+            integrationEvent.UserId,
+            "El equipo de soporte ha abierto una sesión de solo lectura en tu cuenta. Durará como mucho 30 minutos y no puede cambiar nada.",
+            cancellationToken);
 
     public Task Handle(PasswordChangedIntegrationEvent integrationEvent, CancellationToken cancellationToken) =>
         SendSecurityNoticeAsync(integrationEvent.UserId, "La contraseña de tu cuenta se ha cambiado y se han cerrado tus otras sesiones.", cancellationToken);

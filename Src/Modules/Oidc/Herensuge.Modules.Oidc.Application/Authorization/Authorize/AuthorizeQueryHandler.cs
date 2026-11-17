@@ -50,7 +50,11 @@ internal sealed class AuthorizeQueryHandler(IIdentityModuleApi identity, ITenanc
             return new AuthorizationDecision(outcome);
         }
 
-        if (membership.TenantRequiresMfa && !query.AuthenticationMethods.Contains(AuthenticationMethods.MultiFactor))
+        // A support session (imp) meets it: the administrator used their passkey (plan D11). Permissions that require
+        // MFA are still denied to it by Access (act never meets a condition).
+        if (membership.TenantRequiresMfa
+            && !query.AuthenticationMethods.Contains(AuthenticationMethods.MultiFactor)
+            && !query.AuthenticationMethods.Contains(AuthenticationMethods.Impersonation))
         {
             return new AuthorizationDecision(user.HasMfa ? AuthorizationOutcome.MfaRequired : AuthorizationOutcome.MfaSetupRequired);
         }

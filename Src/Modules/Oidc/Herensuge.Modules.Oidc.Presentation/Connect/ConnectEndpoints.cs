@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
@@ -49,6 +50,7 @@ internal sealed class ConnectEndpoints : IEndpoint
         IOpenIddictScopeManager scopes,
         IAccessModuleApi access,
         TimeProvider timeProvider,
+        IConfiguration configuration,
         CancellationToken cancellationToken)
     {
         OpenIddictRequest request = httpContext.GetOpenIddictServerRequest()
@@ -69,6 +71,13 @@ internal sealed class ConnectEndpoints : IEndpoint
             return silent
                 ? Forbid(Errors.LoginRequired, "The user is not signed in.")
                 : Results.Redirect(LoginPages.With(LoginPages.Login, returnUrl));
+        }
+
+        // Support sessions (plan D11) only reach the clients of Identity:Support:Clients (by default, the portal).
+        string? actor = session.GetActor();
+        if (actor is not null && !SupportClients(configuration).Contains(request.ClientId, StringComparer.Ordinal))
+        {
+            return Forbid(Errors.AccessDenied, "Support sessions cannot sign in to this application.");
         }
 
         Guid sessionId = session.GetSessionId() ?? Guid.Empty;
@@ -111,6 +120,12 @@ internal sealed class ConnectEndpoints : IEndpoint
             .SetClaim(HerensugeClaimTypes.TenantRole, user.TenantRole)
             .SetClaim(Claims.AuthenticationTime, (session.GetAuthenticationTime() ?? now).ToUnixTimeSeconds());
         identity.SetClaims(Claims.AuthenticationMethodReference, [.. session.GetAuthenticationMethods()]);
+        if (actor is not null)
+        {
+            // RFC 8693 actor: every token of the support session says who is really acting. Kept on refresh.
+            identity.SetClaim(HerensugeClaimTypes.Actor, new JsonObject { [Claims.Subject] = actor });
+        }
+
         if (user.IsPlatformAdmin)
         {
             identity.SetClaims(Claims.Role, [PlatformRoles.PlatformAdmin]);
@@ -388,6 +403,11 @@ internal sealed class ConnectEndpoints : IEndpoint
             claims[HerensugeClaimTypes.Entitlements] = accessClaims.Entitlements;
         }
 
+        if (principal.GetActor() is { } actor)
+        {
+            claims[HerensugeClaimTypes.Actor] = new Dictionary<string, string> { [Claims.Subject] = actor };
+        }
+
         return Results.Ok(claims);
     }
 
@@ -410,6 +430,12 @@ internal sealed class ConnectEndpoints : IEndpoint
             [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]);
     }
 
+    /// <summary>Identity:Support:Clients; by default only the portal (Oidc:PortalClient:ClientId).</summary>
+    private static string[] SupportClients(IConfiguration configuration) =>
+        configuration.GetSection("Identity:Support:Clients").Get<string[]>() is { Length: > 0 } clients
+            ? clients
+            : [configuration["Oidc:PortalClient:ClientId"] ?? "herensuge-portal"];
+
     private static IEnumerable<string> GetDestinations(Claim claim)
     {
         switch (claim.Type)
@@ -431,7 +457,7 @@ internal sealed class ConnectEndpoints : IEndpoint
                 yield break;
 
             case Claims.Subject or Claims.Role or Claims.AuthenticationMethodReference or Claims.AuthenticationTime
-                or HerensugeClaimTypes.SessionId or HerensugeClaimTypes.TenantId or HerensugeClaimTypes.TenantRole:
+                or HerensugeClaimTypes.SessionId or HerensugeClaimTypes.TenantId or HerensugeClaimTypes.TenantRole or HerensugeClaimTypes.Actor:
                 yield return Destinations.AccessToken;
                 yield return Destinations.IdentityToken;
                 yield break;

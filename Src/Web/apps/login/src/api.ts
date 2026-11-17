@@ -27,7 +27,9 @@ export const auth = {
 	/** Código de 6 dígitos por SMS o al email verificado. */
 	sendCode: (method: "sms" | "email") =>
 		call(
-			method === "sms" ? api.POST("/api/v1/auth/sign-in/mfa/sms") : api.POST("/api/v1/auth/sign-in/mfa/email"),
+			method === "sms"
+				? api.POST("/api/v1/auth/sign-in/mfa/sms")
+				: api.POST("/api/v1/auth/sign-in/mfa/email"),
 		),
 	beginTotp: () => call(api.POST("/api/v1/auth/mfa/totp")),
 	confirmTotp: (code: string) => call(api.POST("/api/v1/auth/mfa/totp/confirm", { body: { code } })),
@@ -55,3 +57,15 @@ export async function signInWithPasskey(): Promise<SignInResponse> {
 }
 
 export const providerNames: Record<string, string> = { google: "Google", microsoft: "Microsoft" }
+
+/**
+ * Canje de un enlace de soporte (/support#token): la passkey del mismo admin de plataforma que lo pidió. Abre una
+ * sesión de solo lectura del usuario, de 30 minutos.
+ */
+export async function redeemSupportLink(supportToken: string): Promise<SignInResponse> {
+	const options = (await call(
+		api.POST("/api/v1/auth/passkeys/options"),
+	)) as PublicKeyCredentialRequestOptionsJSON
+	const assertion = await startAuthentication({ optionsJSON: options })
+	return call(api.POST("/api/v1/auth/support/redeem", { body: { token: supportToken, assertion } }))
+}

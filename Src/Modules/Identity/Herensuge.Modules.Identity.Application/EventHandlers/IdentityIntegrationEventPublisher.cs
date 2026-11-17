@@ -24,6 +24,8 @@ internal sealed class IdentityIntegrationEventPublisher(IEventBus eventBus, IUse
     IDomainEventHandler<UserDeletedDomainEvent>,
     IDomainEventHandler<SessionStartedDomainEvent>,
     IDomainEventHandler<SessionRevokedDomainEvent>,
+    IDomainEventHandler<SupportSessionStartedDomainEvent>,
+    IDomainEventHandler<SupportSessionEndedDomainEvent>,
     IDomainEventHandler<OneTimeTokenIssuedDomainEvent>
 {
     public Task Handle(UserRegisteredDomainEvent domainEvent, CancellationToken cancellationToken) =>
@@ -87,6 +89,16 @@ internal sealed class IdentityIntegrationEventPublisher(IEventBus eventBus, IUse
     public Task Handle(SessionRevokedDomainEvent domainEvent, CancellationToken cancellationToken) =>
         eventBus.PublishAsync(
             new SessionRevokedIntegrationEvent(domainEvent.UserId, domainEvent.SessionId, domainEvent.Reason),
+            cancellationToken);
+
+    public Task Handle(SupportSessionStartedDomainEvent domainEvent, CancellationToken cancellationToken) =>
+        eventBus.PublishAsync(
+            new SupportSessionStartedIntegrationEvent(domainEvent.UserId, domainEvent.SessionId, domainEvent.ImpersonatorUserId),
+            cancellationToken);
+
+    public Task Handle(SupportSessionEndedDomainEvent domainEvent, CancellationToken cancellationToken) =>
+        eventBus.PublishAsync(
+            new SupportSessionEndedIntegrationEvent(domainEvent.UserId, domainEvent.SessionId, domainEvent.ImpersonatorUserId, domainEvent.Reason),
             cancellationToken);
 
     public async Task Handle(OneTimeTokenIssuedDomainEvent domainEvent, CancellationToken cancellationToken)

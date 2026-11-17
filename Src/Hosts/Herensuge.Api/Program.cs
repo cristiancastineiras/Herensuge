@@ -5,6 +5,7 @@ using Herensuge.Common.Application;
 using Herensuge.Common.Infrastructure;
 using Herensuge.Common.Infrastructure.Web;
 using Herensuge.Common.Presentation.Endpoints;
+using Herensuge.Common.Presentation.Filters;
 using Herensuge.Modules.Access.Infrastructure;
 using Herensuge.Modules.Audit.Infrastructure;
 using Herensuge.Modules.Identity.Infrastructure;
@@ -72,6 +73,7 @@ app.UseHerensugeSecurityHeaders();
 app.UseSpaStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseSupportSessionGuard();
 app.UseRateLimiter();
 
 app.MapHerensugeHealthChecks();

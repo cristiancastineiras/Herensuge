@@ -110,6 +110,9 @@ public enum OneTimeTokenPurpose
     PhoneVerification = 4,
     SmsMfa = 5,
     EmailMfa = 6,
+
+    /// <summary>Link of a support session (plan D11); its target is the administrator's id.</summary>
+    SupportSession = 7,
 }
 
 public static class OneTimeTokenPurposeExtensions
@@ -120,7 +123,7 @@ public static class OneTimeTokenPurposeExtensions
         OneTimeTokenPurpose.PasswordReset => TimeSpan.FromMinutes(15),
         OneTimeTokenPurpose.EmailChange => TimeSpan.FromHours(1),
         OneTimeTokenPurpose.PhoneVerification => TimeSpan.FromMinutes(10),
-        OneTimeTokenPurpose.SmsMfa or OneTimeTokenPurpose.EmailMfa => TimeSpan.FromMinutes(5),
+        OneTimeTokenPurpose.SmsMfa or OneTimeTokenPurpose.EmailMfa or OneTimeTokenPurpose.SupportSession => TimeSpan.FromMinutes(5),
         _ => throw new ArgumentOutOfRangeException(nameof(purpose), purpose, null),
     };
 
