@@ -4,6 +4,45 @@
  */
 
 export interface paths {
+    "/api/v1/platform/support-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SupportSessionRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SupportSessionResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/tenants": {
         parameters: {
             query?: never;
@@ -115,6 +154,45 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/support/redeem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["RedeemSupportRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SignInResponse"];
+                    };
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -4032,6 +4110,10 @@ export interface components {
         RecoveryCodesResult: {
             recoveryCodes: string[];
         };
+        RedeemSupportRequest: {
+            token: string;
+            assertion: components["schemas"]["JsonElement"];
+        };
         RegisterRequest: {
             email: string;
             password: string;
@@ -4213,6 +4295,15 @@ export interface components {
             decision: boolean;
             reason: string;
             steps: components["schemas"]["EvaluationStep"][];
+        };
+        SupportSessionRequest: {
+            email: string;
+            reason: string;
+        };
+        SupportSessionResponse: {
+            url: string;
+            /** Format: date-time */
+            expiresAtUtc: string;
         };
         TenantPlanDetailsResponse: {
             planKey: null | string;

@@ -24,7 +24,8 @@ public static class IdentityProviderSession
         Guid sessionId,
         IEnumerable<string> authenticationMethods,
         DateTime authenticatedAtUtc,
-        Guid? tenantId)
+        Guid? tenantId,
+        string? actor = null)
     {
         var identity = new ClaimsIdentity(
             HerensugeAuthenticationSchemes.IdentityProvider,
@@ -49,6 +50,12 @@ public static class IdentityProviderSession
             identity.AddClaim(new Claim(HerensugeClaimTypes.TenantId, tenant.ToString()));
         }
 
+        // Support session (plan D11): the administrator acting, read only.
+        if (!string.IsNullOrEmpty(actor))
+        {
+            identity.AddClaim(new Claim(HerensugeClaimTypes.Actor, actor));
+        }
+
         return httpContext.SignInAsync(
             HerensugeAuthenticationSchemes.IdentityProvider,
             new ClaimsPrincipal(identity),
@@ -63,7 +70,8 @@ public static class IdentityProviderSession
             principal.GetSessionId() ?? throw new InvalidOperationException("The session cookie has no sid."),
             principal.GetAuthenticationMethods(),
             principal.GetAuthenticationTime()?.UtcDateTime ?? DateTime.UtcNow,
-            tenantId);
+            tenantId,
+            principal.GetActor());
 
     public static async Task SignOutAsync(HttpContext httpContext)
     {

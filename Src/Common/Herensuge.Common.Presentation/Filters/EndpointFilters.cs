@@ -13,6 +13,9 @@ public static class EndpointFilters
 
     public static readonly TimeSpan RecentAuthenticationWindow = TimeSpan.FromMinutes(10);
 
+    /// <summary>Plan D11: what a support session (or a delegated token) cannot do.</summary>
+    public static readonly Error SupportReadOnly = Error.Forbidden("Support.ReadOnly", "A support session is read only.");
+
     /// <summary>
     /// Requests that change state must carry "X-CSRF: 1". Browsers cannot add custom headers to
     /// cross-site forms, and cross-origin fetch would need CORS, which is never enabled.
@@ -36,6 +39,12 @@ public static class EndpointFilters
         where TBuilder : IEndpointConventionBuilder =>
         builder.AddEndpointFilter(async (context, next) =>
         {
+            // A support session (act) never passes: it is read only and the administrator never signed in as the user.
+            if (context.HttpContext.User.GetActor() is not null)
+            {
+                return ApiResults.Problem(SupportReadOnly);
+            }
+
             DateTimeOffset now = context.HttpContext.RequestServices.GetRequiredService<TimeProvider>().GetUtcNow();
             DateTimeOffset? authenticatedAt = context.HttpContext.User.GetAuthenticationTime();
             if (authenticatedAt is null || now - authenticatedAt.Value > RecentAuthenticationWindow)
@@ -113,5 +122,44 @@ public static class EndpointFilters
             }
 
             return await next(context);
+        });
+}
+
+/// <summary>Endpoint metadata: the endpoint may change state during a support session (plan D11; none does today).</summary>
+public sealed class AllowDuringSupportMetadata;
+
+/// <summary>
+/// Plan D11: requests with an actor (act: support session or delegated token) cannot change anything. Every POST, PUT,
+/// PATCH and DELETE of a principal with act is refused with 403 Support.ReadOnly, except on endpoints marked with
+/// <see cref="SupportSessionGuard.AllowDuringSupport{TBuilder}"/>. Runs after authentication and authorization.
+/// </summary>
+public static class SupportSessionGuard
+{
+    public static TBuilder AllowDuringSupport<TBuilder>(this TBuilder builder)
+        where TBuilder : IEndpointConventionBuilder =>
+        builder.WithMetadata(new AllowDuringSupportMetadata());
+
+    /// <summary>For the IdP endpoints that work with the cookie (MFA set-up, invitations, new organizations).</summary>
+    public static TBuilder RejectDuringSupport<TBuilder>(this TBuilder builder)
+        where TBuilder : IEndpointConventionBuilder =>
+        builder.AddEndpointFilter(async (context, next) =>
+            (await IdentityProviderSession.AuthenticateAsync(context.HttpContext))?.GetActor() is not null
+                ? ApiResults.Problem(EndpointFilters.SupportReadOnly)
+                : await next(context));
+
+    public static IApplicationBuilder UseSupportSessionGuard(this IApplicationBuilder app) =>
+        app.Use(async (context, next) =>
+        {
+            HttpRequest request = context.Request;
+            bool safe = HttpMethods.IsGet(request.Method) || HttpMethods.IsHead(request.Method) || HttpMethods.IsOptions(request.Method);
+            if (!safe
+                && context.User.GetActor() is not null
+                && context.GetEndpoint()?.Metadata.GetMetadata<AllowDuringSupportMetadata>() is null)
+            {
+                await ApiResults.Problem(EndpointFilters.SupportReadOnly).ExecuteAsync(context);
+                return;
+            }
+
+            await next(context);
         });
 }

@@ -40,7 +40,7 @@ namespace Herensuge.Modules.Audit.Infrastructure.Database.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("jsonb")
+                        .HasColumnType("text")
                         .HasColumnName("content");
 
                     b.Property<string>("CorrelationId")
@@ -53,8 +53,7 @@ namespace Herensuge.Modules.Audit.Infrastructure.Database.Migrations
                         .HasColumnName("error");
 
                     b.Property<string>("IpAddress")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
+                        .HasColumnType("text")
                         .HasColumnName("ip_address");
 
                     b.Property<DateTime?>("NextAttemptOnUtc")
@@ -81,8 +80,7 @@ namespace Herensuge.Modules.Audit.Infrastructure.Database.Migrations
                         .HasColumnName("type");
 
                     b.Property<string>("UserAgent")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
+                        .HasColumnType("text")
                         .HasColumnName("user_agent");
 
                     b.HasKey("Id")
@@ -133,13 +131,12 @@ namespace Herensuge.Modules.Audit.Infrastructure.Database.Migrations
                         .HasColumnName("event_id");
 
                     b.Property<string>("IpAddress")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
+                        .HasColumnType("text")
                         .HasColumnName("ip_address");
 
                     b.Property<string>("Metadata")
                         .IsRequired()
-                        .HasColumnType("jsonb")
+                        .HasColumnType("text")
                         .HasColumnName("metadata");
 
                     b.Property<DateTime>("OccurredAtUtc")
@@ -155,8 +152,7 @@ namespace Herensuge.Modules.Audit.Infrastructure.Database.Migrations
                         .HasColumnName("tenant_id");
 
                     b.Property<string>("UserAgent")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
+                        .HasColumnType("text")
                         .HasColumnName("user_agent");
 
                     b.HasKey("Id")

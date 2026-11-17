@@ -55,6 +55,11 @@ internal sealed class UserSessionRepository(IdentityDbContext context) : IUserSe
             .Where(session => session.UserId == userId && session.RevokedAtUtc == null && session.ExpiresAtUtc > utcNow)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<UserSession>> GetExpiredSupportAsync(DateTime utcNow, CancellationToken cancellationToken) =>
+        await context.UserSessions
+            .Where(session => session.ImpersonatorUserId != null && session.RevokedAtUtc == null && session.ExpiresAtUtc <= utcNow)
+            .ToListAsync(cancellationToken);
+
     public void Add(UserSession session) => context.UserSessions.Add(session);
 }
 

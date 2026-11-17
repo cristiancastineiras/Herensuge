@@ -5,6 +5,35 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/platform/support-sessions": {
+      "post": {
+        "tags": [
+          "Platform"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportSessionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/tenants": {
       "get": {
         "tags": [
@@ -133,6 +162,35 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AuditPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/support/redeem": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RedeemSupportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInResponse"
                 }
               }
             }
@@ -4553,6 +4611,21 @@
           }
         }
       },
+      "RedeemSupportRequest": {
+        "required": [
+          "token",
+          "assertion"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "assertion": {
+            "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
       "RegisterRequest": {
         "required": [
           "email",
@@ -5239,6 +5312,37 @@
           }
         }
       },
+      "SupportSessionRequest": {
+        "required": [
+          "email",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "SupportSessionResponse": {
+        "required": [
+          "url",
+          "expiresAtUtc"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "expiresAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "TenantPlanDetailsResponse": {
         "required": [
           "planKey",
@@ -5484,13 +5588,13 @@
   },
   "tags": [
     {
+      "name": "Platform"
+    },
+    {
       "name": "Me"
     },
     {
       "name": "Organization"
-    },
-    {
-      "name": "Platform"
     },
     {
       "name": "Auth"

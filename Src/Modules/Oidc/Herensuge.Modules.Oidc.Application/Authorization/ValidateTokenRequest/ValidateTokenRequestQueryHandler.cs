@@ -32,7 +32,11 @@ internal sealed class ValidateTokenRequestQueryHandler(IIdentityModuleApi identi
         }
 
         // The organization may have turned on mandatory MFA after this session started.
-        if (membership.TenantRequiresMfa && !query.AuthenticationMethods.Contains(AuthenticationMethods.MultiFactor))
+        // A support session (imp) meets it: the administrator used their passkey (plan D11). Permissions that require
+        // MFA are still denied to it by Access (act never meets a condition).
+        if (membership.TenantRequiresMfa
+            && !query.AuthenticationMethods.Contains(AuthenticationMethods.MultiFactor)
+            && !query.AuthenticationMethods.Contains(AuthenticationMethods.Impersonation))
         {
             return OidcErrors.MfaRequired;
         }

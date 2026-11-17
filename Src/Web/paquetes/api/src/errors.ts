@@ -121,6 +121,13 @@ const messages: Record<string, string> = {
 	"Access.AccessRequestNotPending": "La petición ya se ha resuelto o ha caducado.",
 	"Access.CannotDecideOwnRequest": "No puedes resolver tus propias peticiones.",
 
+	"Support.ReadOnly": "Es una sesión de soporte: solo lectura.",
+	"Support.AlreadySignedIn":
+		"Este navegador ya tiene una sesión de Herensuge. Abre el enlace en una ventana privada.",
+	"Support.NotAllowedTarget":
+		"No se puede abrir una sesión de soporte sobre un administrador de plataforma ni sobre ti.",
+	"Support.InvalidReason": "Escribe el motivo (como máximo 500 caracteres).",
+
 	"Oidc.SessionInvalid": "Tu sesión ha caducado o se ha cerrado.",
 	"Oidc.TenantInactive": "La organización está desactivada.",
 	"Oidc.MembershipRevoked": "Ya no perteneces a la organización.",

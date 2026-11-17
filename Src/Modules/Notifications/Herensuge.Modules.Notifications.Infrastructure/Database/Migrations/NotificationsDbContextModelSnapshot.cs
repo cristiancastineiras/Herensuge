@@ -40,7 +40,7 @@ namespace Herensuge.Modules.Notifications.Infrastructure.Database.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("jsonb")
+                        .HasColumnType("text")
                         .HasColumnName("content");
 
                     b.Property<string>("CorrelationId")
@@ -53,8 +53,7 @@ namespace Herensuge.Modules.Notifications.Infrastructure.Database.Migrations
                         .HasColumnName("error");
 
                     b.Property<string>("IpAddress")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
+                        .HasColumnType("text")
                         .HasColumnName("ip_address");
 
                     b.Property<DateTime?>("NextAttemptOnUtc")
@@ -81,8 +80,7 @@ namespace Herensuge.Modules.Notifications.Infrastructure.Database.Migrations
                         .HasColumnName("type");
 
                     b.Property<string>("UserAgent")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
+                        .HasColumnType("text")
                         .HasColumnName("user_agent");
 
                     b.HasKey("Id")

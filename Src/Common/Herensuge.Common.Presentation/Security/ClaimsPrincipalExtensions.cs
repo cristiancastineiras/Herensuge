@@ -27,6 +27,22 @@ public static class ClaimsPrincipalExtensions
         ReadArray(principal, HerensugeClaimTypes.AuthenticationMethod);
 
     /// <summary>Unconditional permissions of the token's application (Access).</summary>
+    /// <summary>
+    /// Who acts on behalf of the user (plan D11, D14): an id in the IdP cookie, act: { sub } in tokens. Null in the user's own
+    /// sessions.
+    /// </summary>
+    public static string? GetActor(this ClaimsPrincipal principal)
+    {
+        string? act = principal.FindFirst(HerensugeClaimTypes.Actor)?.Value;
+        if (string.IsNullOrEmpty(act) || !act.StartsWith('{'))
+        {
+            return act;
+        }
+
+        using var document = System.Text.Json.JsonDocument.Parse(act);
+        return document.RootElement.TryGetProperty(HerensugeClaimTypes.Subject, out System.Text.Json.JsonElement sub) ? sub.GetString() : null;
+    }
+
     public static IReadOnlyList<string> GetPermissions(this ClaimsPrincipal principal) =>
         ReadArray(principal, HerensugeClaimTypes.Permissions);
 

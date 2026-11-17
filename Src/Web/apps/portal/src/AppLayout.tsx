@@ -44,6 +44,7 @@ export function AppLayout() {
 
 	return (
 		<>
+			{session.user.actor && <SupportBanner actor={session.user.actor} logoutUrl={session.user.logoutUrl} />}
 			<Header user={session.user} />
 			<div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 md:grid-cols-[200px_minmax(0,1fr)]">
 				<Navigation user={session.user} />
@@ -54,6 +55,23 @@ export function AppLayout() {
 				</main>
 			</div>
 		</>
+	)
+}
+
+/** Sesión de soporte (plan D11): se ve siempre, en todas las páginas, y se puede cerrar desde aquí. */
+function SupportBanner({ actor, logoutUrl }: { actor: string; logoutUrl: string }) {
+	return (
+		<output className="block bg-amber-100 text-amber-900">
+			<div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
+				<span>
+					<strong>Sesión de soporte, solo lectura.</strong> La ha abierto un administrador de la plataforma (
+					<span className="font-mono text-xs">{actor}</span>). Nada se puede cambiar.
+				</span>
+				<a className="font-medium underline underline-offset-4" href={logoutUrl}>
+					Terminar la sesión
+				</a>
+			</div>
+		</output>
 	)
 }
 
@@ -155,6 +173,7 @@ function Navigation({ user }: { user: HerensugeUser }) {
 				{ to: "/plataforma/clientes", label: "Clientes OIDC" },
 				{ to: "/plataforma/aplicaciones", label: "Aplicaciones" },
 				{ to: "/plataforma/planes", label: "Planes" },
+				{ to: "/plataforma/soporte", label: "Soporte" },
 				{ to: "/plataforma/auditoria", label: "Auditoría" },
 			],
 		})

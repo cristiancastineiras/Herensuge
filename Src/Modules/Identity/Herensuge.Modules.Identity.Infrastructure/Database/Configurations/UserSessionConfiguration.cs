@@ -22,6 +22,9 @@ internal sealed class UserSessionConfiguration : IEntityTypeConfiguration<UserSe
         builder.Property<uint>("Version").IsRowVersion();
         builder.HasIndex(session => session.UserId);
 
+        // Support sessions still open (plan D11): the job ends the expired ones.
+        builder.HasIndex(session => session.ExpiresAtUtc).HasFilter("impersonator_user_id IS NOT NULL AND revoked_at_utc IS NULL");
+
         // Same module: rows go away with the user (right to erasure).
         builder.HasOne<User>().WithMany().HasForeignKey(session => session.UserId).OnDelete(DeleteBehavior.Cascade);
     }

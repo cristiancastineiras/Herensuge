@@ -301,3 +301,11 @@ export const accessRequests = {
 			api.POST("/api/v1/tenants/{tenantId}/access-requests/{requestId}/deny", accessRequest(id, requestId)),
 		),
 }
+
+// ── Soporte (plan D11) ──────────────────────────────────────────────────────
+
+export const support = {
+	/** Enlace de un solo uso (5 min) para abrir una sesión de solo lectura en la cuenta del usuario. */
+	start: (body: { email: string; reason: string }) =>
+		call(api.POST("/api/v1/platform/support-sessions", { body })),
+}

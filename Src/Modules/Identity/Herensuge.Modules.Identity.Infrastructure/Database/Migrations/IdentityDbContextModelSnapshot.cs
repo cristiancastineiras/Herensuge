@@ -40,7 +40,7 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("jsonb")
+                        .HasColumnType("text")
                         .HasColumnName("content");
 
                     b.Property<string>("CorrelationId")
@@ -53,8 +53,7 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
                         .HasColumnName("error");
 
                     b.Property<string>("IpAddress")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
+                        .HasColumnType("text")
                         .HasColumnName("ip_address");
 
                     b.Property<DateTime?>("NextAttemptOnUtc")
@@ -81,8 +80,7 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
                         .HasColumnName("type");
 
                     b.Property<string>("UserAgent")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
+                        .HasColumnType("text")
                         .HasColumnName("user_agent");
 
                     b.HasKey("Id")
@@ -129,7 +127,7 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasColumnType("jsonb")
+                        .HasColumnType("text")
                         .HasColumnName("content");
 
                     b.Property<string>("CorrelationId")
@@ -142,8 +140,7 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
                         .HasColumnName("error");
 
                     b.Property<string>("IpAddress")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
+                        .HasColumnType("text")
                         .HasColumnName("ip_address");
 
                     b.Property<DateTime?>("NextAttemptOnUtc")
@@ -170,8 +167,7 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
                         .HasColumnName("type");
 
                     b.Property<string>("UserAgent")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
+                        .HasColumnType("text")
                         .HasColumnName("user_agent");
 
                     b.HasKey("Id")
@@ -229,10 +225,14 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at_utc");
 
+                    b.Property<Guid?>("ImpersonatorUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("impersonator_user_id");
+
                     b.Property<string>("IpAddress")
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)")
-                        .HasColumnName("ip_address");
+                        .HasColumnType("text")
+                        .HasColumnName("ip_address")
+                        .HasAnnotation("Herensuge:EncryptionPurpose", "identity.user_sessions.ip_address");
 
                     b.Property<DateTime>("LastSeenAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -248,9 +248,9 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
                         .HasColumnName("revoked_at_utc");
 
                     b.Property<string>("UserAgent")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)")
-                        .HasColumnName("user_agent");
+                        .HasColumnType("text")
+                        .HasColumnName("user_agent")
+                        .HasAnnotation("Herensuge:EncryptionPurpose", "identity.user_sessions.user_agent");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
@@ -264,6 +264,10 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_user_sessions");
+
+                    b.HasIndex("ExpiresAtUtc")
+                        .HasDatabaseName("ix_user_sessions_expires_at_utc")
+                        .HasFilter("impersonator_user_id IS NOT NULL AND revoked_at_utc IS NULL");
 
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_user_sessions_user_id");
@@ -300,9 +304,9 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
                         .HasColumnName("purpose");
 
                     b.Property<string>("Target")
-                        .HasMaxLength(254)
-                        .HasColumnType("character varying(254)")
-                        .HasColumnName("target");
+                        .HasColumnType("text")
+                        .HasColumnName("target")
+                        .HasAnnotation("Herensuge:EncryptionPurpose", "identity.one_time_tokens.target");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
@@ -334,9 +338,9 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
                         .HasColumnName("id");
 
                     b.Property<string>("Email")
-                        .HasMaxLength(254)
-                        .HasColumnType("character varying(254)")
-                        .HasColumnName("email");
+                        .HasColumnType("text")
+                        .HasColumnName("email")
+                        .HasAnnotation("Herensuge:EncryptionPurpose", "identity.user_external_logins.email");
 
                     b.Property<DateTime>("LinkedAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -431,9 +435,9 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("name");
+                        .HasColumnType("text")
+                        .HasColumnName("name")
+                        .HasAnnotation("Herensuge:EncryptionPurpose", "identity.user_passkeys.name");
 
                     b.Property<byte[]>("PublicKey")
                         .IsRequired()
@@ -506,15 +510,20 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("display_name");
+                        .HasColumnType("text")
+                        .HasColumnName("display_name")
+                        .HasAnnotation("Herensuge:EncryptionPurpose", "identity.users.display_name");
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasMaxLength(254)
-                        .HasColumnType("character varying(254)")
-                        .HasColumnName("email");
+                        .HasColumnType("text")
+                        .HasColumnName("email")
+                        .HasAnnotation("Herensuge:EncryptionPurpose", "identity.users.email");
+
+                    b.Property<string>("EmailIndex")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("email_index");
 
                     b.Property<DateTime?>("EmailVerifiedAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -543,9 +552,9 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
                         .HasColumnName("pending_totp_secret");
 
                     b.Property<string>("PhoneNumber")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("phone_number");
+                        .HasColumnType("text")
+                        .HasColumnName("phone_number")
+                        .HasAnnotation("Herensuge:EncryptionPurpose", "identity.users.phone_number");
 
                     b.Property<DateTime?>("PhoneVerifiedAtUtc")
                         .HasColumnType("timestamp with time zone")
@@ -573,9 +582,9 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
                     b.HasKey("Id")
                         .HasName("pk_users");
 
-                    b.HasIndex("Email")
+                    b.HasIndex("EmailIndex")
                         .IsUnique()
-                        .HasDatabaseName("ix_users_email");
+                        .HasDatabaseName("ix_users_email_index");
 
                     b.ToTable("users", "identity");
                 });

@@ -27,6 +27,7 @@ const PlatformTenantsPage = lazy(() => import("./platform/PlatformTenantsPage"))
 const ClientsPage = lazy(() => import("./platform/ClientsPage"))
 const ApplicationsPage = lazy(() => import("./platform/ApplicationsPage"))
 const PlansPage = lazy(() => import("./platform/PlansPage"))
+const SupportPage = lazy(() => import("./platform/SupportPage"))
 const PlatformAuditPage = lazy(() => import("./platform/PlatformAuditPage"))
 
 export const router = createBrowserRouter([
@@ -84,6 +85,7 @@ export const router = createBrowserRouter([
 					{ path: "clientes", element: <ClientsPage /> },
 					{ path: "aplicaciones", element: <ApplicationsPage /> },
 					{ path: "planes", element: <PlansPage /> },
+					{ path: "soporte", element: <SupportPage /> },
 					{ path: "auditoria", element: <PlatformAuditPage /> },
 				],
 			},
