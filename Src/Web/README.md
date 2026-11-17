@@ -51,14 +51,15 @@ apps/
     ├── user.ts                      # usuario de la sesión (@herensuge/react) y reglas de rol
     ├── AppLayout.tsx                # cabecera, navegación por rol, guardas
     ├── components.tsx               # PageHeader, AuditLog…
-    ├── account/                     # Perfil, Seguridad, Sesiones
-    ├── organization/                # General, Miembros, Auditoría
-    └── platform/                    # Organizaciones, Clientes OIDC, Auditoría
+    ├── account/                     # Perfil, Seguridad, Sesiones, Mis accesos
+    ├── organization/                # General (redes, plan), Miembros, Roles, Grupos, Cuentas de servicio, Simulador,
+    │                                # Accesos temporales, Auditoría (por permiso: useCan)
+    └── platform/                    # Organizaciones, Clientes OIDC, Aplicaciones, Planes, Soporte, Auditoría
 paquetes/
 ├── api/            # cliente tipado (openapi-fetch + X-CSRF), ProblemDetails → español; src/schema.d.ts GENERADO
 ├── componentes/    # Button, Field, Card, Alert, Table, ConfirmButton, TotpSetup… (+ public/logo.svg)
 ├── utiles/         # cn, formValues, formato de fechas
-├── herensuge-react/  # @herensuge/react: SDK de la sesión de la BFF (login, logout en tiempo real); ver su README
+├── herensuge-react/  # @herensuge/react: SDK de la sesión de la BFF (login, logout en tiempo real), useCan y <Can>; ver su README
 ├── generador-api/  # openapi-typescript (con su propio TypeScript 5): Docs/API → api/src/schema.d.ts
 └── configuracion-ts/
 ```

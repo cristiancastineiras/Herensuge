@@ -1,6 +1,6 @@
 # Herensuge Access: plan para completar las fases 1 a 4
 
-> **Estado:** en revisión EGM (versión 4, tras las etapas 5, 6 y 7) · **Fecha:** 16/11/2026
+> **Estado:** implementado (WP0 a WP7, 17/11/2026), código estático sin ejecutar con Docker: ver §12 · **Revisión EGM:** versión 4, tras las etapas 5, 6 y 7
 > **Diseño general:** [Autorizacion.md](Autorizacion.md) dice qué y por qué; este documento dice **cómo** se termina.
 > **Decisiones:** [Docs/Decisiones](../Decisiones/), resumidas en §0.3.
 > **Revisión:** [Docs/EGM/autorizacion-implementacion](../EGM/autorizacion-implementacion/). EGM (Elephant-Goldfish Model) es
@@ -617,6 +617,33 @@ integración (PostgreSQL, Valkey y OpenFGA en contenedores) los ejecuta la CI en
 | D11, D13, D14 | 4 | WP6 |
 | D12 | 1, 2, 4 | WP1 (roles y asignaciones), WP4 (grupos y cuentas de servicio), WP6 (aprobaciones) |
 | ADR A5–A13 | — | WP0 |
+
+## 12. Estado de la implementación (17/11/2026)
+
+| WP | Qué hay | Commit |
+|---|---|---|
+| WP1 | Evaluador único, permisos condicionales, manifiesto de Herensuge, claims por `userinfo`, versiones de acceso y `permissions-changed` | `832709d` |
+| WP2 | `@herensuge/react` (`useCan`, `<Can>`), Roles, roles por miembro y Aplicaciones en el portal | `4922f4f` |
+| WP3 | SDK `Herensuge.Access.AspNetCore` y `Samples/Facturas` | `092cf08` |
+| WP4 | Planes y features, grupos, cuentas de servicio, redes de confianza, simulador | `6037cc2` |
+| WP5 | Permisos por objeto con OpenFGA (`relation`, `relationMode`, `/access/v1/relationships`, `search/resource`) | `baf8ac7` |
+| WP6 | Accesos temporales, *token exchange* y sesiones de soporte de solo lectura | `2fab508`, `b391f76` |
+| WP7 | Contrato OpenAPI y tipos regenerados, documentación, CI de migraciones | este commit |
+
+**Verificado en esta máquina:** la solución compila con los warnings como errores; tests unitarios (Access 39, Identity 45,
+Tenancy 11, SDK 4) y de arquitectura (29) en verde; las webs pasan `typecheck` y `lint`; los modelos EF de los seis módulos
+coinciden con sus migraciones.
+
+**Sin verificar:** los tests de integración (Testcontainers) y el recorrido en vivo, que necesitan Docker; OpenFGA real.
+
+**Ajustes al implementar:**
+
+- `DELETE /access/v1/relationships` declara el cuerpo con `[FromBody]` (las APIs mínimas no lo infieren en DELETE).
+- `IPNetwork.TryParse` acepta bits de host (`203.0.113.7/24`); Herensuge solo admite la dirección base canónica.
+- Identity, Audit, Oidc y Notifications no tenían la migración del cifrado en reposo; va en `DataAtRest` (e Identity en
+  `DataAtRestAndSupportSessions`).
+- Cambiar el plan de una organización avisa en tiempo real; editar las features de un plan no (`shortcut:` en el código).
+- Las peticiones de acceso temporal muestran nombres de miembros solo a owner/admin (la lista de miembros es de Tenancy).
 
 ## Detailed Implementation Plan
 

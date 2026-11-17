@@ -1,6 +1,7 @@
 # Herensuge Access: plan de autorización (Nivel 2)
 
-> **Estado:** en desarrollo (fase 1: backend hecho, falta la parte web) · **Fecha:** 16/11/2026
+> **Estado:** implementado, fases 1 a 4 (17/11/2026). Cómo se ha hecho y qué falta verificar:
+> [Autorizacion-Implementacion.md](Autorizacion-Implementacion.md) §12.
 > Cuando se apruebe, sustituye la decisión 7 del [RESUMEN](../../RESUMEN.md#20-decisiones-de-esta-revisión) ("roles fijos").
 > Las decisiones marcadas como **ADR-A*n*** se redactan en `Docs/Decisiones/` antes de empezar cada fase.
 

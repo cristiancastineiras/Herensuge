@@ -28,6 +28,16 @@ jobs:
       - name: OpenAPI contract is up to date
         run: git diff --exit-code -- Docs/API || (echo "::error::Docs/API is out of date. Run 'pnpm -C Src/Web api:generate' and commit." && exit 1)
 
+      # Every module's model must match its migrations (a forgotten migration breaks the next deployment).
+      - name: Migrations are up to date
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+        run: |
+          dotnet tool restore
+          for module in Identity Tenancy Oidc Access Audit Notifications; do
+            dotnet dotnet-ef migrations has-pending-model-changes --no-build --configuration Release --startup-project Src/Hosts/Herensuge.Api --project "Src/Modules/$module/Herensuge.Modules.$module.Infrastructure" --context "${module}DbContext"
+          done
+
       # Integration tests start PostgreSQL and Valkey with Testcontainers (Docker is available on the runner).
       - name: Test
         run: |
