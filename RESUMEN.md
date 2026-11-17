@@ -944,8 +944,10 @@ dotnet run --project Src/Hosts/Herensuge.Bff          # https://localhost:5002
 - [ ] Revisar la retención: auditoría 365 días (`Audit:RetentionDays`), sesiones terminadas 30 días, tokens 1 día, mensajes procesados 7 días.
 - [ ] Hosting (VPS Hetzner/OVH o Kubernetes) y dominio de producción.
 - [ ] Escribir los ADRs de la sección 20 en `Docs/Decisiones/`.
-- [ ] Diseñar el Nivel 2. Autorización (permisos, roles por organización, planes, API de decisión): propuesta en
-  [Docs/Arquitectura/Autorizacion.md](Docs/Arquitectura/Autorizacion.md).
+- [x] Nivel 2. Autorización (permisos por aplicación, roles, grupos, planes, cuentas de servicio, permisos por objeto,
+  accesos temporales, soporte de solo lectura, *token exchange* y API de decisión AuthZEN): diseño en
+  [Docs/Arquitectura/Autorizacion.md](Docs/Arquitectura/Autorizacion.md), implementación y estado en
+  [Autorizacion-Implementacion.md](Docs/Arquitectura/Autorizacion-Implementacion.md) §12.
 
 ---
 
@@ -989,5 +991,9 @@ dotnet run --project Src/Hosts/Herensuge.Bff          # https://localhost:5002
 | CSP en desarrollo | Con `Spa:DevServerUrl` en `Development` se permite `'unsafe-inline'` en scripts y estilos (Vite). Producción sin cambios |
 | Hosts locales en Docker | `id.herensuge.localhost` / `portal.herensuge.localhost`, RP ID `herensuge.localhost`: con `*.localhost` a secas las passkeys fallan (`localhost` es sufijo público) |
 | Compose | Solo `herensuge-api` construye la imagen; el migrador la reutiliza (dos servicios construyendo la misma etiqueta chocan) |
+
+**Nivel 2 (17/11/2026):** el módulo Access completo (fases 1 a 4), el SDK `Herensuge.Access.AspNetCore`, el ejemplo
+`Samples/Facturas`, `@herensuge/react` con `useCan` y las pantallas del portal. Estado y verificación en
+[Autorizacion-Implementacion.md](Docs/Arquitectura/Autorizacion-Implementacion.md) §12.
 
 **Siguientes pasos:** ejecutar los tests de integración, convertir el recorrido en vivo en `Herensuge.EndToEndTests`, elegir los proveedores reales de email y SMS y redactar los ADRs.
