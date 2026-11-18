@@ -1,16 +1,23 @@
 using System.Text.Json;
 using Herensuge.Common.Application.Security;
 using Herensuge.Modules.Oidc.Application;
+using Herensuge.Modules.Oidc.Application.Abstractions;
 using Herensuge.Modules.Oidc.Contracts;
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
 namespace Herensuge.Modules.Oidc.Infrastructure.Clients;
 
-/// <summary>Clients of service accounts (plan D7). Access creates the aggregate around them.</summary>
-internal sealed class OidcModuleApi(IOpenIddictApplicationManager applications, IOpenIddictScopeManager scopes) : IOidcModuleApi
+/// <summary>Login pages of the clients, and clients of service accounts (plan D7): Access creates the aggregate around them.</summary>
+internal sealed class OidcModuleApi(
+    IOpenIddictApplicationManager applications,
+    IOpenIddictScopeManager scopes,
+    IClientRegistry clients) : IOidcModuleApi
 {
     private const string ApiScopeSuffix = ".api";
+
+    public async Task<LoginSettings?> GetLoginSettingsAsync(string clientId, CancellationToken cancellationToken) =>
+        (await clients.GetLoginPageAsync(clientId, cancellationToken))?.Settings;
 
     public async Task<ServiceClient> CreateServiceClientAsync(Guid tenantId, string name, CancellationToken cancellationToken)
     {

@@ -68,6 +68,11 @@ public sealed class HerensugeApiFactory : WebApplicationFactory<Program>, IAsync
         builder.UseSetting("Identity:Argon2:MemorySizeKiB", "8192");
         builder.UseSetting("Identity:Argon2:Iterations", "1");
 
+        // Data at rest: fixed test keys (32 random bytes each, never used outside the tests).
+        builder.UseSetting("Security:EncryptionKeys:test1", "q1x8bD3m0Q6lR0m4c2xR3s0bJbq7m6m8y2bq0Jx0Q2E=");
+        builder.UseSetting("Security:ActiveEncryptionKey", "test1");
+        builder.UseSetting("Security:HashingKey", "o5T1n3gq9V8zF2kq7mX4bY6wJ0cR5pL8sD1fH3jK9aE=");
+
         builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<IEmailSender>();

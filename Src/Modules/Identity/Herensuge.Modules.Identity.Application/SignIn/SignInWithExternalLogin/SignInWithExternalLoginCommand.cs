@@ -4,10 +4,12 @@ namespace Herensuge.Modules.Identity.Application.SignIn.SignInWithExternalLogin;
 /// <param name="Subject">Stable identifier at the provider (never the email).</param>
 /// <param name="EmailVerified">Only trusted when the provider guarantees it (Google).</param>
 /// <param name="LinkToUserId">Set when an already signed-in user links the provider to their account.</param>
+/// <param name="AllowRegistration">False when the application's login page has registration closed: unknown accounts are not created.</param>
 public sealed record SignInWithExternalLoginCommand(
     string Provider,
     string Subject,
     string? Email,
     bool EmailVerified,
     string? DisplayName,
-    Guid? LinkToUserId) : ICommand<SignInResult>;
+    Guid? LinkToUserId,
+    bool AllowRegistration = true) : ICommand<SignInResult>;

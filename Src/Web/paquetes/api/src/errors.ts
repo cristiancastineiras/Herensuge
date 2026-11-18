@@ -66,6 +66,11 @@ const messages: Record<string, string> = {
 	"Users.ExternalLoginNotFound": "Esa cuenta no está vinculada.",
 	"Users.ExternalEmailMissing": "El proveedor no ha compartido tu email.",
 	"Users.NotFound": "El usuario no existe.",
+	"Users.RegistrationDisabled":
+		"Esta aplicación no permite crear cuentas nuevas. Pide una invitación a tu organización.",
+	"Users.ProfileFieldRequired": "Rellena todos los campos obligatorios.",
+	"Users.InvalidProfileField": "Hay un campo con un valor no válido. Revísalo.",
+	"Users.TooManyProfileFields": "Tu cuenta tiene demasiados datos de perfil.",
 
 	"Sessions.NotFound": "La sesión no existe.",
 	"Sessions.Inactive": "La sesión ha caducado o se ha cerrado.",
@@ -136,6 +141,8 @@ const messages: Record<string, string> = {
 	// Errores que el IdP pasa a la web de login en ?error=
 	external_failed: "No se ha podido iniciar sesión con el proveedor externo.",
 	link_requires_sign_in: "Inicia sesión antes de vincular una cuenta externa.",
+	sign_in_method_not_allowed:
+		"Esta aplicación no admite ese método de inicio de sesión. Entra con uno de los que aparecen aquí.",
 }
 
 /** Errores de validación: el campo (camelCase) que ha fallado. */
@@ -156,6 +163,19 @@ const fieldMessages: Record<string, string> = {
 	role: "El rol no es válido.",
 	trustedNetworks:
 		"Las redes de confianza deben ser rangos públicos en CIDR (p. ej. 203.0.113.0/24), sin rangos privados ni de loopback.",
+	// Pantalla de login de un cliente (los índices de las listas se quitan: ProfileFields[2] → ProfileFields[])
+	"settings.Branding.Logo": "El logo debe ser una imagen PNG, JPEG, WebP o SVG de como máximo 100 KB.",
+	"settings.Branding.PrimaryColor": "El color debe tener el formato #1d4ed8.",
+	"settings.Branding.TermsUrl": "El enlace a las condiciones debe ser una URL HTTPS.",
+	"settings.Branding.PrivacyUrl": "El enlace a la privacidad debe ser una URL HTTPS.",
+	"settings.Branding.HomeUrl": "La dirección de la aplicación debe ser una URL HTTPS.",
+	"settings.Methods": "Activa al menos un método de inicio de sesión.",
+	"settings.ProfileFields": "Como máximo 15 campos, y cada uno con una clave distinta.",
+	"settings.ProfileFields[].Key":
+		"La clave de cada campo usa minúsculas, números y guiones bajos, y empieza por una letra.",
+	"settings.ProfileFields[].Label": "Cada campo necesita un texto de como máximo 80 caracteres.",
+	"settings.ProfileFields[].Options":
+		"Una lista desplegable necesita entre 1 y 30 opciones distintas (una por línea).",
 }
 
 export function errorCode(error: unknown): string | undefined {
@@ -181,7 +201,11 @@ export function describeError(error: unknown): string {
 	const fieldErrors = error.problem?.errors
 	if (fieldErrors && Object.keys(fieldErrors).length > 0) {
 		return Object.entries(fieldErrors)
-			.map(([field, details]) => fieldMessages[field] ?? details.join(" "))
+			.map(
+				([field, details]) =>
+					fieldMessages[field] ?? fieldMessages[field.replace(/\[\d+\]/g, "[]")] ?? details.join(" "),
+			)
+			.filter((message, index, all) => all.indexOf(message) === index)
 			.join(" ")
 	}
 

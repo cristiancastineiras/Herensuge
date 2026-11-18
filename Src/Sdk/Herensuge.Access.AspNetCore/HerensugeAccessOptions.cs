@@ -17,6 +17,13 @@ public sealed class HerensugeAccessOptions
     /// <summary>Timeout of each call to the decision point; an unanswered call denies.</summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(5);
 
+    /// <summary>
+    /// Optional internal address of Herensuge (http://herensuge-api:8080). Calls to <see cref="Authority"/> (discovery,
+    /// JWKS, tokens, decision point, userinfo) go there with X-Forwarded-Proto/Host, so a container never leaves the
+    /// private network. The issuer stays the public one.
+    /// </summary>
+    public string? BackchannelAddress { get; set; }
+
     internal string Audience => $"{ResourceServer}-api";
 
     internal void Validate()
@@ -24,6 +31,11 @@ public sealed class HerensugeAccessOptions
         if (!Uri.TryCreate(Authority, UriKind.Absolute, out _))
         {
             throw new InvalidOperationException("Herensuge access: Authority must be an absolute URL.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(BackchannelAddress) && !Uri.TryCreate(BackchannelAddress, UriKind.Absolute, out _))
+        {
+            throw new InvalidOperationException("Herensuge access: BackchannelAddress must be an absolute URL.");
         }
 
         if (string.IsNullOrWhiteSpace(ResourceServer) || string.IsNullOrWhiteSpace(ClientId) || string.IsNullOrWhiteSpace(ClientSecret))

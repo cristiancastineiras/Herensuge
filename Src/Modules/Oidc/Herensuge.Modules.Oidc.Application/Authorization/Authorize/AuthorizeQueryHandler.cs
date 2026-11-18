@@ -1,14 +1,16 @@
 using Herensuge.Common.Application.Security;
 using Herensuge.Modules.Identity.Contracts;
+using Herensuge.Modules.Oidc.Application.Clients.LoginPage;
 using Herensuge.Modules.Tenancy.Contracts;
 
 namespace Herensuge.Modules.Oidc.Application.Authorization.Authorize;
 
 /// <summary>
-/// Decides what /connect/authorize does for a signed-in user: issue a code, or send them to pick an
-/// organization, create one, or complete the multi-factor authentication the organization requires.
+/// Decides what /connect/authorize does for a signed-in user: issue a code, or send them to sign in with a method the
+/// client accepts, give the data the client asks for, pick an organization, create one, or complete the multi-factor
+/// authentication the organization requires.
 /// </summary>
-internal sealed class AuthorizeQueryHandler(IIdentityModuleApi identity, ITenancyModuleApi tenancy)
+internal sealed class AuthorizeQueryHandler(IIdentityModuleApi identity, ITenancyModuleApi tenancy, IClientRegistry clients)
     : IQueryHandler<AuthorizeQuery, AuthorizationDecision>
 {
     public async Task<Result<AuthorizationDecision>> Handle(AuthorizeQuery query, CancellationToken cancellationToken)
@@ -22,6 +24,19 @@ internal sealed class AuthorizeQueryHandler(IIdentityModuleApi identity, ITenanc
         if (user is null)
         {
             return new AuthorizationDecision(AuthorizationOutcome.SessionInvalid);
+        }
+
+        // The client's login page: methods it accepts and registration data it needs. A support session (read-only)
+        // cannot fill in data, so it skips the data check.
+        LoginSettings settings = (await clients.GetLoginPageAsync(query.ClientId, cancellationToken))?.Settings ?? LoginSettings.Default;
+        if (!LoginRules.AcceptsSession(settings.Methods, [.. query.AuthenticationMethods]))
+        {
+            return new AuthorizationDecision(AuthorizationOutcome.SignInMethodNotAllowed);
+        }
+
+        if (!query.AuthenticationMethods.Contains(AuthenticationMethods.Impersonation) && !LoginRules.IsProfileComplete(settings, user.ProfileFields))
+        {
+            return new AuthorizationDecision(AuthorizationOutcome.ProfileIncomplete);
         }
 
         IReadOnlyList<MembershipSnapshot> memberships = await tenancy.GetMembershipsAsync(user.Id, cancellationToken);
@@ -61,6 +76,7 @@ internal sealed class AuthorizeQueryHandler(IIdentityModuleApi identity, ITenanc
 
         return new AuthorizationDecision(
             AuthorizationOutcome.Granted,
-            new AuthorizedUser(user.Id, user.Email, user.EmailVerified, user.DisplayName, user.IsPlatformAdmin, membership.TenantId, membership.Role));
+            new AuthorizedUser(user.Id, user.Email, user.EmailVerified, user.DisplayName, user.IsPlatformAdmin, membership.TenantId, membership.Role),
+            LoginRules.ClientValues(settings, user.ProfileFields));
     }
 }

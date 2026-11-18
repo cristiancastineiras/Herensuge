@@ -31,14 +31,20 @@ internal sealed class GetCurrentUserQueryHandler(IDbConnectionFactory dbConnecti
         await using DbConnection connection = await dbConnectionFactory.OpenConnectionAsync(cancellationToken);
         CurrentUserResponse? user = await connection.QuerySingleOrDefaultAsync<CurrentUserResponse>(
             new CommandDefinition(Sql, new { query.UserId }, cancellationToken: cancellationToken));
+        if (user is null)
+        {
+            return UserErrors.NotFound;
+        }
 
-        return user is null
-            ? UserErrors.NotFound
-            : user with
-            {
-                Email = encryptor.Decrypt(user.Email, EncryptedColumns.UserEmail),
-                DisplayName = encryptor.Decrypt(user.DisplayName, EncryptedColumns.UserDisplayName),
-                PhoneNumber = encryptor.DecryptNullable(user.PhoneNumber, EncryptedColumns.UserPhoneNumber),
-            };
+        string? profileFields = await connection.ExecuteScalarAsync<string?>(
+            new CommandDefinition("SELECT profile_fields FROM identity.users WHERE id = @UserId", new { query.UserId }, cancellationToken: cancellationToken));
+
+        return user with
+        {
+            Email = encryptor.Decrypt(user.Email, EncryptedColumns.UserEmail),
+            DisplayName = encryptor.Decrypt(user.DisplayName, EncryptedColumns.UserDisplayName),
+            PhoneNumber = encryptor.DecryptNullable(user.PhoneNumber, EncryptedColumns.UserPhoneNumber),
+            ProfileFields = ProfileFieldsColumn.Read(profileFields, encryptor),
+        };
     }
 }

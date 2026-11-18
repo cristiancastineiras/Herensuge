@@ -5,12 +5,16 @@ import { useState } from "react"
 import { Link, useSearchParams } from "react-router"
 import { auth } from "../api"
 import { AuthLayout, linkClass } from "../AuthLayout"
+import { useSignInPath } from "../navigation"
 
-const backToSignIn = (
-	<Link className={linkClass} to="/login">
-		Volver a iniciar sesión
-	</Link>
-)
+/** Vuelve al login de la aplicación con la que se estaba entrando. */
+function BackToSignIn() {
+	return (
+		<Link className={linkClass} to={useSignInPath()}>
+			Volver a iniciar sesión
+		</Link>
+	)
+}
 
 export function ForgotPasswordPage() {
 	const forgot = useMutation({ mutationFn: auth.forgotPassword })
@@ -19,7 +23,7 @@ export function ForgotPasswordPage() {
 		<AuthLayout
 			title="Recupera tu contraseña"
 			description="Te enviaremos un enlace para elegir una contraseña nueva."
-			footer={backToSignIn}
+			footer={<BackToSignIn />}
 		>
 			{forgot.isSuccess ? (
 				<Alert tone="success">
@@ -46,6 +50,7 @@ export function ResetPasswordPage() {
 	const token = useSearchParams()[0].get("token") ?? ""
 	const reset = useMutation({ mutationFn: auth.resetPassword })
 	const [mismatch, setMismatch] = useState(false)
+	const signInPath = useSignInPath()
 
 	if (reset.isSuccess) {
 		return (
@@ -53,7 +58,7 @@ export function ResetPasswordPage() {
 				<Alert tone="success">
 					Ya puedes iniciar sesión con tu nueva contraseña. Hemos cerrado tus otras sesiones.
 				</Alert>
-				<Link className={buttonClass("primary", true)} to="/login">
+				<Link className={buttonClass("primary", true)} to={signInPath}>
 					Iniciar sesión
 				</Link>
 			</AuthLayout>
@@ -61,7 +66,7 @@ export function ResetPasswordPage() {
 	}
 
 	return (
-		<AuthLayout title="Elige una contraseña nueva" footer={backToSignIn}>
+		<AuthLayout title="Elige una contraseña nueva" footer={<BackToSignIn />}>
 			<Form
 				onSubmit={(event) => {
 					const { newPassword, repeat } = formValues(event, "newPassword", "repeat")

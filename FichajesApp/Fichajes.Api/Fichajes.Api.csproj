@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Npgsql.OpenTelemetry" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- El SDK de Herensuge para APIs. Fuera de este repositorio: el paquete NuGet Herensuge.Access.AspNetCore. -->
+    <ProjectReference Include="../../Src/Sdk/Herensuge.Access.AspNetCore/Herensuge.Access.AspNetCore.csproj" />
+  </ItemGroup>
+</Project>

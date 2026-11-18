@@ -13,14 +13,14 @@ internal interface ISessionLock
 }
 
 /// <summary>Distributed lock in Valkey (works across BFF instances).</summary>
-internal sealed class ValkeySessionLock(IConnectionMultiplexer multiplexer) : ISessionLock
+internal sealed class ValkeySessionLock(IConnectionMultiplexer multiplexer, Microsoft.Extensions.Options.IOptions<BffOptions> options) : ISessionLock
 {
     private static readonly TimeSpan LockLifetime = TimeSpan.FromSeconds(15);
 
     public async Task<IAsyncDisposable?> AcquireAsync(string sessionKey, TimeSpan timeout, CancellationToken cancellationToken)
     {
         IDatabase database = multiplexer.GetDatabase();
-        RedisKey key = $"herensuge-bff:refresh-lock:{sessionKey}";
+        RedisKey key = $"{options.Value.InstanceName}:refresh-lock:{sessionKey}";
         RedisValue token = Guid.NewGuid().ToString("N");
         DateTime deadline = DateTime.UtcNow + timeout;
 

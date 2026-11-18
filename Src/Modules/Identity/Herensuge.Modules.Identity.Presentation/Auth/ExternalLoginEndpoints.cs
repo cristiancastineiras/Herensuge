@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Herensuge.Modules.Identity.Application;
 using Herensuge.Modules.Identity.Application.SignIn;
 using Herensuge.Modules.Identity.Application.SignIn.SignInWithExternalLogin;
+using Herensuge.Modules.Oidc.Contracts;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
@@ -18,6 +19,7 @@ internal sealed class ExternalLoginEndpoints : IEndpoint
 {
     private const string ModeKey = ".herensuge.mode";
     private const string LinkMode = "link";
+    private const string AllowRegistrationKey = ".herensuge.allow_registration";
 
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
@@ -25,22 +27,36 @@ internal sealed class ExternalLoginEndpoints : IEndpoint
             .WithTags("Auth")
             .RequireRateLimiting(RateLimitPolicies.Auth);
 
-        group.MapGet("/{provider}", (
+        group.MapGet("/{provider}", async (
             string provider,
             string? returnUrl,
             string? mode,
             IOptions<ExternalProvidersOptions> options,
-            IConfiguration configuration) =>
+            IConfiguration configuration,
+            IOidcModuleApi oidc,
+            CancellationToken cancellationToken) =>
         {
             if (!options.Value.GetConfiguredProviders().Contains(provider) || ToProviderName(provider) is not { } providerName)
             {
                 return Results.NotFound();
             }
 
+            // The login page of the application being signed in to: it may not offer this provider, or not let
+            // unknown accounts in (closed registration).
+            LoginSettings settings = ReturnUrls.GetClientId(returnUrl) is { } clientId
+                ? await oidc.GetLoginSettingsAsync(clientId, cancellationToken) ?? LoginSettings.Default
+                : LoginSettings.Default;
+            bool offered = provider == ExternalProviders.Google ? settings.Methods.Google : settings.Methods.Microsoft;
+            if (mode != LinkMode && !offered)
+            {
+                return Results.Redirect(LoginPages.With(LoginPages.Login, returnUrl, "sign_in_method_not_allowed"));
+            }
+
             var properties = new AuthenticationProperties(new Dictionary<string, string?>
             {
                 [OpenIddictClientAspNetCoreConstants.Properties.ProviderName] = providerName,
                 [ModeKey] = mode == LinkMode ? LinkMode : "sign-in",
+                [AllowRegistrationKey] = settings.AllowRegistration ? "true" : "false",
             })
             {
                 RedirectUri = ReturnUrls.IsAllowed(returnUrl, configuration) ? returnUrl : "/",
@@ -100,8 +116,9 @@ internal sealed class ExternalLoginEndpoints : IEndpoint
             linkToUserId = session.GetUserId();
         }
 
+        bool allowRegistration = result.Properties?.Items.TryGetValue(AllowRegistrationKey, out string? allow) != true || allow != "false";
         Result<SignInResult> outcome = await handler.Handle(
-            new SignInWithExternalLoginCommand(provider, subject, email, emailVerified, name, linkToUserId),
+            new SignInWithExternalLoginCommand(provider, subject, email, emailVerified, name, linkToUserId, allowRegistration),
             cancellationToken);
 
         if (outcome.IsFailure)

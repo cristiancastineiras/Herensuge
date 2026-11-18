@@ -78,6 +78,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/clients/{clientId}/login-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    clientId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClientLoginPage"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tenants/{tenantId}/audit": {
         parameters: {
             query?: never;
@@ -1158,6 +1195,43 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/profile-fields": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateProfileFieldsRequest"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -2252,6 +2326,66 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/clients/{clientId}/login-page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    clientId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ClientLoginPage"];
+                    };
+                };
+            };
+        };
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    clientId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["LoginSettings"];
+                };
+            };
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3842,6 +3976,11 @@ export interface components {
             clientId: string;
             clientSecret: null | string;
         };
+        ClientLoginPage: {
+            clientId: string;
+            displayName: string;
+            settings: components["schemas"]["LoginSettings"];
+        };
         ClientResponse: {
             clientId: string;
             displayName: string;
@@ -3901,6 +4040,9 @@ export interface components {
             isPlatformAdmin: boolean;
             /** Format: date-time */
             createdAtUtc: string;
+            profileFields: {
+                [key: string]: string;
+            };
         };
         EmailRequest: {
             email: string;
@@ -3982,6 +4124,27 @@ export interface components {
             expiresAtUtc: string;
         };
         JsonElement: unknown;
+        LoginBranding: {
+            logo: null | string;
+            primaryColor: null | string;
+            termsUrl: null | string;
+            privacyUrl: null | string;
+            homeUrl?: null | string;
+        };
+        LoginMethods: {
+            password: boolean;
+            passkey: boolean;
+            google: boolean;
+            microsoft: boolean;
+        };
+        LoginSettings: {
+            branding: components["schemas"]["LoginBranding"];
+            methods: components["schemas"]["LoginMethods"];
+            allowRegistration: boolean;
+            profileFields: components["schemas"]["ProfileField"][];
+            /** @default true */
+            allowTenantCreation: boolean;
+        };
         ManifestFeature: {
             key: string;
             name: string;
@@ -4101,6 +4264,13 @@ export interface components {
             /** Format: date-time */
             createdAtUtc: string;
         };
+        ProfileField: {
+            key: string;
+            label: string;
+            type: string;
+            required: boolean;
+            options: string[];
+        };
         ProvidersResponse: {
             providers: string[];
         };
@@ -4118,6 +4288,10 @@ export interface components {
             email: string;
             password: string;
             displayName: string;
+            clientId: null | string;
+            profileFields: null | {
+                [key: string]: string;
+            };
         };
         RelationshipEntity: {
             type: string;
@@ -4270,6 +4444,9 @@ export interface components {
             authenticationMethods: string[];
             /** Format: uuid */
             tenantId: null | string;
+            profileFields: {
+                [key: string]: string;
+            };
         };
         SetRolesRequest: {
             roles: components["schemas"]["RoleGrant"][];
@@ -4348,6 +4525,12 @@ export interface components {
             redirectUris: string[];
             postLogoutRedirectUris: null | string[];
             scopes: string[];
+        };
+        UpdateProfileFieldsRequest: {
+            clientId: string;
+            values: {
+                [key: string]: string;
+            };
         };
         UpdateProfileRequest: {
             displayName: string;

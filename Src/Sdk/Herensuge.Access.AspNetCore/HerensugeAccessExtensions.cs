@@ -2,6 +2,7 @@ using Herensuge.Access.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Http;
 using OpenIddict.Validation.AspNetCore;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -36,6 +37,14 @@ public static class HerensugeAccessExtensions
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, StepUpResultHandler>();
 
         services.AddHttpClient(HerensugeAccessClient.HttpClientName, client => client.BaseAddress = authority);
+
+        // Every HttpClient of the app (OpenIddict's included); only requests to the Authority are rewritten.
+        if (!string.IsNullOrWhiteSpace(options.BackchannelAddress))
+        {
+            var internalAddress = new Uri(options.BackchannelAddress, UriKind.Absolute);
+            services.ConfigureAll<HttpClientFactoryOptions>(factory => factory.HttpMessageHandlerBuilderActions.Add(
+                builder => builder.AdditionalHandlers.Add(new BackchannelRewriteHandler(authority, internalAddress))));
+        }
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<HerensugeAccessClient>();
         services.AddSingleton<IHerensugeAccess>(provider => provider.GetRequiredService<HerensugeAccessClient>());

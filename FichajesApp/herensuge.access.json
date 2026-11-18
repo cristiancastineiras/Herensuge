@@ -1,0 +1,27 @@
+{
+  "resourceServer": "fichajes",
+  "name": "Fichajes",
+  "clientId": "fichajes-app",
+  "permissions": [
+    { "key": "shift:create", "description": "Fichar la entrada y la salida" },
+    { "key": "shift:read", "description": "Ver mis fichajes" },
+    { "key": "shift:read-all", "description": "Ver los fichajes de toda la organización" },
+    { "key": "shift:delete", "description": "Borrar un fichaje erróneo", "requires": "recent_auth" }
+  ],
+  "roles": [
+    {
+      "key": "employee",
+      "name": "Empleado",
+      "description": "Ficha y ve sus fichajes",
+      "permissions": ["shift:create", "shift:read"],
+      "grantTo": ["owner", "admin", "member"]
+    },
+    {
+      "key": "manager",
+      "name": "Responsable",
+      "description": "Ve y corrige los fichajes de toda la organización",
+      "permissions": ["shift:read-all", "shift:delete"],
+      "grantTo": ["owner", "admin"]
+    }
+  ]
+}

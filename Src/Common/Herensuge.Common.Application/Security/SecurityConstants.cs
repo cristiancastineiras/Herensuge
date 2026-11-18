@@ -29,6 +29,12 @@ public static class HerensugeClaimTypes
     public const string Actor = "act";
 
     public const string ClientId = "client_id";
+
+    /// <summary>
+    /// JSON object with the extra registration data the client asks for ({"company": "Acme"}): only that client's
+    /// fields, in the ID token (scope profile).
+    /// </summary>
+    public const string ProfileFields = "profile_fields";
 }
 
 /// <summary>Authentication method references (RFC 8176).</summary>

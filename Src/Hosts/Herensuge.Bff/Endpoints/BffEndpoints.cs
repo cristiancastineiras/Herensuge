@@ -28,7 +28,8 @@ public sealed record BffUser(
     IReadOnlyList<string> Permissions,
     IReadOnlyList<string> ConditionalPermissions,
     IReadOnlyList<string> Entitlements,
-    string? Actor);
+    string? Actor,
+    IReadOnlyDictionary<string, string> ProfileFields);
 
 /// <summary>/bff/*: sign-in, callback, current user and sign-out of the portal.</summary>
 internal static class BffEndpoints
@@ -91,7 +92,8 @@ internal static class BffEndpoints
                 BffClaims.ReadArray(user, BffClaims.Permissions),
                 BffClaims.ReadArray(user, BffClaims.ConditionalPermissions),
                 BffClaims.ReadArray(user, BffClaims.Entitlements),
-                BffClaims.ReadActor(user)));
+                BffClaims.ReadActor(user),
+                BffClaims.ReadProfileFields(user)));
         });
 
         // Server-sent events (EventSource): tells every open tab the moment its session ends, whoever closed it, and

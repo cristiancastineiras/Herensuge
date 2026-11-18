@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Dapper;
 using Herensuge.Common.Application.Messaging;
+using Herensuge.Common.Application.Security;
 using Herensuge.Common.Domain;
 using Herensuge.IntegrationTests.Infrastructure;
 using Herensuge.Modules.Access.Application.ResourceServers.SyncManifest;
@@ -214,6 +215,14 @@ public sealed partial class SignInFlowTests(HerensugeApiFactory factory) : IClas
         Assert.Equal(["invoice:read"], Values(claims, "permissions"));
         Assert.Equal(["invoice:approve"], Values(claims, "conditional_permissions"));
 
+        // The application's BFF learns them from userinfo with that same token (ADR-A13): useCan in the SPA.
+        HttpClient userApi = factory.CreateBackchannel();
+        userApi.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.GetProperty("access_token").GetString());
+        JsonElement userInfo = await userApi.GetFromJsonAsync<JsonElement>("/connect/userinfo");
+        Assert.Equal(["finance"], Values(userInfo, "roles"));
+        Assert.Equal(["invoice:read"], Values(userInfo, "permissions"));
+        Assert.Equal(["invoice:approve"], Values(userInfo, "conditional_permissions"));
+
         // The application's backend asks the decision point with its own token (client_credentials).
         JsonElement machine = await PostTokenAsync(new()
         {
@@ -309,14 +318,17 @@ public sealed partial class SignInFlowTests(HerensugeApiFactory factory) : IClas
     private async Task<bool> WaitForAuditAsync(string action, string email)
     {
         NpgsqlDataSource dataSource = factory.Services.GetRequiredService<NpgsqlDataSource>();
+        IDataEncryptor encryptor = factory.Services.GetRequiredService<IDataEncryptor>();
         DateTime deadline = DateTime.UtcNow.AddSeconds(20);
         while (DateTime.UtcNow < deadline)
         {
+            // The metadata is encrypted at rest (audit.audit_entries.metadata): read it back through the encryptor.
             await using NpgsqlConnection connection = await dataSource.OpenConnectionAsync();
-            long count = await connection.ExecuteScalarAsync<long>(
-                "SELECT count(*) FROM audit.audit_entries WHERE action = @Action AND metadata->>'email' = @Email",
-                new { Action = action, Email = email });
-            if (count > 0)
+            IEnumerable<string> entries = await connection.QueryAsync<string>(
+                "SELECT metadata FROM audit.audit_entries WHERE action = @Action",
+                new { Action = action });
+            if (entries.Any(metadata => JsonDocument.Parse(encryptor.Decrypt(metadata, "audit.audit_entries.metadata"))
+                .RootElement.TryGetProperty("email", out JsonElement value) && value.GetString() == email))
             {
                 return true;
             }

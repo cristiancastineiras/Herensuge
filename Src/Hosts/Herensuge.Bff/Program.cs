@@ -10,9 +10,9 @@ BffOptions bff = builder.Configuration.GetSection(BffOptions.SectionName).Get<Bf
 builder.Services.AddOptions<BffOptions>().Bind(builder.Configuration.GetSection(BffOptions.SectionName));
 builder.Services.AddSingleton(TimeProvider.System);
 
-builder.AddBffTelemetry();
+builder.AddBffTelemetry(bff);
 builder.Services.AddBffHosting(builder.Configuration, builder.Environment);
-builder.Services.AddBffState(builder.Configuration, builder.Environment);
+builder.Services.AddBffState(bff, builder.Configuration, builder.Environment);
 builder.Services.AddBffAuthentication(bff);
 builder.Services.AddBffProxy(builder.Configuration);
 builder.Services.AddAuthorization();

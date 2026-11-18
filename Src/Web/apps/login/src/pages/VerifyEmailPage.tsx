@@ -4,11 +4,13 @@ import { useEffect, useRef } from "react"
 import { Link, useSearchParams } from "react-router"
 import { auth } from "../api"
 import { AuthLayout } from "../AuthLayout"
+import { useSignInPath } from "../navigation"
 
 /** Enlace del email de registro: /verify-email?token=… */
 export function VerifyEmailPage() {
 	const token = useSearchParams()[0].get("token") ?? ""
 	const verify = useOneShot(() => auth.verifyEmail(token))
+	const signInPath = useSignInPath()
 
 	return (
 		<AuthLayout title="Verificar email">
@@ -16,7 +18,7 @@ export function VerifyEmailPage() {
 			<ErrorAlert error={verify.error} />
 			{verify.isSuccess && <Alert tone="success">Tu email está verificado. Ya puedes iniciar sesión.</Alert>}
 			{!verify.isPending && (
-				<Link className={buttonClass("primary", true)} to="/login">
+				<Link className={buttonClass("primary", true)} to={signInPath}>
 					Iniciar sesión
 				</Link>
 			)}

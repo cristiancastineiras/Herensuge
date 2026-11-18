@@ -23,8 +23,11 @@ app.MapGet("/api/invoices", ...).RequirePermission("invoice:read");
 | `.RequirePermission(p)` / `[RequirePermission(p)]` | `p` en el claim `permissions` → permite en local; si no → punto de decisión |
 | `IHerensugeAccess.CheckAsync` | Pregunta al punto de decisión (AuthZEN) por un permiso, opcionalmente sobre un objeto, con la IP del cliente |
 | *Step-up* | `step_up_required` → `401` con `WWW-Authenticate: Bearer error="insufficient_user_authentication"` (RFC 9470) |
+| `IHerensugeAccess.GetUserInfoAsync(token)` | Nombre y email del usuario según Herensuge (`userinfo`): el access token no lleva datos personales |
+| `BackchannelAddress` | Opcional (`http://herensuge-api:8080`): las llamadas a Herensuge van por la red interna, con `X-Forwarded-*`; el emisor sigue siendo el público |
 
 El token `client_credentials` de la aplicación se cachea hasta un minuto antes de caducar. Si el punto de decisión no
 responde en `Timeout` (5 s por defecto), se deniega.
 
-Ejemplo completo: [`Samples/Facturas`](../../../Samples/Facturas/README.md).
+Ejemplos: [`Samples/Facturas`](../../../Samples/Facturas/README.md) y la aplicación completa
+[`FichajesApp`](../../../FichajesApp/README.md).

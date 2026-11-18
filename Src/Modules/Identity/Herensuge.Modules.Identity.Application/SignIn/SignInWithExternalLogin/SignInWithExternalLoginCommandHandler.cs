@@ -46,6 +46,11 @@ internal sealed class SignInWithExternalLoginCommandHandler(
                 return UserErrors.ExternalEmailInUse;
             }
 
+            if (!command.AllowRegistration)
+            {
+                return UserErrors.RegistrationDisabled;
+            }
+
             user = User.RegisterWithExternalLogin(email.Value, command.DisplayName, command.Provider, command.Subject, command.EmailVerified, now);
             if (command.EmailVerified && options.Value.IsBootstrapAdmin(user.Email))
             {

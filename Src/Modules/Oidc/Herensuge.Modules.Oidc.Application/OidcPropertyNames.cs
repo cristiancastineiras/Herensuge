@@ -13,4 +13,7 @@ public static class OidcPropertyNames
 
     /// <summary>Clients of service accounts (plan D7), managed by Access: the organization they belong to.</summary>
     public const string ServiceAccountTenant = "herensuge.service_account_tenant";
+
+    /// <summary>Login page of the client (LoginSettings as JSON); absent until the platform configures it.</summary>
+    public const string LoginSettings = "herensuge.login";
 }

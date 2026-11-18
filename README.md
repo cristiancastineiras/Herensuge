@@ -64,6 +64,8 @@ El usuario que verifique el email `admin@herensuge.local` (`Identity:BootstrapPl
 | `Access:OpenFga:ApiUrl` | OpenFGA para permisos por objeto (vacío = desactivados: `relationships_disabled`) |
 | `Identity:Support:Clients` | Clientes que aceptan sesiones de soporte (por defecto, el portal) |
 | `Bff:Authority` / `Bff:BackchannelAddress` / `Bff:ClientSecret` | Configuración del cliente OIDC de la BFF |
+| `Bff:Scopes` | `openid` y el scope de **una** aplicación (`herensuge.api` en el portal, `fichajes.api` en Fichajes) |
+| `Bff:InstanceName` | Prefijo de su estado en Valkey y nombre de servicio en la telemetría (`herensuge-bff`); cada aplicación con su BFF en el mismo Valkey usa el suyo |
 | `RateLimiting:*`, `Messaging:*`, `Audit:RetentionDays` | Límites, outbox/inbox y retención |
 
 ## Rutas de la SPA de login
@@ -77,6 +79,7 @@ La API redirige o enlaza a estas rutas del mismo origen que el IdP:
 | `/mfa/setup?returnUrl=…` | Alta de TOTP exigida por la organización | `POST /api/v1/auth/mfa/totp`, `…/confirm` |
 | `/select-tenant?returnUrl=…` | Elegir organización | `GET /api/v1/auth/tenants`, `POST …/tenants/select` |
 | `/onboarding?returnUrl=…` | Crear la primera organización | `POST /api/v1/auth/tenants` |
+| `/complete-profile?returnUrl=…` | Datos que pide la aplicación y al usuario le faltan | `PUT /api/v1/auth/profile-fields` |
 | `/verify-email?token=…` | Enlace del email | `POST /api/v1/auth/verify-email` |
 | `/forgot-password`, `/reset-password?token=…` | Recuperar contraseña | `POST /api/v1/auth/password/forgot`, `…/reset` |
 | `/confirm-email?token=…` | Cambio de email | `POST /api/v1/auth/email-change/confirm` |
@@ -86,11 +89,34 @@ La API redirige o enlaza a estas rutas del mismo origen que el IdP:
 Toda petición que modifica datos a `/api/v1/auth/*` lleva `X-CSRF: 1` y JSON. Tras el login, la SPA navega a `returnUrl`
 (solo rutas locales). `GET /api/v1/auth/session` devuelve el estado del inicio de sesión.
 
+## Pantalla de login de cada aplicación
+
+Cada cliente OIDC (cada aplicación del SaaS) tiene su pantalla de login, en el portal: **Plataforma → Clientes OIDC →
+Pantalla de login**. La SPA de login la aplica cuando el `returnUrl` es `/connect/authorize?client_id=…`
+(`GET /api/v1/auth/clients/{clientId}/login-page`, anónimo).
+
+| Qué | Cómo se aplica |
+|---|---|
+| **Marca**: logo (imagen en línea, ≤ 100 KB), color de los botones, enlaces a condiciones y privacidad | Solo visual |
+| **Métodos**: email y contraseña, passkey, Google, Microsoft | La SPA oculta los demás y `/connect/authorize` lo comprueba con el `amr` de la sesión: si se entró con un método que la aplicación no admite, vuelve al login (`error=sign_in_method_not_allowed`). Google y Microsoft se comprueban también al empezar |
+| **Registro abierto o cerrado** | Cerrado: sin "Crear cuenta", `POST /register` con ese `clientId` responde `Users.RegistrationDisabled` y Google/Microsoft no crean cuentas nuevas |
+| **Campos extra** (texto, número, fecha, teléfono, lista, casilla; obligatorios u opcionales) | Se piden en el registro y, si a alguien le falta uno obligatorio (entró con Google o se registró en otra aplicación), `/connect/authorize` lo manda a `/complete-profile` antes de emitir el código |
+| **Crear organizaciones** (sí o no) | No: quien entra sin organización ve «pide a tu empresa que te invite» en lugar de «Crea tu organización». Es la opción para aplicaciones cuyas empresas da de alta su administrador en el portal y cuya gente entra por invitación. No es una barrera de seguridad: una organización propia no da acceso a nada ajeno |
+| **Dirección de la aplicación** | Adónde lleva «Ir a …» tras aceptar una invitación (si se llegó desde esa aplicación) |
+
+- Los valores se guardan en el usuario (`identity.users.profile_fields`, JSON cifrado) y los comparten las aplicaciones:
+  dos que piden `company` leen el mismo valor.
+- Cada aplicación recibe **solo sus campos** en el claim `profile_fields` del ID token (scope `profile`), por ejemplo
+  `{"company": "Acme"}`. La BFF lo pasa a la SPA en `/bff/user` (`profileFields`).
+- Los ajustes se guardan con el cliente (propiedad `herensuge.login` de OpenIddict): se borran con él. El portal (cliente
+  de sistema) también se puede personalizar.
+
 ## Tests
 
 ```bash
 dotnet test --project Tests/Herensuge.Modules.Identity.UnitTests/Herensuge.Modules.Identity.UnitTests.csproj
 dotnet test --project Tests/Herensuge.Modules.Tenancy.UnitTests/Herensuge.Modules.Tenancy.UnitTests.csproj
+dotnet test --project Tests/Herensuge.Modules.Oidc.UnitTests/Herensuge.Modules.Oidc.UnitTests.csproj
 dotnet test --project Tests/Herensuge.Modules.Access.UnitTests/Herensuge.Modules.Access.UnitTests.csproj
 dotnet test --project Tests/Herensuge.Access.AspNetCore.UnitTests/Herensuge.Access.AspNetCore.UnitTests.csproj
 dotnet test --project Tests/Herensuge.ArchitectureTests/Herensuge.ArchitectureTests.csproj
@@ -99,7 +125,7 @@ dotnet test --project Tests/Herensuge.IntegrationTests/Herensuge.IntegrationTest
 
 - **Unitarios:** agregados e invariantes (bloqueo, último método de acceso, último owner, tokens de un solo uso, Argon2id). Autorización: evaluador (roles, grupos, planes, condiciones, relaciones), redes de confianza, peticiones temporales, sesiones de soporte y el SDK .NET.
 - **Arquitectura:** regla de dependencias de Clean Architecture y aislamiento entre módulos.
-- **Integración:** flujo OIDC completo (registro → verificación → login → organización → código → tokens → API → refresh), bloqueo y MFA con TOTP, contra PostgreSQL y Valkey reales. Autorización: permisos de una aplicación en su token y en la PDP, cuentas de servicio con planes y *token exchange*.
+- **Integración:** flujo OIDC completo (registro → verificación → login → organización → código → tokens → API → refresh), bloqueo y MFA con TOTP, contra PostgreSQL y Valkey reales. Pantalla de login de una aplicación: campos obligatorios, `/complete-profile`, `profile_fields` en el ID token, método no admitido y registro cerrado. Autorización: permisos de una aplicación en su token y en la PDP, cuentas de servicio con planes y *token exchange*.
 
 ## Migraciones
 
@@ -130,6 +156,8 @@ sesiones de soporte de solo lectura y *token exchange*. Punto de decisión con l
 - APIs de las aplicaciones: SDK [Herensuge.Access.AspNetCore](Src/Sdk/Herensuge.Access.AspNetCore/README.md) y el ejemplo
   [Samples/Facturas](Samples/Facturas/README.md).
 - SPAs: [`@herensuge/react`](Src/Web/paquetes/herensuge-react/README.md) (`useCan`, `<Can>`, `useEntitled`).
+- Una aplicación completa (web, API, base de datos y BFF en Docker), con todos los pasos para darla de alta:
+  [FichajesApp](FichajesApp/README.md).
 
 ## Despliegue
 

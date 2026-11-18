@@ -83,7 +83,7 @@ internal sealed class ConnectEndpoints : IEndpoint
         Guid sessionId = session.GetSessionId() ?? Guid.Empty;
         Guid? requestedTenant = Guid.TryParse(request.GetParameter(TenantParameter)?.ToString(), out Guid parsed) ? parsed : null;
         Result<AuthorizationDecision> result = await handler.Handle(
-            new AuthorizeQuery(session.GetUserId(), sessionId, session.GetAuthenticationMethods(), requestedTenant, session.GetTenantId()),
+            new AuthorizeQuery(request.ClientId!, session.GetUserId(), sessionId, session.GetAuthenticationMethods(), requestedTenant, session.GetTenantId()),
             cancellationToken);
         AuthorizationDecision decision = result.Value;
 
@@ -92,6 +92,12 @@ internal sealed class ConnectEndpoints : IEndpoint
             case AuthorizationOutcome.SessionInvalid:
                 await IdentityProviderSession.SignOutAsync(httpContext);
                 return silent ? Forbid(Errors.LoginRequired, "The session has expired.") : Results.Redirect(LoginPages.With(LoginPages.Login, returnUrl));
+            case AuthorizationOutcome.SignInMethodNotAllowed:
+                return silent
+                    ? Forbid(Errors.LoginRequired, "The application does not accept the method of the current sign-in.")
+                    : Results.Redirect(LoginPages.With(LoginPages.Login, returnUrl, "sign_in_method_not_allowed"));
+            case AuthorizationOutcome.ProfileIncomplete:
+                return silent ? Forbid(Errors.InteractionRequired, "The application needs more data from the user.") : Results.Redirect(LoginPages.With(LoginPages.CompleteProfile, returnUrl));
             case AuthorizationOutcome.SelectTenant:
                 return silent ? Forbid(Errors.InteractionRequired, "An organization must be chosen.") : Results.Redirect(LoginPages.With(LoginPages.SelectTenant, returnUrl));
             case AuthorizationOutcome.Onboarding:
@@ -120,6 +126,18 @@ internal sealed class ConnectEndpoints : IEndpoint
             .SetClaim(HerensugeClaimTypes.TenantRole, user.TenantRole)
             .SetClaim(Claims.AuthenticationTime, (session.GetAuthenticationTime() ?? now).ToUnixTimeSeconds());
         identity.SetClaims(Claims.AuthenticationMethodReference, [.. session.GetAuthenticationMethods()]);
+        if (decision.ProfileFields is { Count: > 0 } profileFields)
+        {
+            // Kept as they are on refresh (the original claims travel with the authorization).
+            var values = new JsonObject();
+            foreach ((string key, string value) in profileFields)
+            {
+                values[key] = value;
+            }
+
+            identity.SetClaim(HerensugeClaimTypes.ProfileFields, values);
+        }
+
         if (actor is not null)
         {
             // RFC 8693 actor: every token of the support session says who is really acting. Kept on refresh.
@@ -393,9 +411,10 @@ internal sealed class ConnectEndpoints : IEndpoint
         }
 
         // Access claims of the token's application, always fresh and whatever embedPermissions says: this is how the
-        // BFF learns them (ADR-A13), not from the access token nor from the ID token.
+        // BFF learns them (ADR-A13), not from the access token nor from the ID token. The application is the token's
+        // audience: in a validated access token it is in GetAudiences() (aud), not in GetResources().
         if (Guid.TryParse(principal.GetClaim(HerensugeClaimTypes.TenantId), out Guid tenantId)
-            && await access.GetAccessClaimsAsync(userId, tenantId, [.. principal.GetResources()], cancellationToken) is { } accessClaims)
+            && await access.GetAccessClaimsAsync(userId, tenantId, [.. principal.GetAudiences()], cancellationToken) is { } accessClaims)
         {
             claims[HerensugeClaimTypes.Roles] = accessClaims.Roles;
             claims[HerensugeClaimTypes.Permissions] = accessClaims.Permissions;
@@ -440,7 +459,7 @@ internal sealed class ConnectEndpoints : IEndpoint
     {
         switch (claim.Type)
         {
-            case Claims.Name:
+            case Claims.Name or HerensugeClaimTypes.ProfileFields:
                 if (claim.Subject?.HasScope(Scopes.Profile) == true)
                 {
                     yield return Destinations.IdentityToken;

@@ -8,7 +8,7 @@ const base =
 	"focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 disabled:pointer-events-none disabled:opacity-50"
 
 const variants: Record<ButtonVariant, string> = {
-	primary: "bg-zinc-900 text-white hover:bg-zinc-700",
+	primary: "bg-primary text-primary-foreground hover:bg-primary-hover",
 	secondary: "border border-zinc-300 bg-white text-zinc-900 hover:bg-zinc-50",
 	danger: "bg-red-600 text-white hover:bg-red-500",
 	ghost: "text-zinc-700 hover:bg-zinc-100",

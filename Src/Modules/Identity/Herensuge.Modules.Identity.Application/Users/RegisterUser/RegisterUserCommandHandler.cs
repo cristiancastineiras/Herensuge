@@ -1,4 +1,6 @@
 using Herensuge.Modules.Identity.Application.Services;
+using Herensuge.Modules.Identity.Application.Users.ProfileFields;
+using Herensuge.Modules.Oidc.Contracts;
 
 namespace Herensuge.Modules.Identity.Application.Users.RegisterUser;
 
@@ -7,6 +9,7 @@ internal sealed class RegisterUserCommandHandler(
     IUserRepository users,
     OneTimeTokenIssuer tokenIssuer,
     IPasswordHasher passwordHasher,
+    IOidcModuleApi oidc,
     IUnitOfWork unitOfWork,
     TimeProvider timeProvider) : ICommandHandler<RegisterUserCommand>
 {
@@ -16,6 +19,22 @@ internal sealed class RegisterUserCommandHandler(
         if (email.IsFailure)
         {
             return email.Error;
+        }
+
+        // The application's login page: open or closed registration, and the extra data it asks for. Checked before
+        // looking the email up, so the answer still says nothing about existing accounts.
+        LoginSettings settings = command.ClientId is null
+            ? LoginSettings.Default
+            : await oidc.GetLoginSettingsAsync(command.ClientId, cancellationToken) ?? LoginSettings.Default;
+        if (!settings.AllowRegistration)
+        {
+            return UserErrors.RegistrationDisabled;
+        }
+
+        Result<Dictionary<string, string>> profileFields = ProfileFieldValues.Validate(settings.ProfileFields, command.ProfileFields);
+        if (profileFields.IsFailure)
+        {
+            return profileFields.Error;
         }
 
         // Hashed before the lookup so the response time does not reveal whether the account exists.
@@ -37,6 +56,12 @@ internal sealed class RegisterUserCommandHandler(
         }
 
         var user = User.Register(email.Value, command.DisplayName, passwordHash, timeProvider.GetUtcNow().UtcDateTime);
+        Result updated = user.UpdateProfileFields(profileFields.Value);
+        if (updated.IsFailure)
+        {
+            return updated;
+        }
+
         users.Add(user);
         await tokenIssuer.IssueAsync(user.Id, OneTimeTokenPurpose.EmailVerification, user.Email, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);

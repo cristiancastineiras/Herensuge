@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { StrictMode } from "react"
+import { StrictMode, Suspense } from "react"
 import { createRoot } from "react-dom/client"
 import { RouterProvider } from "react-router/dom"
 import { router } from "./router"
@@ -12,7 +12,10 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root") as HTMLElement).render(
 	<StrictMode>
 		<QueryClientProvider client={queryClient}>
-			<RouterProvider router={router} />
+			{/* Las pantallas esperan a la de la aplicación (useLoginPage) antes de pintarse. */}
+			<Suspense>
+				<RouterProvider router={router} />
+			</Suspense>
 		</QueryClientProvider>
 	</StrictMode>,
 )

@@ -9,6 +9,7 @@
 **/TestResults/
 .git/
 Docker/.env
+FichajesApp/.env
 Docs/
 Tests/
 *.md
