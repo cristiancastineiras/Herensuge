@@ -5,6 +5,7 @@ using Herensuge.Common.Application.Security;
 using Herensuge.Common.Domain;
 using Herensuge.Modules.Oidc.Application;
 using Herensuge.Modules.Oidc.Application.Abstractions;
+using Herensuge.Modules.Oidc.Contracts;
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -110,6 +111,57 @@ internal sealed class OpenIddictClientRegistry(IOpenIddictApplicationManager app
         await applications.DeleteAsync(application, cancellationToken);
         return Result.Success();
     }
+
+    public async Task<ClientLoginPage?> GetLoginPageAsync(string clientId, CancellationToken cancellationToken)
+    {
+        (_, OpenIddictApplicationDescriptor? descriptor) = await FindAsync(clientId, cancellationToken);
+        if (descriptor is null || IsServiceClient(descriptor))
+        {
+            return null;
+        }
+
+        return new ClientLoginPage(descriptor.ClientId ?? clientId, descriptor.DisplayName ?? clientId, ReadLoginSettings(descriptor));
+    }
+
+    public async Task<Result> UpdateLoginSettingsAsync(string clientId, LoginSettings settings, CancellationToken cancellationToken)
+    {
+        (object? application, OpenIddictApplicationDescriptor? descriptor) = await FindAsync(clientId, cancellationToken);
+        if (application is null || descriptor is null || IsServiceClient(descriptor))
+        {
+            return OidcErrors.ClientNotFound;
+        }
+
+        descriptor.Properties[OidcPropertyNames.LoginSettings] = JsonSerializer.SerializeToElement(settings, LoginSettingsJson);
+        await applications.UpdateAsync(application, descriptor, cancellationToken);
+        return Result.Success();
+    }
+
+    /// <summary>Stored settings, or the defaults when the client was never configured (or the JSON is unreadable).</summary>
+    internal static LoginSettings ReadLoginSettings(OpenIddictApplicationDescriptor descriptor)
+    {
+        if (!descriptor.Properties.TryGetValue(OidcPropertyNames.LoginSettings, out JsonElement value))
+        {
+            return LoginSettings.Default;
+        }
+
+        try
+        {
+            LoginSettings? stored = value.Deserialize<LoginSettings>(LoginSettingsJson);
+            LoginSettings defaults = LoginSettings.Default;
+            return stored is null ? defaults : new LoginSettings(
+                stored.Branding ?? defaults.Branding,
+                stored.Methods ?? defaults.Methods,
+                stored.AllowRegistration,
+                [.. (stored.ProfileFields ?? []).Select(field => field with { Options = field.Options ?? [] })],
+                stored.AllowTenantCreation);
+        }
+        catch (JsonException)
+        {
+            return LoginSettings.Default;
+        }
+    }
+
+    private static readonly JsonSerializerOptions LoginSettingsJson = new(JsonSerializerDefaults.Web);
 
     /// <summary>Endpoint, grant and scope permissions of a browser client (code + PKCE, optional refresh).</summary>
     internal static void Apply(OpenIddictApplicationDescriptor descriptor, ClientSettings settings)

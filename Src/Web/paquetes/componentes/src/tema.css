@@ -1,0 +1,9 @@
+/*
+ * Colores con nombre que usan los componentes compartidos. Por defecto, los de Herensuge (zinc); la web de login los
+ * sustituye por los de cada aplicación con brandStyle() (variables CSS en línea).
+ */
+@theme {
+	--color-primary: var(--color-zinc-900);
+	--color-primary-hover: var(--color-zinc-700);
+	--color-primary-foreground: var(--color-white);
+}

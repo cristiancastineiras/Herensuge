@@ -29,3 +29,38 @@ export function continueTo(returnUrl: string | null): void {
 }
 
 export const portalUrl = import.meta.env.VITE_URL_PORTAL || null
+
+/** client_id de un returnUrl que reanuda /connect/authorize: la aplicación en la que se está entrando. */
+export function clientIdOf(returnUrl: string | null): string | null {
+	if (!returnUrl) {
+		return null
+	}
+
+	const url = new URL(returnUrl, window.location.origin)
+	return url.pathname.endsWith("/connect/authorize") ? url.searchParams.get("client_id") : null
+}
+
+// La última aplicación en la que se intentó entrar, para los enlaces de los emails (verificar el email, cambiar la
+// contraseña), que llegan sin returnUrl. No es un dato de sesión: solo decide la marca y adónde vuelve "Iniciar sesión".
+const lastReturnUrlKey = "herensuge.ultimo-returnUrl"
+
+export function rememberReturnUrl(returnUrl: string): void {
+	try {
+		localStorage.setItem(lastReturnUrlKey, returnUrl)
+	} catch {
+		// Sin almacenamiento (modo privado estricto): los enlaces de los emails usan la marca de Herensuge.
+	}
+}
+
+export function rememberedReturnUrl(): string | null {
+	try {
+		return safeLocalPath(localStorage.getItem(lastReturnUrlKey))
+	} catch {
+		return null
+	}
+}
+
+/** /login de la aplicación con la que se estaba entrando: la del returnUrl o, en los enlaces de los emails, la última. */
+export function useSignInPath(): string {
+	return withReturnUrl("/login", useReturnUrl() ?? rememberedReturnUrl())
+}

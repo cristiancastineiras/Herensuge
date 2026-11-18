@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import { Link, useParams } from "react-router"
 import { auth } from "../api"
 import { AuthLayout } from "../AuthLayout"
+import { useLoginPage } from "../loginPage"
 import { portalUrl, withReturnUrl } from "../navigation"
 import { roleLabels } from "./TenantPages"
 
@@ -13,6 +14,7 @@ export function InvitationPage() {
 	const preview = useQuery({ queryKey: ["invitation", token], queryFn: () => auth.invitation(token) })
 	const session = useQuery({ queryKey: ["session"], queryFn: auth.session })
 	const accept = useMutation({ mutationFn: () => auth.acceptInvitation(token) })
+	const page = useLoginPage()
 
 	if (preview.isPending || session.isPending) {
 		return (
@@ -38,11 +40,18 @@ export function InvitationPage() {
 	const here = `/invitations/${encodeURIComponent(token)}`
 
 	if (accept.isSuccess) {
+		// La aplicación por la que se llegó (la última en la que se intentó entrar), si tiene dirección configurada.
+		const homeUrl = page.clientId ? page.settings.branding.homeUrl : null
 		return (
 			<AuthLayout title={`Bienvenido a ${invitation.tenantName}`}>
 				<Alert tone="success">Ya eres miembro de la organización.</Alert>
+				{homeUrl && (
+					<a className={buttonClass("primary", true)} href={homeUrl}>
+						Ir a {page.displayName}
+					</a>
+				)}
 				{portalUrl && (
-					<a className={buttonClass("primary", true)} href={portalUrl}>
+					<a className={buttonClass(homeUrl ? "secondary" : "primary", true)} href={portalUrl}>
 						Ir al portal
 					</a>
 				)}

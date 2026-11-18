@@ -1,4 +1,5 @@
 import { createBrowserRouter } from "react-router"
+import { CompleteProfilePage } from "./pages/CompleteProfilePage"
 import { ConfirmEmailPage } from "./pages/ConfirmEmailPage"
 import { ErrorPage, NotFoundPage, RouteErrorPage } from "./pages/ErrorPages"
 import { ForgotPasswordPage, ResetPasswordPage } from "./pages/PasswordPages"
@@ -24,6 +25,7 @@ export const router = createBrowserRouter([
 			{ path: "/mfa/setup", element: <MfaSetupPage /> },
 			{ path: "/select-tenant", element: <SelectTenantPage /> },
 			{ path: "/onboarding", element: <OnboardingPage /> },
+			{ path: "/complete-profile", element: <CompleteProfilePage /> },
 			{ path: "/verify-email", element: <VerifyEmailPage /> },
 			{ path: "/forgot-password", element: <ForgotPasswordPage /> },
 			{ path: "/reset-password", element: <ResetPasswordPage /> },

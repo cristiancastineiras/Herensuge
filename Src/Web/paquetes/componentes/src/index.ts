@@ -1,4 +1,5 @@
 // @paquetes/componentes: los pocos componentes de UI que comparten login y portal (Tailwind, sin librerías).
+export { brandStyle } from "./Brand"
 export { Button, Spinner, buttonClass, type ButtonVariant } from "./Button"
 export { ConfirmButton } from "./ConfirmButton"
 export { Checkbox, Field, Form, Input, Select, Textarea } from "./Form"

@@ -68,6 +68,16 @@ public static class UserErrors
         "Users.LastOwnerOfOrganization",
         "Transfer the ownership of your organizations before deleting the account.");
 
+    public static readonly Error RegistrationDisabled = Error.Forbidden(
+        "Users.RegistrationDisabled",
+        "This application does not allow creating new accounts.");
+
+    public static readonly Error ProfileFieldRequired = Error.Validation("Users.ProfileFieldRequired", "Fill in every required field.");
+
+    public static readonly Error InvalidProfileField = Error.Validation("Users.InvalidProfileField", "A field has a value that is not valid.");
+
+    public static readonly Error TooManyProfileFields = Error.Validation("Users.TooManyProfileFields", "The account has too many profile fields.");
+
     public static readonly Error CodeRequestedTooRecently = Error.TooManyRequests(
         "Users.CodeRequestedTooRecently",
         "Wait a few seconds before requesting another code.");

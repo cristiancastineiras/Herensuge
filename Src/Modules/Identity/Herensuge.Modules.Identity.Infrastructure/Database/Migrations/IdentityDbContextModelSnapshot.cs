@@ -560,6 +560,11 @@ namespace Herensuge.Modules.Identity.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("phone_verified_at_utc");
 
+                    b.Property<string>("ProfileFields")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("profile_fields");
+
                     b.Property<DateTime?>("TotpEnabledAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("totp_enabled_at_utc");

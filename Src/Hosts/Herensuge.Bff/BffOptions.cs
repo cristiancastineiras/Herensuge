@@ -17,10 +17,22 @@ public sealed class BffOptions
 
     public string? ClientSecret { get; set; }
 
-    public string[] Scopes { get; set; } = ["openid", "profile", "email", "offline_access", "herensuge.api"];
+    /// <summary>
+    /// Scopes the BFF asks for: one application scope ("herensuge.api" for the portal, "fichajes.api" for Fichajes),
+    /// one token, one API. No default here: the configuration binder appends to an initialized array, so a default
+    /// would add herensuge.api to every application's list. appsettings.json carries the portal's.
+    /// </summary>
+    public string[] Scopes { get; set; } = [];
 
     /// <summary>Sliding lifetime of the BFF session; matches the refresh token lifetime.</summary>
     public TimeSpan SessionLifetime { get; set; } = TimeSpan.FromDays(7);
+
+    /// <summary>
+    /// Name of this BFF: prefix of its state in Valkey (sessions, locks, Data Protection keys), its Data Protection
+    /// application and its telemetry service. Each application's BFF sharing Herensuge's Valkey (to hear about closed
+    /// sessions and changed permissions) needs its own, e.g. "fichajes-bff".
+    /// </summary>
+    public string InstanceName { get; set; } = "herensuge-bff";
 }
 
 internal static class BffDefaults

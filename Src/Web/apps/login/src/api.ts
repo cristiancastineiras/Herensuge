@@ -11,8 +11,20 @@ export const auth = {
 	providers: () => call(api.GET("/api/v1/auth/providers")),
 	signIn: (body: { email: string; password: string }) => call(api.POST("/api/v1/auth/sign-in", { body })),
 	signOut: () => call(api.POST("/api/v1/auth/sign-out")),
-	register: (body: { email: string; password: string; displayName: string }) =>
-		call(api.POST("/api/v1/auth/register", { body })),
+	/** clientId: la aplicación del returnUrl (puede cerrar el registro o pedir más datos, profileFields). */
+	register: (body: {
+		email: string
+		password: string
+		displayName: string
+		clientId: string | null
+		profileFields: Record<string, string>
+	}) => call(api.POST("/api/v1/auth/register", { body })),
+	/** Pantalla de login de una aplicación: marca, métodos de acceso y campos del registro. */
+	loginPage: (clientId: string) =>
+		call(api.GET("/api/v1/auth/clients/{clientId}/login-page", { params: { path: { clientId } } })),
+	/** /complete-profile: los datos que pide la aplicación, antes de entrar. */
+	updateProfileFields: (body: { clientId: string; values: Record<string, string> }) =>
+		call(api.PUT("/api/v1/auth/profile-fields", { body })),
 	verifyEmail: (value: string) => call(api.POST("/api/v1/auth/verify-email", { body: { token: value } })),
 	resendVerification: (email: string) =>
 		call(api.POST("/api/v1/auth/verify-email/resend", { body: { email } })),

@@ -41,7 +41,7 @@ internal sealed class IdentityModuleApi(
         UserRow? row = await connection.QuerySingleOrDefaultAsync<UserRow>(new CommandDefinition(
             """
             SELECT id, email, email_verified_at_utc IS NOT NULL AS email_verified, display_name, is_platform_admin,
-                   (totp_enabled_at_utc IS NOT NULL OR phone_number IS NOT NULL) AS has_mfa
+                   (totp_enabled_at_utc IS NOT NULL OR phone_number IS NOT NULL) AS has_mfa, profile_fields
             FROM identity.users
             WHERE id = @UserId
             """,
@@ -50,7 +50,14 @@ internal sealed class IdentityModuleApi(
 
         return row is null
             ? null
-            : new UserSnapshot(row.Id, Email(row), row.EmailVerified, DisplayName(row), row.IsPlatformAdmin, row.HasMfa);
+            : new UserSnapshot(
+                row.Id,
+                Email(row),
+                row.EmailVerified,
+                DisplayName(row),
+                row.IsPlatformAdmin,
+                row.HasMfa,
+                ProfileFieldsColumn.Read(row.ProfileFields, encryptor));
     }
 
     public async Task<IReadOnlyList<UserSummary>> GetUsersAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken)
@@ -101,5 +108,7 @@ internal sealed class IdentityModuleApi(
         public bool IsPlatformAdmin { get; init; }
 
         public bool HasMfa { get; init; }
+
+        public string? ProfileFields { get; init; }
     }
 }

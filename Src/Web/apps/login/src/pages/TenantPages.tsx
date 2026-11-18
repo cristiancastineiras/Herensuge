@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import { Link } from "react-router"
 import { auth } from "../api"
 import { AuthLayout, linkClass } from "../AuthLayout"
+import { useLoginPage } from "../loginPage"
 import { continueTo, useReturnUrl, withReturnUrl } from "../navigation"
 
 /** Rol que envía la API ("owner", "admin", "member") → texto. */
@@ -62,7 +63,28 @@ export function SelectTenantPage() {
 /** Primera organización del usuario (o una nueva). */
 export function OnboardingPage() {
 	const returnUrl = useReturnUrl()
+	const page = useLoginPage()
 	const create = useMutation({ mutationFn: auth.createTenant, onSuccess: () => continueTo(returnUrl) })
+	const signOut = useMutation({
+		mutationFn: auth.signOut,
+		onSuccess: () => window.location.assign(withReturnUrl("/login", returnUrl)),
+	})
+
+	// La aplicación no da de alta empresas: su gente entra por invitación (Pantalla de login del cliente).
+	if (!page.settings.allowTenantCreation) {
+		return (
+			<AuthLayout
+				title="Todavía no perteneces a ninguna organización"
+				description={`Para entrar en ${page.displayName}, tu empresa tiene que invitarte. Pídeselo a quien la administra: te llegará un email con el enlace.`}
+				footer={<p>¿Ya tienes la invitación? Abre el enlace del email.</p>}
+			>
+				<ErrorAlert error={signOut.error} />
+				<Button variant="secondary" full loading={signOut.isPending} onClick={() => signOut.mutate()}>
+					Entrar con otra cuenta
+				</Button>
+			</AuthLayout>
+		)
+	}
 
 	return (
 		<AuthLayout

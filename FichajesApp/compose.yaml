@@ -1,0 +1,103 @@
+# Fichajes: una aplicación del SaaS protegida por Herensuge. Necesita el stack de Herensuge levantado: usa su red,
+# su Valkey y su API por la red interna. Pasos completos en README.md.
+#   cp FichajesApp/.env.example FichajesApp/.env    # y rellena los secretos
+#   docker compose -f FichajesApp/compose.yaml up -d --build
+# Web: https://fichajes.herensuge.localhost:8443
+
+name: fichajes
+
+services:
+  fichajes-postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: fichajes
+      POSTGRES_USER: fichajes
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in FichajesApp/.env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fichajes -d fichajes"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  # Valida los tokens de Herensuge y decide los permisos (SDK Herensuge.Access.AspNetCore). Sin puertos publicados:
+  # solo la llama la BFF.
+  fichajes-api:
+    build:
+      context: ..
+      dockerfile: FichajesApp/Fichajes.Api.Dockerfile
+    image: fichajes-api:local
+    environment:
+      ConnectionStrings__Fichajes: Host=fichajes-postgres;Port=5432;Database=fichajes;Username=fichajes;Password=${POSTGRES_PASSWORD}
+      Herensuge__Authority: https://${HERENSUGE_ID_HOST:-id.herensuge.localhost}/
+      # Las llamadas a Herensuge (JWKS, punto de decisión, userinfo) van por la red interna, sin salir a Caddy.
+      Herensuge__BackchannelAddress: http://herensuge-api:8080
+      Herensuge__ResourceServer: fichajes
+      Herensuge__ClientId: fichajes-app
+      Herensuge__ClientSecret: ${FICHAJES_CLIENT_SECRET:?Set FICHAJES_CLIENT_SECRET in FichajesApp/.env}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://herensuge-otel:4317
+    networks: [default, herensuge]
+    depends_on:
+      fichajes-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # La misma Herensuge.Bff del portal con la web de Fichajes: inicia la sesión con el cliente fichajes-app, guarda los
+  # tokens en el servidor y reenvía /api/* a fichajes-api con el access token. Comparte el Valkey de Herensuge (con su
+  # propio prefijo) para enterarse al momento de las sesiones cerradas y de los permisos cambiados.
+  fichajes-bff:
+    build:
+      context: ..
+      dockerfile: FichajesApp/Fichajes.Bff.Dockerfile
+    image: fichajes-bff:local
+    environment:
+      ASPNETCORE_ENVIRONMENT: Staging
+      ConnectionStrings__Valkey: herensuge-valkey:6379,password=${HERENSUGE_VALKEY_PASSWORD:?Set HERENSUGE_VALKEY_PASSWORD in FichajesApp/.env}
+      Herensuge__TrustForwardedHeaders: "true"
+      Bff__InstanceName: fichajes-bff
+      Bff__Authority: https://${HERENSUGE_ID_HOST:-id.herensuge.localhost}/
+      Bff__BackchannelAddress: http://herensuge-api:8080
+      Bff__ClientId: fichajes-app
+      Bff__ClientSecret: ${FICHAJES_CLIENT_SECRET}
+      Bff__Scopes__0: openid
+      Bff__Scopes__1: profile
+      Bff__Scopes__2: email
+      Bff__Scopes__3: offline_access
+      Bff__Scopes__4: fichajes.api
+      # Cifra el key ring de Data Protection (protege las cookies y los tokens de las sesiones).
+      DataProtection__KeyRingKey: ${BFF_KEY_RING_KEY:?Set BFF_KEY_RING_KEY in FichajesApp/.env}
+      ReverseProxy__Clusters__herensuge-api__Destinations__primary__Address: http://fichajes-api:8080
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://herensuge-otel:4317
+    networks: [default, herensuge]
+    depends_on:
+      - fichajes-api
+    restart: unless-stopped
+
+  # TLS. Puerto 8443 porque el 443 es de Herensuge.
+  fichajes-proxy:
+    image: caddy:2.8-alpine
+    environment:
+      FICHAJES_HOST: ${FICHAJES_HOST:-fichajes.herensuge.localhost}
+    ports:
+      - "8443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - fichajes-bff
+    restart: unless-stopped
+
+networks:
+  # La red del stack de Herensuge (docker compose -f Docker/compose.yaml up): herensuge-api, herensuge-valkey y
+  # herensuge-otel.
+  herensuge:
+    external: true
+    name: herensuge_default
+
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:

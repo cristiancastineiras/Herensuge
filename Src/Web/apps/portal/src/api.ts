@@ -4,6 +4,7 @@ import {
 	type AccessManifest,
 	type AssignedRoleResponse,
 	type CreateClientRequest,
+	type LoginSettings,
 	type PlanRequest,
 	type RoleGrant,
 	type RoleRequest,
@@ -226,6 +227,11 @@ export const platform = {
 		call(api.POST("/api/v1/platform/clients/{clientId}/secret", client(clientId))),
 	deleteClient: (clientId: string) =>
 		call(api.DELETE("/api/v1/platform/clients/{clientId}", client(clientId))),
+	/** Pantalla de login del cliente: marca, métodos de acceso y campos del registro. */
+	loginPage: (clientId: string) =>
+		call(api.GET("/api/v1/platform/clients/{clientId}/login-page", client(clientId))),
+	updateLoginPage: (clientId: string, body: LoginSettings) =>
+		call(api.PUT("/api/v1/platform/clients/{clientId}/login-page", { ...client(clientId), body })),
 
 	features: () => call(api.GET("/api/v1/platform/features")),
 	plans: () => call(api.GET("/api/v1/platform/plans")),

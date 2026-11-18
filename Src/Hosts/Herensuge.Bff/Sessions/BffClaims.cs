@@ -14,11 +14,14 @@ internal static class BffClaims
     public const string Entitlements = "entitlements";
     public const string Actor = "act";
 
+    /// <summary>Extra registration data this application asks for (JSON object, ID token).</summary>
+    public const string ProfileFields = "profile_fields";
+
     public static readonly string[] Copied =
     [
         Claims.Subject, "sid", Claims.Name, Claims.Email, Claims.EmailVerified, TenantId, "tenant_role",
         Claims.AuthenticationMethodReference, Claims.AuthenticationTime, Claims.Role,
-        Roles, Permissions, ConditionalPermissions, Entitlements, Actor,
+        Roles, Permissions, ConditionalPermissions, Entitlements, Actor, ProfileFields,
     ];
 
     /// <summary>Session identity with the copied claims of <paramref name="source"/>.</summary>
@@ -72,6 +75,18 @@ internal static class BffClaims
 
         using JsonDocument document = JsonDocument.Parse(act);
         return document.RootElement.TryGetProperty(Claims.Subject, out JsonElement sub) ? sub.GetString() : null;
+    }
+
+    /// <summary>profile_fields as a dictionary (empty when the application asks for nothing).</summary>
+    public static Dictionary<string, string> ReadProfileFields(ClaimsPrincipal user)
+    {
+        string? json = user.FindFirstValue(ProfileFields);
+        if (string.IsNullOrEmpty(json) || !json.StartsWith('{'))
+        {
+            return [];
+        }
+
+        return JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? [];
     }
 
     private static Claim Copy(Claim claim) => new(claim.Type, claim.Value, claim.ValueType);

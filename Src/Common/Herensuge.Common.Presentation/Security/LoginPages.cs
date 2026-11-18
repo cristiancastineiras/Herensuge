@@ -11,6 +11,9 @@ public static class LoginPages
     public const string MfaSetup = "/mfa/setup";
     public const string SelectTenant = "/select-tenant";
     public const string Onboarding = "/onboarding";
+
+    /// <summary>Registration data the application asks for and the user has not given yet.</summary>
+    public const string CompleteProfile = "/complete-profile";
     public const string Error = "/error";
 
     public static string With(string page, string? returnUrl, string? error = null)
@@ -56,6 +59,23 @@ public static class ReturnUrls
         string origin = uri.GetLeftPart(UriPartial.Authority);
         string[] allowed = configuration.GetSection("Herensuge:AllowedReturnOrigins").Get<string[]>() ?? [];
         return allowed.Any(candidate => string.Equals(candidate.TrimEnd('/'), origin, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>client_id of a returnUrl that resumes an authorization request (/connect/authorize?client_id=…).</summary>
+    public static string? GetClientId(string? returnUrl)
+    {
+        int query = returnUrl?.IndexOf('?', StringComparison.Ordinal) ?? -1;
+        if (query < 0
+            || !returnUrl!.StartsWith('/')
+            || returnUrl.StartsWith("//", StringComparison.Ordinal)
+            || !returnUrl[..query].EndsWith("/connect/authorize", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        return Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(returnUrl[query..]).TryGetValue("client_id", out var clientId)
+            ? clientId.ToString()
+            : null;
     }
 }
 

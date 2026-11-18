@@ -10,6 +10,8 @@ public sealed class User : AggregateRoot
     public const int MaxPasskeys = 20;
     public const int MaxKnownDevices = 20;
     public const int RecoveryCodeCount = 10;
+    public const int MaxProfileFields = 50;
+    public const int MaxProfileFieldLength = 200;
 
     public static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
 
@@ -52,6 +54,12 @@ public sealed class User : AggregateRoot
     public bool IsPlatformAdmin { get; private set; }
 
     public DateTime CreatedAtUtc { get; private set; }
+
+    /// <summary>
+    /// Registration data the applications ask for ("company" → "Acme"), encrypted at rest by the infrastructure. Shared
+    /// by every application: two of them asking for "company" read the same value. Replaced, never mutated.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> ProfileFields { get; private set; } = new Dictionary<string, string>(StringComparer.Ordinal);
 
     public IReadOnlyCollection<RecoveryCode> RecoveryCodes => _recoveryCodes;
 
@@ -145,6 +153,39 @@ public sealed class User : AggregateRoot
     }
 
     public void UpdateDisplayName(string displayName) => DisplayName = NormalizeDisplayName(displayName, Email);
+
+    /// <summary>
+    /// Sets the given values (already validated against the application's fields); an empty value removes the field.
+    /// Fields not in <paramref name="values"/> are kept.
+    /// </summary>
+    public Result UpdateProfileFields(IReadOnlyDictionary<string, string> values)
+    {
+        var merged = new Dictionary<string, string>(ProfileFields, StringComparer.Ordinal);
+        foreach ((string key, string value) in values)
+        {
+            if (value.Length > MaxProfileFieldLength)
+            {
+                return UserErrors.InvalidProfileField;
+            }
+
+            if (value.Length == 0)
+            {
+                merged.Remove(key);
+            }
+            else
+            {
+                merged[key] = value;
+            }
+        }
+
+        if (merged.Count > MaxProfileFields)
+        {
+            return UserErrors.TooManyProfileFields;
+        }
+
+        ProfileFields = merged;
+        return Result.Success();
+    }
 
     public void ChangeEmail(Email newEmail, DateTime utcNow)
     {

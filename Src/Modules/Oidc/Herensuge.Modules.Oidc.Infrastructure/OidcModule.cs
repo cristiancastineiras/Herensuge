@@ -66,7 +66,7 @@ public static class OidcModule
                 server.RegisterClaims(
                     Claims.Subject, Claims.Name, Claims.Email, Claims.EmailVerified, Claims.Role,
                     Claims.AuthenticationMethodReference, Claims.AuthenticationTime,
-                    HerensugeClaimTypes.SessionId, HerensugeClaimTypes.TenantId, HerensugeClaimTypes.TenantRole);
+                    HerensugeClaimTypes.SessionId, HerensugeClaimTypes.TenantId, HerensugeClaimTypes.TenantRole, HerensugeClaimTypes.ProfileFields);
 
                 server.SetAccessTokenLifetime(TimeSpan.FromMinutes(5))
                     .SetIdentityTokenLifetime(TimeSpan.FromMinutes(5))

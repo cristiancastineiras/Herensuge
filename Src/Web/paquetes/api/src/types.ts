@@ -22,6 +22,9 @@ export type AuditPage = Schemas["AuditPage"]
 export type PlatformTenantResponse = Schemas["PlatformTenantResponse"]
 export type ClientResponse = Schemas["ClientResponse"]
 export type CreateClientRequest = Schemas["CreateClientRequest"]
+export type ClientLoginPage = Schemas["ClientLoginPage"]
+export type LoginSettings = Schemas["LoginSettings"]
+export type ProfileField = Schemas["ProfileField"]
 export type ResourceServerResponse = Schemas["ResourceServerResponse"]
 export type AccessManifest = Schemas["AccessManifest"]
 export type ApplicationCatalogResponse = Schemas["ApplicationCatalogResponse"]
@@ -44,3 +47,4 @@ export type RoleGrant = Schemas["RoleGrant"]
 
 // Valores que la API envía como texto (el contrato solo dice `string`).
 export type TenantRole = "owner" | "admin" | "member"
+export type ProfileFieldType = "text" | "number" | "date" | "phone" | "select" | "checkbox"

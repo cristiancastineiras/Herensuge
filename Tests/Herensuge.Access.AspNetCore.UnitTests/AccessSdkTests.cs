@@ -86,6 +86,47 @@ public sealed class AccessSdkTests
         Assert.Equal(AccessCheckResult.Unavailable, result.Reason);
     }
 
+    [Fact]
+    public async Task The_user_name_comes_from_userinfo_with_the_users_token()
+    {
+        var backend = new FakeHerensuge();
+
+        HerensugeUserInfo info = await Client(backend).GetUserInfoAsync("user-token", TestContext.Current.CancellationToken);
+
+        Assert.Equal("Ana Pérez", info.Name);
+        Assert.Equal("ana@example.com", info.Email);
+        Assert.Equal("Bearer user-token", backend.UserInfoAuthorization);
+    }
+
+    [Fact]
+    public async Task The_backchannel_sends_calls_to_the_authority_through_the_internal_address()
+    {
+        var seen = new List<HttpRequestMessage>();
+        using var handler = new BackchannelRewriteHandler(new Uri("https://id.example.com/"), new Uri("http://herensuge-api:8080"))
+        {
+            InnerHandler = new Recorder(seen),
+        };
+        using var client = new HttpClient(handler);
+
+        using HttpResponseMessage toHerensuge = await client.GetAsync(new Uri("https://id.example.com/.well-known/jwks"), TestContext.Current.CancellationToken);
+        using HttpResponseMessage elsewhere = await client.GetAsync(new Uri("https://api.example.com/x"), TestContext.Current.CancellationToken);
+
+        Assert.Equal("http://herensuge-api:8080/.well-known/jwks", seen[0].RequestUri!.ToString());
+        Assert.Equal("https", Assert.Single(seen[0].Headers.GetValues("X-Forwarded-Proto")));
+        Assert.Equal("id.example.com", Assert.Single(seen[0].Headers.GetValues("X-Forwarded-Host")));
+        Assert.Equal("https://api.example.com/x", seen[1].RequestUri!.ToString());
+        Assert.False(seen[1].Headers.Contains("X-Forwarded-Host"));
+    }
+
+    private sealed class Recorder(List<HttpRequestMessage> seen) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            seen.Add(request);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+        }
+    }
+
     private static async Task<AuthorizationHandlerContext> AuthorizeAsync(IHerensugeAccess access, ClaimsPrincipal user, string permission)
     {
         var context = new AuthorizationHandlerContext([new PermissionRequirement(permission)], user, new DefaultHttpContext());
@@ -112,6 +153,9 @@ public sealed class AccessSdkTests
 
         public Task<string> ExchangeTokenAsync(string subjectToken, string targetApplication, CancellationToken cancellationToken = default) =>
             Task.FromResult(subjectToken);
+
+        public Task<HerensugeUserInfo> GetUserInfoAsync(string accessToken, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new HerensugeUserInfo("user", "Ana", null));
     }
 
     /// <summary>Herensuge's token endpoint and decision point, as an HttpClient factory.</summary>
@@ -122,6 +166,8 @@ public sealed class AccessSdkTests
         public int TokenRequests { get; private set; }
 
         public List<JsonElement> Evaluations { get; } = [];
+
+        public string? UserInfoAuthorization { get; private set; }
 
         public HttpClient CreateClient(string name) => new(this, disposeHandler: false) { BaseAddress = new Uri(Options.Authority) };
 
@@ -136,6 +182,12 @@ public sealed class AccessSdkTests
             {
                 TokenRequests++;
                 return Json("""{ "access_token": "machine-token", "token_type": "Bearer", "expires_in": 3600 }""");
+            }
+
+            if (request.RequestUri.AbsolutePath == "/connect/userinfo")
+            {
+                UserInfoAuthorization = request.Headers.Authorization?.ToString();
+                return Json("""{ "sub": "user", "name": "Ana Pérez", "email": "ana@example.com", "permissions": [] }""");
             }
 
             Assert.Equal("Bearer machine-token", request.Headers.Authorization?.ToString());

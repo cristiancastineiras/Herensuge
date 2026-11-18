@@ -56,6 +56,35 @@
         }
       }
     },
+    "/api/v1/auth/clients/{clientId}/login-page": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "parameters": [
+          {
+            "name": "clientId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientLoginPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/tenants/{tenantId}/audit": {
       "get": {
         "tags": [
@@ -816,6 +845,28 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/profile-fields": {
+      "put": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileFieldsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -1713,6 +1764,65 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/platform/clients/{clientId}/login-page": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "parameters": [
+          {
+            "name": "clientId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientLoginPage"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Platform"
+        ],
+        "parameters": [
+          {
+            "name": "clientId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -3557,6 +3667,25 @@
           }
         }
       },
+      "ClientLoginPage": {
+        "required": [
+          "clientId",
+          "displayName",
+          "settings"
+        ],
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/LoginSettings"
+          }
+        }
+      },
       "ClientResponse": {
         "required": [
           "clientId",
@@ -3776,6 +3905,12 @@
           "createdAtUtc": {
             "type": "string",
             "format": "date-time"
+          },
+          "profileFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         }
       },
@@ -4112,6 +4247,100 @@
         }
       },
       "JsonElement": { },
+      "LoginBranding": {
+        "required": [
+          "logo",
+          "primaryColor",
+          "termsUrl",
+          "privacyUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "logo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "primaryColor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "termsUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "privacyUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "homeUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "LoginMethods": {
+        "required": [
+          "password",
+          "passkey",
+          "google",
+          "microsoft"
+        ],
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "boolean"
+          },
+          "passkey": {
+            "type": "boolean"
+          },
+          "google": {
+            "type": "boolean"
+          },
+          "microsoft": {
+            "type": "boolean"
+          }
+        }
+      },
+      "LoginSettings": {
+        "required": [
+          "branding",
+          "methods",
+          "allowRegistration",
+          "profileFields"
+        ],
+        "type": "object",
+        "properties": {
+          "branding": {
+            "$ref": "#/components/schemas/LoginBranding"
+          },
+          "methods": {
+            "$ref": "#/components/schemas/LoginMethods"
+          },
+          "allowRegistration": {
+            "type": "boolean"
+          },
+          "profileFields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileField"
+            }
+          },
+          "allowTenantCreation": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
       "ManifestFeature": {
         "required": [
           "key",
@@ -4569,6 +4798,36 @@
           }
         }
       },
+      "ProfileField": {
+        "required": [
+          "key",
+          "label",
+          "type",
+          "required",
+          "options"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "ProvidersResponse": {
         "required": [
           "providers"
@@ -4630,7 +4889,9 @@
         "required": [
           "email",
           "password",
-          "displayName"
+          "displayName",
+          "clientId",
+          "profileFields"
         ],
         "type": "object",
         "properties": {
@@ -4642,6 +4903,21 @@
           },
           "displayName": {
             "type": "string"
+          },
+          "clientId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "profileFields": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         }
       },
@@ -5168,7 +5444,8 @@
           "email",
           "displayName",
           "authenticationMethods",
-          "tenantId"
+          "tenantId",
+          "profileFields"
         ],
         "type": "object",
         "properties": {
@@ -5209,6 +5486,12 @@
               "string"
             ],
             "format": "uuid"
+          },
+          "profileFields": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         }
       },
@@ -5509,6 +5792,24 @@
           }
         }
       },
+      "UpdateProfileFieldsRequest": {
+        "required": [
+          "clientId",
+          "values"
+        ],
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "values": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "UpdateProfileRequest": {
         "required": [
           "displayName"
@@ -5594,10 +5895,10 @@
       "name": "Me"
     },
     {
-      "name": "Organization"
+      "name": "Auth"
     },
     {
-      "name": "Auth"
+      "name": "Organization"
     },
     {
       "name": "Access (applications)"

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Herensuge.Common.Application.Security;
 using Herensuge.Common.Domain;
 using Herensuge.Common.Infrastructure.Messaging;
@@ -8,6 +9,7 @@ using Herensuge.Modules.Identity.Domain.Tokens;
 using Herensuge.Modules.Identity.Domain.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Herensuge.Modules.Identity.Infrastructure.Database;
 
@@ -49,6 +51,20 @@ public sealed class IdentityDbContext(
     {
         modelBuilder.HasDefaultSchema(IdentityModule.Schema);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(IdentityDbContext).Assembly);
+
+        // Registration data: the whole dictionary as encrypted JSON (it needs the encryptor, hence here and not in
+        // UserConfiguration). The domain replaces the dictionary on every change, so comparing references is enough.
+        modelBuilder.Entity<User>().Property(user => user.ProfileFields)
+            .HasConversion(
+                new ValueConverter<IReadOnlyDictionary<string, string>, string>(
+                    values => ProfileFieldsColumn.Write(values, encryptor),
+                    stored => ProfileFieldsColumn.Read(stored, encryptor)),
+                new ValueComparer<IReadOnlyDictionary<string, string>>(
+                    (left, right) => ReferenceEquals(left, right),
+                    values => RuntimeHelpers.GetHashCode(values),
+                    values => values))
+            .HasColumnType("text");
+
         modelBuilder.ApplyMessagingConfiguration(includeOutbox: true);
         modelBuilder.UseDataEncryption(encryptor);
     }

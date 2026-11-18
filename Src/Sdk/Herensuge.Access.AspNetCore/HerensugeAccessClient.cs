@@ -47,10 +47,23 @@ public interface IHerensugeAccess
     /// never met with it, and it cannot be exchanged again.
     /// </summary>
     Task<string> ExchangeTokenAsync(string subjectToken, string targetApplication, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Name and email of the user of <paramref name="accessToken"/> (the bearer token of the current request), from
+    /// Herensuge's userinfo endpoint: access tokens carry no personal data. Name needs the profile scope; email, the
+    /// email scope. Never take them from the browser.
+    /// </summary>
+    Task<HerensugeUserInfo> GetUserInfoAsync(string accessToken, CancellationToken cancellationToken = default);
 }
 
 /// <param name="SubjectType">user, group, client or object.</param>
 public sealed record Relationship(string ObjectType, string ObjectId, string Relation, string SubjectType, string SubjectId);
+
+/// <summary>The user as Herensuge knows it now (userinfo).</summary>
+public sealed record HerensugeUserInfo(
+    [property: JsonPropertyName("sub")] string Subject,
+    [property: JsonPropertyName("name")] string? Name,
+    [property: JsonPropertyName("email")] string? Email);
 
 /// <summary>
 /// Calls /access/v1/evaluation with the application's own token (client_credentials, scope herensuge.access), cached
@@ -132,6 +145,16 @@ internal sealed class HerensugeAccessClient(
         TokenResponse token = await response.Content.ReadFromJsonAsync<TokenResponse>(cancellationToken)
             ?? throw new JsonException("Empty token response.");
         return token.AccessToken;
+    }
+
+    public async Task<HerensugeUserInfo> GetUserInfoAsync(string accessToken, CancellationToken cancellationToken = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "connect/userinfo");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        using HttpResponseMessage response = await Client().SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<HerensugeUserInfo>(cancellationToken)
+            ?? throw new JsonException("Empty userinfo response.");
     }
 
     public void Dispose() => _tokenLock.Dispose();

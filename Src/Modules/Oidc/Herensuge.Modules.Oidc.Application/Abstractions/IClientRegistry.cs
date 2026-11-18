@@ -13,7 +13,15 @@ public interface IClientRegistry
     Task<Result<string>> RotateSecretAsync(string clientId, CancellationToken cancellationToken);
 
     Task<Result> DeleteAsync(string clientId, CancellationToken cancellationToken);
+
+    /// <summary>Login page of a browser client, system ones included; null for unknown clients and service accounts.</summary>
+    Task<ClientLoginPage?> GetLoginPageAsync(string clientId, CancellationToken cancellationToken);
+
+    /// <summary>Also allowed on system clients (the portal): it is presentation, not protocol configuration.</summary>
+    Task<Result> UpdateLoginSettingsAsync(string clientId, LoginSettings settings, CancellationToken cancellationToken);
 }
+
+public sealed record ClientLoginPage(string ClientId, string DisplayName, LoginSettings Settings);
 
 public sealed record ClientDefinition(string ClientId, bool IsConfidential, ClientSettings Settings);
 

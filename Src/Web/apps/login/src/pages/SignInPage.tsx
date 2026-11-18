@@ -5,6 +5,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import { Link, useNavigate, useSearchParams } from "react-router"
 import { auth, providerNames, signInWithPasskey } from "../api"
 import { AuthLayout, linkClass } from "../AuthLayout"
+import { useLoginPage } from "../loginPage"
 import { continueTo, useReturnUrl, withReturnUrl } from "../navigation"
 
 export function SignInPage() {
@@ -12,6 +13,11 @@ export function SignInPage() {
 	const [params] = useSearchParams()
 	const navigate = useNavigate()
 	const providers = useQuery({ queryKey: ["providers"], queryFn: auth.providers })
+	// Métodos que ofrece la aplicación (Plataforma → Clientes OIDC → Pantalla de login). Google y Microsoft, además,
+	// solo si están configurados en Herensuge.
+	const { methods, allowRegistration } = useLoginPage().settings
+	const offered: Record<string, boolean> = { google: methods.google, microsoft: methods.microsoft }
+	const external = providers.data?.providers.filter((provider) => offered[provider] ?? true) ?? []
 
 	const onSignedIn = (result: SignInResponse) => {
 		if (result.status === "mfa-required") {
@@ -30,62 +36,73 @@ export function SignInPage() {
 		<AuthLayout
 			title="Inicia sesión"
 			footer={
-				<p>
-					¿No tienes cuenta?{" "}
-					<Link className={linkClass} to={withReturnUrl("/register", returnUrl)}>
-						Crear cuenta
-					</Link>
-				</p>
+				allowRegistration && (
+					<p>
+						¿No tienes cuenta?{" "}
+						<Link className={linkClass} to={withReturnUrl("/register", returnUrl)}>
+							Crear cuenta
+						</Link>
+					</p>
+				)
 			}
 		>
 			{urlError && <Alert tone="error">{describeErrorCode(urlError)}</Alert>}
 
-			<Form onSubmit={(event) => password.mutate(formValues(event, "email", "password"))}>
-				<Field label="Email">
-					<Input name="email" type="email" autoComplete="username webauthn" required autoFocus />
-				</Field>
-				<Field
-					label="Contraseña"
-					hint={
-						<Link className={linkClass} to="/forgot-password">
-							¿Has olvidado tu contraseña?
-						</Link>
-					}
-				>
-					<Input name="password" type="password" autoComplete="current-password" required />
-				</Field>
+			{methods.password && (
+				<Form onSubmit={(event) => password.mutate(formValues(event, "email", "password"))}>
+					<Field label="Email">
+						<Input name="email" type="email" autoComplete="username webauthn" required autoFocus />
+					</Field>
+					<Field
+						label="Contraseña"
+						hint={
+							<Link className={linkClass} to={withReturnUrl("/forgot-password", returnUrl)}>
+								¿Has olvidado tu contraseña?
+							</Link>
+						}
+					>
+						<Input name="password" type="password" autoComplete="current-password" required />
+					</Field>
 
-				{errorCode(password.error) === "Users.EmailNotVerified" ? (
-					<Alert tone="warning">
-						<p>Todavía no has verificado tu email. Revisa tu bandeja de entrada.</p>
-						{resend.isSuccess ? (
-							<p className="mt-2 font-medium">Te hemos enviado un nuevo enlace.</p>
-						) : (
-							<button
-								type="button"
-								className="mt-2 font-medium underline underline-offset-4"
-								onClick={() => resend.mutate(password.variables?.email ?? "")}
-							>
-								Reenviar el email de verificación
-							</button>
-						)}
-					</Alert>
-				) : (
-					<ErrorAlert error={password.error} />
-				)}
+					{errorCode(password.error) === "Users.EmailNotVerified" ? (
+						<Alert tone="warning">
+							<p>Todavía no has verificado tu email. Revisa tu bandeja de entrada.</p>
+							{resend.isSuccess ? (
+								<p className="mt-2 font-medium">Te hemos enviado un nuevo enlace.</p>
+							) : (
+								<button
+									type="button"
+									className="mt-2 font-medium underline underline-offset-4"
+									onClick={() => resend.mutate(password.variables?.email ?? "")}
+								>
+									Reenviar el email de verificación
+								</button>
+							)}
+						</Alert>
+					) : (
+						<ErrorAlert error={password.error} />
+					)}
 
-				<Button type="submit" full loading={password.isPending}>
-					Continuar
-				</Button>
-			</Form>
+					<Button type="submit" full loading={password.isPending}>
+						Continuar
+					</Button>
+				</Form>
+			)}
 
-			<Divider />
+			{methods.password && (methods.passkey || external.length > 0) && <Divider />}
 
 			<div className="space-y-2">
-				<Button variant="secondary" full loading={passkey.isPending} onClick={() => passkey.mutate()}>
-					Usar una passkey
-				</Button>
-				{providers.data?.providers.map((provider) => (
+				{methods.passkey && (
+					<Button
+						variant={methods.password ? "secondary" : "primary"}
+						full
+						loading={passkey.isPending}
+						onClick={() => passkey.mutate()}
+					>
+						Usar una passkey
+					</Button>
+				)}
+				{external.map((provider) => (
 					<a
 						key={provider}
 						className={buttonClass("secondary", true)}

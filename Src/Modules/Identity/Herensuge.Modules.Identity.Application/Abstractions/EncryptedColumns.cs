@@ -9,6 +9,7 @@ public static class EncryptedColumns
     public const string UserEmail = "identity.users.email";
     public const string UserDisplayName = "identity.users.display_name";
     public const string UserPhoneNumber = "identity.users.phone_number";
+    public const string UserProfileFields = "identity.users.profile_fields";
     public const string ExternalLoginEmail = "identity.user_external_logins.email";
     public const string PasskeyName = "identity.user_passkeys.name";
     public const string SessionIpAddress = "identity.user_sessions.ip_address";

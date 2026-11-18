@@ -65,6 +65,8 @@ if (response.status === 401) signIn()
 - `useCan(permission)`, `<Can permission fallback>` y `can(user, permission)`: ¿puede el usuario hacer esa acción
   en esta aplicación?
 - `useEntitled(feature)`: ¿incluye el plan de la organización esa funcionalidad?
+- `user.profileFields`: los datos extra que esta aplicación pide al registrarse (`{ company: "Acme" }`), configurados en
+  Plataforma → Clientes OIDC → Pantalla de login.
 - `fetchUser()` y `watchSession(onSignedOut, onPermissionsChanged)`: lo mismo que hace el provider, sin React.
 
 ## Permisos

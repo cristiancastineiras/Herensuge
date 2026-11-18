@@ -1,0 +1,6 @@
+# TLS de Fichajes (las cookies __Host- y OIDC exigen HTTPS). Un dominio real recibe un certificado de Let's Encrypt;
+# *.localhost usa la CA interna de este Caddy (distinta de la de Herensuge).
+{$FICHAJES_HOST} {
+	encode zstd gzip
+	reverse_proxy fichajes-bff:8080
+}

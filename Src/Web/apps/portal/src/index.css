@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../../../paquetes/componentes/src/tema.css";
 
 /* Clases usadas en los paquetes compartidos */
 @source "../../../paquetes";

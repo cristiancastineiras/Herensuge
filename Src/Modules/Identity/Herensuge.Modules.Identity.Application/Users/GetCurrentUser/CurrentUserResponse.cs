@@ -25,4 +25,7 @@ public sealed record CurrentUserResponse
     public bool IsPlatformAdmin { get; init; }
 
     public DateTime CreatedAtUtc { get; init; }
+
+    /// <summary>Registration data asked by the applications ("company" → "Acme").</summary>
+    public IReadOnlyDictionary<string, string> ProfileFields { get; init; } = new Dictionary<string, string>();
 }

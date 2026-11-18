@@ -70,6 +70,14 @@
   <Folder Name="/Src/Sdk/">
     <Project Path="Src/Sdk/Herensuge.Access.AspNetCore/Herensuge.Access.AspNetCore.csproj" />
   </Folder>
+  <Folder Name="/FichajesApp/">
+    <File Path="FichajesApp/README.md" />
+    <File Path="FichajesApp/herensuge.access.json" />
+    <File Path="FichajesApp/compose.yaml" />
+    <File Path="FichajesApp/Fichajes.Api.Dockerfile" />
+    <File Path="FichajesApp/Fichajes.Bff.Dockerfile" />
+    <Project Path="FichajesApp/Fichajes.Api/Fichajes.Api.csproj" />
+  </Folder>
   <Folder Name="/Samples/" />
   <Folder Name="/Samples/Facturas/">
     <File Path="Samples/Facturas/README.md" />
@@ -83,6 +91,7 @@
     <Project Path="Tests/Herensuge.IntegrationTests/Herensuge.IntegrationTests.csproj" />
     <Project Path="Tests/Herensuge.Modules.Access.UnitTests/Herensuge.Modules.Access.UnitTests.csproj" />
     <Project Path="Tests/Herensuge.Modules.Identity.UnitTests/Herensuge.Modules.Identity.UnitTests.csproj" />
+    <Project Path="Tests/Herensuge.Modules.Oidc.UnitTests/Herensuge.Modules.Oidc.UnitTests.csproj" />
     <Project Path="Tests/Herensuge.Modules.Tenancy.UnitTests/Herensuge.Modules.Tenancy.UnitTests.csproj" />
   </Folder>
 </Solution>

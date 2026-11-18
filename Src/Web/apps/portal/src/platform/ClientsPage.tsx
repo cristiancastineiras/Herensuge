@@ -19,6 +19,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { platform } from "../api"
 import { PageHeader, QueryState } from "../components"
+import { LoginPageEditor } from "./LoginPageEditor"
 
 const defaultScopes = "openid profile email offline_access herensuge.api"
 const lines = (value: string) => value.split(/\s+/).filter(Boolean)
@@ -31,6 +32,8 @@ export default function ClientsPage() {
 	const clients = useQuery({ queryKey: ["clients"], queryFn: platform.clients })
 	const refresh = () => queryClient.invalidateQueries({ queryKey: ["clients"] })
 	const [editing, setEditing] = useState<Editing>(null)
+	// Pantalla de login (marca, métodos y registro) del cliente elegido.
+	const [loginOf, setLoginOf] = useState<ClientResponse | null>(null)
 	// El secreto solo se puede ver una vez: al crear el cliente o al rotarlo.
 	const [secret, setSecret] = useState<{ clientId: string; value: string } | null>(null)
 
@@ -44,7 +47,7 @@ export default function ClientsPage() {
 		<>
 			<PageHeader
 				title="Clientes OIDC"
-				description="Aplicaciones del SaaS que inician sesión con Herensuge."
+				description="Aplicaciones del SaaS que inician sesión con Herensuge, y la pantalla de login de cada una."
 				actions={
 					editing === null && <Button onClick={() => setEditing({ mode: "create" })}>Nuevo cliente</Button>
 				}
@@ -72,6 +75,10 @@ export default function ClientsPage() {
 				/>
 			)}
 
+			{loginOf && (
+				<LoginPageEditor key={loginOf.clientId} client={loginOf} onClose={() => setLoginOf(null)} />
+			)}
+
 			<Card flush title="Clientes">
 				<div className="px-5">
 					<QueryState query={clients} />
@@ -95,25 +102,30 @@ export default function ClientsPage() {
 									))}
 								</Td>
 								<Td>
-									{!client.isSystem && (
-										<div className="flex flex-wrap justify-end gap-2">
+									<div className="flex flex-wrap justify-end gap-2">
+										<Button variant="ghost" onClick={() => setLoginOf(client)}>
+											Pantalla de login
+										</Button>
+										{!client.isSystem && (
 											<Button variant="ghost" onClick={() => setEditing({ mode: "edit", client })}>
 												Editar
 											</Button>
-											{client.isConfidential && (
-												<ConfirmButton
-													question="El secreto actual dejará de valer."
-													confirmLabel="Rotar"
-													onConfirm={() => rotate.mutate(client.clientId)}
-												>
-													Rotar secreto
-												</ConfirmButton>
-											)}
+										)}
+										{!client.isSystem && client.isConfidential && (
+											<ConfirmButton
+												question="El secreto actual dejará de valer."
+												confirmLabel="Rotar"
+												onConfirm={() => rotate.mutate(client.clientId)}
+											>
+												Rotar secreto
+											</ConfirmButton>
+										)}
+										{!client.isSystem && (
 											<ConfirmButton confirmLabel="Eliminar" onConfirm={() => remove.mutate(client.clientId)}>
 												Eliminar
 											</ConfirmButton>
-										</div>
-									)}
+										)}
+									</div>
 								</Td>
 							</tr>
 						))}

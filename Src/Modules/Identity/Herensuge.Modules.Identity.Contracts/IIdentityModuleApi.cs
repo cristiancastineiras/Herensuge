@@ -23,12 +23,14 @@ public interface IIdentityModuleApi
     Task RevokeSessionAsync(Guid sessionId, CancellationToken cancellationToken);
 }
 
+/// <param name="ProfileFields">Registration data asked by the applications ("company" → "Acme"), all of them.</param>
 public sealed record UserSnapshot(
     Guid Id,
     string Email,
     bool EmailVerified,
     string DisplayName,
     bool IsPlatformAdmin,
-    bool HasMfa);
+    bool HasMfa,
+    IReadOnlyDictionary<string, string> ProfileFields);
 
 public sealed record UserSummary(Guid Id, string Email, string DisplayName);

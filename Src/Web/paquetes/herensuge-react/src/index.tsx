@@ -30,6 +30,11 @@ export type HerensugeUser = {
 	entitlements: string[]
 	/** Quién actúa en nombre del usuario (sesión de soporte o token delegado), o `null`. */
 	actor: string | null
+	/**
+	 * Datos extra que esta aplicación pide al registrarse (Plataforma → Clientes OIDC → Pantalla de login):
+	 * `{ company: "Acme" }`. Solo los campos de esta aplicación.
+	 */
+	profileFields: Record<string, string>
 }
 
 /**

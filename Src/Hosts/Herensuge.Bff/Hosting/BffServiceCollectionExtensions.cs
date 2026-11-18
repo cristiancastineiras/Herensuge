@@ -17,13 +17,21 @@ using Yarp.ReverseProxy.Transforms;
 
 namespace Herensuge.Bff.Hosting;
 
-internal static class BffServiceCollectionExtensions
+internal static partial class BffServiceCollectionExtensions
 {
+    [System.Text.RegularExpressions.GeneratedRegex("^[a-z][a-z0-9-]{0,39}$")]
+    private static partial System.Text.RegularExpressions.Regex InstanceNamePattern();
+
     public static IServiceCollection AddBffAuthentication(this IServiceCollection services, BffOptions bff)
     {
         if (string.IsNullOrWhiteSpace(bff.ClientSecret))
         {
             throw new InvalidOperationException("Bff:ClientSecret is not configured.");
+        }
+
+        if (!bff.Scopes.Contains("openid", StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException("Bff:Scopes must include openid and the application's scope (e.g. herensuge.api).");
         }
 
         services.AddAuthentication(BffDefaults.CookieScheme)
@@ -106,9 +114,14 @@ internal static class BffServiceCollectionExtensions
     /// always encrypted at rest: with DataProtection:CertificatePath when it is set, otherwise with
     /// DataProtection:KeyRingKey (required).
     /// </summary>
-    public static IServiceCollection AddBffState(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+    public static IServiceCollection AddBffState(this IServiceCollection services, BffOptions bff, IConfiguration configuration, IHostEnvironment environment)
     {
-        IDataProtectionBuilder dataProtection = services.AddDataProtection().SetApplicationName("herensuge-bff");
+        if (!InstanceNamePattern().IsMatch(bff.InstanceName))
+        {
+            throw new InvalidOperationException("Bff:InstanceName must be lowercase letters, digits and dashes (e.g. fichajes-bff).");
+        }
+
+        IDataProtectionBuilder dataProtection = services.AddDataProtection().SetApplicationName(bff.InstanceName);
         string? certificatePath = configuration["DataProtection:CertificatePath"];
         if (!string.IsNullOrWhiteSpace(certificatePath))
         {
@@ -145,12 +158,12 @@ internal static class BffServiceCollectionExtensions
         services.AddSingleton(multiplexer);
         services.AddStackExchangeRedisCache(options =>
         {
-            options.InstanceName = "herensuge-bff:";
+            options.InstanceName = $"{bff.InstanceName}:";
             options.ConnectionMultiplexerFactory = () => Task.FromResult(multiplexer);
         });
         services.AddSingleton<ISessionLock, ValkeySessionLock>();
         services.AddHostedService<SessionRevocationListener>();
-        dataProtection.PersistKeysToStackExchangeRedis(multiplexer, "herensuge-bff:data-protection-keys");
+        dataProtection.PersistKeysToStackExchangeRedis(multiplexer, $"{bff.InstanceName}:data-protection-keys");
 
         services.AddHealthChecks().AddCheck("valkey", () =>
         {
@@ -213,7 +226,7 @@ internal static class BffServiceCollectionExtensions
         return services;
     }
 
-    public static IHostApplicationBuilder AddBffTelemetry(this IHostApplicationBuilder builder)
+    public static IHostApplicationBuilder AddBffTelemetry(this IHostApplicationBuilder builder, BffOptions bff)
     {
         builder.Logging.AddOpenTelemetry(logging =>
         {
@@ -222,7 +235,7 @@ internal static class BffServiceCollectionExtensions
         });
 
         OpenTelemetryBuilder telemetry = builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource.AddService("herensuge-bff"))
+            .ConfigureResource(resource => resource.AddService(bff.InstanceName))
             .WithTracing(tracing => tracing
                 .AddAspNetCoreInstrumentation(options => options.Filter = context => !context.Request.Path.StartsWithSegments("/health"))
                 .AddHttpClientInstrumentation())
